@@ -1,0 +1,73 @@
+{
+ "bands": true,
+ "files": {
+  "augments.json": {
+   "sha256": "36ee16f363c9d25d9590fa8f78b3fe960289903c130eb6654a08faea0ed17f78",
+   "size": 13261
+  },
+  "bands/casual/hero_augments.json": {
+   "sha256": "afa84f6bff46c9562ad1139dc8b4fe99d2812a92753b7b12b1990a2587c369bf",
+   "size": 2160996
+  },
+  "bands/casual/heroes.json": {
+   "sha256": "ce437b49ecc5818ab6158ae6461c01afdc3105c2be061ee2e6ec3a85083f7128",
+   "size": 28149
+  },
+  "bands/high/hero_augments.json": {
+   "sha256": "a974b21030bdba6d682ff0a767fb10c18f2b6e956495e7c1fd17ef851aad136e",
+   "size": 2106974
+  },
+  "bands/high/heroes.json": {
+   "sha256": "2874b405de7a9eb0ccacedbe16732d10edeae851040a9974ad76f3db2419b3aa",
+   "size": 27819
+  },
+  "bands/mid/hero_augments.json": {
+   "sha256": "313de0b85ce5b3de3d232566f03aaf6ab042b903d11a872ee8e84b8069a30c07",
+   "size": 2150866
+  },
+  "bands/mid/heroes.json": {
+   "sha256": "e1e0ecc2f4af535c0f4770998bf70a96b2bda42a32a35847cc8eb2207769a600",
+   "size": 28080
+  },
+  "bands/top/hero_augments.json": {
+   "sha256": "2231f04f90493b212f4bee774a413e62c45e61a2fed69d0b167f2bfe38373086",
+   "size": 2052688
+  },
+  "bands/top/heroes.json": {
+   "sha256": "72094e3ca13e9d7aaa4566a0e0613d75af3e0e9b42fd0c24e369b8d735f8bdc7",
+   "size": 27527
+  },
+  "hero_augments.json": {
+   "sha256": "ee217fc9bff40185e61694e8474c2d48bd106b87238b2afe987761c5d11b7677",
+   "size": 2174283
+  },
+  "heroes.json": {
+   "sha256": "b9cc152c908e7ee31b38c50a77306958bc622b83857dbbb0d694aa9b3722e931",
+   "size": 28234
+  },
+  "meta.json": {
+   "sha256": "a2510c2967c160d64540c6ffd2368cdbe7dcdff890177ae48e6c3fbe34c35b79",
+   "size": 5081
+  }
+ },
+ "matches": 31102901,
+ "matches_detail": {
+  "collected": 32311331,
+  "excluded": 1208430,
+  "valid": 31102901,
+  "validity_rule": "对局时长不少于 4 分钟（240 秒）、10 名玩家齐全且正好 5 胜 5 负、正常结束（GameComplete）；重开、提前解散、数据不全的对局不计"
+ },
+ "mode": "normal",
+ "mode_label": "常规",
+ "patch": "16.20",
+ "path": "patches/16.20/normal",
+ "schema_version": 1,
+ "seq": 1,
+ "snapshot_at": "2026-10-16T09:15:50+08:00",
+ "window": {
+  "end_exclusive": "2026-10-16T06:00:00+08:00",
+  "periods": null,
+  "start": "2026-10-09T08:14:00+08:00",
+  "time_field": "对局创建时间（北京时间）"
+ }
+}
