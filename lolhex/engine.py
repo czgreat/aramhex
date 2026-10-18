@@ -72,6 +72,9 @@ class Engine:
             self.live = LiveClient()
         self._lock = threading.RLock()
         self._stop = threading.Event()
+        self._data_wake = threading.Event()  # 对局结束时叫醒数据线程：对局中推迟的数据更新马上补上
+        if hasattr(self.store, "hold"):
+            self.store.hold = lambda: self.state["phase"] == "ingame"
         self._rescan = threading.Event()
         self._detector = None  # 延迟创建，避免没进游戏就加载 OCR 模型
         self._icon_bank = None  # 英雄头像库，头像下载好后创建
@@ -99,6 +102,7 @@ class Engine:
 
     def stop(self) -> None:
         self._stop.set()
+        self._data_wake.set()
 
     def snapshot(self) -> dict:
         with self._lock:
@@ -177,7 +181,8 @@ class Engine:
                 self._reevaluate()
             except Exception:
                 log.exception("数据刷新异常")
-            self._stop.wait(max(600.0, self.settings.refresh_hours * 3600 / 4))
+            self._data_wake.wait(max(600.0, self.settings.refresh_hours * 3600 / 4))
+            self._data_wake.clear()
 
     def _warm_up(self) -> None:
         """启动时先用本地缓存加载头像库、预热 OCR，第一次进选人界面不用等网络和模型加载。"""
@@ -384,6 +389,7 @@ class Engine:
         self._manual_hero = False
         self._set(hero_id=None, hero_source=None, hero_candidates=[], level=None,
                   offer=None, evaluation=None)
+        self._data_wake.set()
 
     # ---------- 海克斯识别 ----------
 

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import os
+import threading
 import webbrowser
 from html import escape
 from importlib import resources
@@ -243,6 +244,14 @@ class MainWindow(QMainWindow):
         self._update_timer = QTimer(self)
         self._update_timer.timeout.connect(self.check_update)
         self._update_timer.start(UPDATE_EVERY_MS)
+        # 提示和弹窗都不在对局中出现（会抢游戏的焦点）：对局中先攒着，回到游戏外再出
+        self._deferred_cloud: dict | None = None
+        self._deferred_toast: str | None = None
+        self._shown_note = None
+        self._asked_offers: set = set()
+        self._notify_timer = QTimer(self)
+        self._notify_timer.timeout.connect(self._notify_tick)
+        self._notify_timer.start(3000)
 
         self.status = QLabel()
         self.status.setWordWrap(False)  # 内容自带 <br> 换行；自动换行会让高度算不准被压扁
@@ -503,11 +512,45 @@ class MainWindow(QMainWindow):
         if p:
             webbrowser.open(p["url"])
 
+    def _in_game(self) -> bool:
+        return self.engine.snapshot().get("phase") == "ingame"
+
+    def _toast(self, text: str) -> None:
+        tray = getattr(self, "tray", None)
+        if tray:
+            tray.showMessage("海克斯大乱斗助手", text, app_icon(), 6000)
+
+    def _notify_tick(self):
+        """游戏外才出：攒下的公告/新版本提示、数据已更新的提示、关了自动更新时的「是否更新」。"""
+        if self._in_game():
+            return
+        if self._deferred_cloud is not None:
+            cfg, self._deferred_cloud = self._deferred_cloud, None
+            self._apply_cloud(cfg)
+        if self._deferred_toast:
+            text, self._deferred_toast = self._deferred_toast, None
+            self._toast(text)
+        dd = self.engine.snapshot().get("data") or {}
+        note = dd.get("data_note")
+        if note and note.get("id") != self._shown_note:
+            self._shown_note = note["id"]
+            self._toast(note["text"])
+        offer = dd.get("data_offer")
+        if offer and offer.get("id") not in self._asked_offers:
+            self._asked_offers.add(offer["id"])  # 每份新数据只问一次；点了「稍后」下次启动再问
+            ask = QMessageBox.question(self, "统计数据", f"检测到新数据（{offer['text']}），现在更新吗？")
+            if ask == QMessageBox.Yes:
+                st = self.engine.store
+                threading.Thread(target=lambda: st.sync_data(force=True, manual=True), daemon=True).start()
+
     def _apply_cloud(self, cfg: dict):
         if hasattr(self, "about_label"):
             self.about_label.setText(about_html())
         if hasattr(self, "btn_comm"):
             self._show_primary()
+        if self._in_game():  # 公告、版本太旧都是弹窗：打完这局再弹
+            self._deferred_cloud = cfg
+            return
         s = self.engine.settings
         notice = cfg.get("notice") or {}
         if notice.get("id") and notice.get("text") and notice["id"] != s.seen_notice:
@@ -535,7 +578,9 @@ class MainWindow(QMainWindow):
     def _save_settings(self):
         s = self.engine.settings
         s.check_data_updates = self.set_data.isChecked()
-        s.speed = self.set_speed.currentData() or "standard"
+        if hasattr(self.engine.store, "check_updates"):
+            self.engine.store.check_updates = s.check_data_updates  # 马上生效，不用重开
+        s.speed =self.set_speed.currentData() or "standard"
         s.allow_capture = self.set_capture.isChecked()
         s.auto_screenshot = self.set_autoshot.isChecked()
         win.set_capture_allowed(s.allow_capture)
@@ -586,6 +631,8 @@ class MainWindow(QMainWindow):
         """「检查更新」按钮：马上查统计数据（不管自动更新开关），返回一句结果。"""
         st = self.engine.store
         changed = st.sync_data(force=True, manual=True)
+        if changed:  # 结果在「检查更新」的对话框里说了，右下角不再提示一遍
+            self._shown_note = (getattr(st, "data_note", None) or {}).get("id")
         ds = st.dataset
         tail = f"（{ds.patch} 版本，截至 {str(ds.snapshot_at)[5:10]}）" if ds else ""
         if changed:
@@ -626,9 +673,12 @@ class MainWindow(QMainWindow):
                 if self._worker:
                     self._worker.wait(3000)  # 检查线程发完信号就结束，等它收尾再开始下载
                 self._start_update()
-        elif tray and known != info["version"]:  # 同一个版本只弹一次通知
-            tray.showMessage("海克斯大乱斗助手", f"有新版本 {info['version']}，打开主界面点「立即更新」。",
-                             app_icon(), 6000)
+        elif tray and known != info["version"]:  # 同一个版本只弹一次通知；对局中先攒着
+            text = f"有新版本 {info['version']}，打开主界面点「立即更新」。"
+            if self._in_game():
+                self._deferred_toast = text
+            else:
+                self._toast(text)
 
     def _start_update(self):
         if not self._update_info or (self._worker and self._worker.isRunning()):

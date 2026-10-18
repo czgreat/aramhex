@@ -65,6 +65,8 @@ def _win():
     win._sync_data_now = lambda: "统计数据已是最新。"
     win._data_line = lambda: MainWindow._data_line(win)
     win._apply_cloud = lambda cfg: None
+    win._in_game = lambda: False
+    win._toast = lambda t: MainWindow._toast(win, t)
     win._update_found = lambda info, manual=False: MainWindow._update_found(win, info, manual)
     win._check_failed = lambda msg: shown.append("失败：" + msg)
     win._start_update = lambda: shown.append("开始下载")
@@ -127,3 +129,19 @@ def test_mirror_result_offers_download_page():
     assert win.btn_update.text == "去下载"
     win._update_found({"version": "9.9.10", "file": "AramHex-Setup-9.9.10.exe", "sha256": "0" * 64, "url": "u"})
     assert win.btn_update.text in ("立即更新", "去下载")  # 便携版跑测试时也是「去下载」
+
+
+def test_popups_wait_until_game_ends(monkeypatch):
+    # 对局中：公告不弹、新版本提示不出，攒到回到游戏外再出
+    monkeypatch.setattr(mainwindow.QMessageBox, "exec", lambda self: pytest.fail("对局中不该弹窗"))
+    shown = []
+    win = SimpleNamespace(engine=SimpleNamespace(settings=SimpleNamespace(seen_notice="")), _deferred_cloud=None,
+                          _deferred_toast=None, _update_info=None, btn_update=FakeButton(),
+                          update_text=SimpleNamespace(setText=lambda t: None), update_bar=SimpleNamespace(show=lambda: None),
+                          tray=SimpleNamespace(showMessage=lambda *a: shown.append(a[1])))
+    win._in_game = lambda: True
+    cfg = {"notice": {"id": "n1", "text": "公告"}}
+    MainWindow._apply_cloud(win, cfg)
+    assert win._deferred_cloud == cfg
+    MainWindow._update_found(win, {"version": "9.9.9"})
+    assert not shown and "9.9.9" in win._deferred_toast

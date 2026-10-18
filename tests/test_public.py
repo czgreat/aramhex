@@ -115,11 +115,33 @@ def test_sync_failure_is_quiet(tmp_path):
     assert s.sync_data(force=True) is False and s.sync_error and s.dataset.origin == "bundled"
 
 
-def test_sync_disabled(tmp_path, monkeypatch):
-    make_dataset(tmp_path / "b")
-    monkeypatch.setattr(public.requests, "get", lambda *a, **k: pytest.fail("关掉后不应联网"))
-    s = PublicStore(tmp_path / "data", bundled=tmp_path / "b", check_updates=False)
+def test_sync_disabled_only_offers(tmp_path, server):
+    # 关了自动更新：只看清单，有新的就记到 data_offer 等用户点头，不下载；点头（manual）才下载
+    root, base = server
+    make_dataset(tmp_path / "b", snapshot_at="2026-10-13T00:00:00+08:00")
+    s = PublicStore(tmp_path / "data", bundled=tmp_path / "b", base_url=base, check_updates=False)
+    _publish(root, "2026-10-20T00:00:00+08:00", patch="16.21")
     assert s.sync_data(force=True) is False
+    assert s.dataset.origin == "bundled" and not (tmp_path / "data" / "public").exists()
+    assert s.data_offer and "16.21 版本" in s.data_offer["text"] and "截至 10-20" in s.data_offer["text"]
+    assert s.status()["data_offer"] == s.data_offer
+    assert s.sync_data(force=True, manual=True) is True
+    assert s.dataset.patch == "16.21" and s.data_offer is None
+
+
+def test_sync_waits_until_game_ends(tmp_path, server):
+    # 对局中后台不换数据（一局里推荐前后一致），打完再换，换完记一条提示
+    root, base = server
+    make_dataset(tmp_path / "b", snapshot_at="2026-10-13T00:00:00+08:00")
+    s = PublicStore(tmp_path / "data", bundled=tmp_path / "b", base_url=base)
+    _publish(root, "2026-10-20T00:00:00+08:00", patch="16.21")
+    in_game = [True]
+    s.hold = lambda: in_game[0]
+    assert s.sync_data() is False and s.dataset.origin == "bundled" and s._last_sync == 0
+    in_game[0] = False
+    assert s.sync_data() is True and s.dataset.patch == "16.21"
+    assert s.data_note and s.data_note["text"].startswith("数据已更新：16.21 版本，截至 10-20")
+    assert s.status()["data_note"]["id"] == s.dataset.revision
 
 
 def test_real_bundled_data_is_valid():

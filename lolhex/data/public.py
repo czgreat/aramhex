@@ -242,6 +242,9 @@ class PublicStore(DataStore):
         self.data_updated_at: float | None = None
         self.sync_error: str | None = None
         self.sync_progress: dict | None = None  # 下载统计数据时 {done, total}（字节）
+        self.hold = lambda: False  # 返回 True 时（正在对局）不在后台换数据，打完再换，一局里推荐前后一致
+        self.data_note: dict | None = None   # 后台换了新数据：{id, text}，界面在游戏外提示一次
+        self.data_offer: dict | None = None  # 关了自动更新、发现有新数据：{id, text}，界面在游戏外问一次
         self._last_sync = 0.0
         self._sync_lock = threading.Lock()
         self._views: dict = {}
@@ -269,13 +272,19 @@ class PublicStore(DataStore):
 
     def sync_data(self, force: bool = False, manual: bool = False) -> bool:
         """查数据仓库有没有更新的统计数据，有就下载并换上。下载了新数据返回 True。
-        manual=True：用户点了「检查更新」，关了自动更新也查。"""
-        if (not self.check_updates and not manual) or not self._sync_lock.acquire(blocking=False):
+        manual=True：用户点了「检查更新」或同意了更新提示，关了自动更新、正在对局也查。
+        后台查时：正在对局就先不查（打完再查）；关了自动更新只看有没有新的，有就记到 data_offer 等用户点头。"""
+        if not manual and self.hold():
+            return False
+        if not self._sync_lock.acquire(blocking=False):
             return False
         try:
             if not force and time.time() - self._last_sync < SYNC_EVERY_S:
                 return False
             self._last_sync = time.time()
+            if not self.check_updates and not manual:
+                self._look_for_offer()
+                return False
             event = self._event_source()
             if event != self.event:
                 self.event = event
@@ -334,12 +343,42 @@ class PublicStore(DataStore):
                 return best  # 这个节点答复了（有或没有更新），不用再问别的节点
         return None
 
+    def _newer(self, remote: dict) -> bool:
+        cur = self.dataset
+        return not cur or (str(remote.get("snapshot_at") or ""), str(remote.get("patch") or "")) > (cur.snapshot_at, cur.patch)
+
+    @staticmethod
+    def _describe(remote: dict) -> str:
+        """「16.20 版本，截至 10-17，3699 万局」"""
+        parts = [f"{remote['patch']} 版本"] if remote.get("patch") else []
+        if remote.get("snapshot_at"):
+            parts.append("截至 " + str(remote["snapshot_at"])[5:10])
+        m = remote.get("matches")
+        m = m.get("valid") if isinstance(m, dict) else m
+        if isinstance(m, int) and m > 0:
+            parts.append(f"{m / 1e4:.0f} 万局" if m >= 1e4 else f"{m} 局")
+        return "，".join(parts)
+
+    def _look_for_offer(self) -> None:
+        """关了自动更新时：只读清单，看看有没有更新的数据（不下载）。连不上就算了，下次再看。"""
+        for base in self.base_urls:
+            try:
+                r = requests.get(f"{base}/latest.json", timeout=15)
+                r.raise_for_status()
+                remote = check_manifest(r.json())
+            except Exception as e:
+                log.info("从 %s 查看统计数据失败：%s", base, e)
+                continue
+            if self._newer(remote):
+                self.data_offer = {"id": f"{remote.get('patch')}|{remote.get('snapshot_at')}",
+                                   "text": self._describe(remote)}
+            return
+
     def _sync_from(self, base: str) -> bool:
         r = requests.get(f"{base}/latest.json", timeout=15)
         r.raise_for_status()
         remote = check_manifest(r.json())
-        cur = self.dataset
-        if cur and (str(remote.get("snapshot_at") or ""), str(remote.get("patch") or "")) <= (cur.snapshot_at, cur.patch):
+        if not self._newer(remote):
             return False
         log.info("统计数据有更新：%s（样本截至 %s），从 %s 下载", remote.get("patch"), remote.get("snapshot_at"), base)
         self.sync_progress = {"done": 0, "total": 0}  # 界面据此显示"统计数据更新中 x / y MB"
@@ -350,6 +389,8 @@ class PublicStore(DataStore):
             self.sync_progress = None
         if self.reload_dataset():
             self.data_updated_at = time.time()
+            self.data_offer = None
+            self.data_note = {"id": self.dataset.revision, "text": "数据已更新：" + self._describe(remote)}
             return True
         return False
 
@@ -470,5 +511,5 @@ class PublicStore(DataStore):
                  dataset_mode_label=(ds.mode_label or ds.mode) if ds and ds.mode != "normal" else None,
                  event_label=(self.event or {}).get("label"), event_fallback=self.event_fallback,
                  data_updated_at=self.data_updated_at, sync_error=self.sync_error,
-                 data_progress=self.sync_progress)
+                 data_progress=self.sync_progress, data_note=self.data_note, data_offer=self.data_offer)
         return s
