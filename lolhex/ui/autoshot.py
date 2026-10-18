@@ -84,6 +84,10 @@ class AutoShot:
                 if ok:
                     stamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")[:-3]  # 带毫秒：连着刷新也不会互相覆盖
                     path = shots_dir() / f"{stamp}-{kind}.png"
+                    n = 1
+                    while path.exists():  # 同一毫秒里截了两张（测试里会遇到）：加序号，不覆盖
+                        n += 1
+                        path = shots_dir() / f"{stamp}-{n}-{kind}.png"
                     path.write_bytes(buf.tobytes())
                     log.info("自动截图：%s", path.name)
                     self._prune()

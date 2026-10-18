@@ -69,11 +69,17 @@ class NeedFullInstall(Exception):
     """这次更新不能增量完成（第三方库变了、清单拿不到等），要下载完整安装包。"""
 
 
+# _internal 下的 VC++ 运行库是打包时从打包机的系统目录收进来的（1.0.0 的 msvcp140.dll 是 14.51），
+# GitHub 的 Windows 构建机更新系统就会变；每个不到 1MB，也放进增量更新
+VC_RUNTIME = {f"_internal/{n}" for n in ("msvcp140.dll", "msvcp140_1.dll", "msvcp140_2.dll",
+                                         "vcruntime140.dll", "vcruntime140_1.dll")}
+
+
 def is_patchable(rel: str) -> bool:
     # 第三方库的 *.dist-info/ 是安装记录（RECORD 等），每次重新 pip install 内容都会变，但不影响运行；
     # 一共只有约 0.3MB，也放进增量更新，免得因为它们就要重下完整安装包
     return (rel == PATCHABLE_PREFIXES[0] or rel == PATCHABLE_PREFIXES[1] or rel.startswith(PATCHABLE_PREFIXES[2])
-            or ".dist-info/" in rel)
+            or ".dist-info/" in rel or rel.lower() in VC_RUNTIME)
 
 
 def sha256_file(path: Path) -> str:

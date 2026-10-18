@@ -42,6 +42,16 @@ def test_third_party_change_needs_full_installer(tmp_path):
         patch.plan(m, _tree(tmp_path / "old", OLD))
 
 
+def test_vc_runtime_change_is_patchable(tmp_path):
+    # 构建机系统里的 VC++ 运行库更新了：跟着增量更新换，不要求重下完整安装包
+    old = {**OLD, "_internal/msvcp140.dll": b"14.51", "_internal/PySide6/MSVCP140.dll": b"qt"}
+    new = {**NEW, "_internal/msvcp140.dll": b"14.52", "_internal/PySide6/MSVCP140.dll": b"qt"}
+    m = patch.build_manifest(_tree(tmp_path / "new", new), "1.1.0")
+    assert "_internal/msvcp140.dll" in m["patchable"] and "_internal/PySide6/MSVCP140.dll" not in m["patchable"]
+    changed, _ = patch.plan(m, _tree(tmp_path / "old", old))
+    assert "_internal/msvcp140.dll" in changed
+
+
 @pytest.mark.parametrize("bad", [{"version": "1.0.2"}, {"files": {"../evil": {"sha256": "0", "size": 1}}},
                                  {"patchable": ["missing"]}])
 def test_manifest_checks(tmp_path, bad):
