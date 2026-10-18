@@ -409,6 +409,12 @@ class PublicStore(DataStore):
                                  for i, hid in enumerate(order)},
                       "augments": {aid: {"win": w / n, "games": n} for aid, (n, w) in agg.items() if n}}
 
+    def excluded_augments(self) -> dict[str, str]:
+        """数据集 meta.json 的 excluded_augments：{"1337": {"name": ..., "reason": ...}}。"""
+        ex = (self.dataset.meta if self.dataset else {}).get("excluded_augments") or {}
+        return {str(aid): str((v or {}).get("reason") or "") if isinstance(v, dict) else str(v or "")
+                for aid, v in ex.items()} if isinstance(ex, dict) else {}
+
     def label(self) -> str:
         if not self.dataset:
             return "暂无统计数据"

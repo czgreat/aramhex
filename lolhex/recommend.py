@@ -13,6 +13,8 @@
    比同屏其他海克斯少一个数量级以上（<1/10）的，标"样本太少"并提示刷新，不管胜率多高；
    只是不足 1000 局的，不当首选、标"样本偏少"。三张都不足时才正常比较。
 选取率只展示，不进分数：常拿不代表强。
+统计里剔除的海克斯（数据集 excluded_augments，如尊我为王：完成任务后被替换，局末数据不准）标「无数据」，
+不打分、不用官方层级兜底、不参与首选比较。
 """
 
 from __future__ import annotations
@@ -24,6 +26,7 @@ REROLL_BELOW = -0.5  # 低于英雄基准 0.5pp 以上：可考虑刷新
 REROLL_GAP = 2.0     # 比首选低 2pp 以上：可考虑刷新
 RELIABLE_GAMES = 1000  # 本英雄局数达到这个数才能当首选
 TOO_FEW_RATIO = 0.1    # 局数不到同屏最多那张的 1/10：样本太少，提示刷新
+NODATA_NOTE = "完成任务后会被替换，统计不准"
 
 
 def sample_level(games: int | None) -> str:
@@ -78,6 +81,7 @@ def evaluate(store, hero_id: str | None, slots: list[str | None], k: int = 300) 
     if base is None and hero_id:
         base = ((store.ranks.get("heroes") or {}).get(str(hero_id)) or {}).get("win")
     official = {a["id"]: a for a in (hero or {}).get("augments", [])}
+    excluded = store.excluded_augments()
     rarity_total: dict[str, int] = {}
     for a in official.values():
         if a.get("tier") and a.get("rarity"):
@@ -98,6 +102,11 @@ def evaluate(store, hero_id: str | None, slots: list[str | None], k: int = 300) 
         meta = store.augments.get(aid, {})
         r.update(name=meta.get("name", aid), rarity=meta.get("rarity"), icon=meta.get("icon"),
                  desc=meta.get("desc", ""))
+        if aid in excluded:
+            r.update(verdict="nodata", basis="excluded")
+            r["reasons"].append(NODATA_NOTE)
+            results.append(r)
+            continue
         t = official.get(aid)
         if t:
             r.update(tier=t.get("tier"), pick=t.get("pick"))

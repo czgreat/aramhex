@@ -111,3 +111,16 @@ def test_hero_panel_merges_official_build_with_stats(store):
     assert only_official and all(a.get("tier") for a in only_official)  # 统计里没有的：只有官方层级
     assert p["builds"]["core"] and p["skills"]
     assert p["rank"]["rank"] == 1 and p["rank"]["total"] == 2
+
+
+def test_excluded_augment_has_no_data(store):
+    # 数据集 meta.json 的 excluded_augments（如尊我为王）：不打分、不按官方层级兜底、不当首选
+    store.dataset.meta["excluded_augments"] = {"1373": {"name": "缩小引擎", "reason": "测试"}}
+    assert store.excluded_augments() == {"1373": "测试"}
+    ev = recommend.evaluate(store, "17", ["1373", "1029", "2128"])
+    s = ev["slots"][0]
+    assert s["verdict"] == "nodata" and s["score"] is None and s["basis"] == "excluded"
+    assert s["name"] == "缩小引擎" and recommend.NODATA_NOTE in s["reasons"]
+    assert "tier" not in s
+    assert ev["best_index"] == 1 and "缩小引擎" not in ev["advice"]
+

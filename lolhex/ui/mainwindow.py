@@ -19,7 +19,7 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QFormLayout, 
                                QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMenu, QMessageBox, QProgressBar, QScrollArea,
                                QPushButton, QSystemTrayIcon, QTabWidget, QVBoxLayout, QWidget)
 
-from .. import DATA_HOMEPAGE, HELP_PAGE, HOMEPAGE, WEBSITE, __version__, cloud, patch, rank, update
+from .. import DATA_HOMEPAGE, HELP_PAGE, HOMEPAGE, WEBSITE, __version__, cloud, patch, rank, recommend, update
 from ..config import SPEEDS, is_portable
 from ..vision import window as win
 from ..data.public import BANDS
@@ -31,7 +31,7 @@ from .herosearch import hero_completer
 
 RARITY_CN = {"silver": "白银", "gold": "黄金", "prismatic": "棱彩"}
 VERDICT_CN = {"best": ("首选", "#2e9d5b"), "ok": ("可选", "#3b7dd8"), "reroll": ("可考虑刷新", "#d0533f"),
-              "unknown": ("未知", "#888")}
+              "unknown": ("未知", "#888"), "nodata": ("无数据", "#888")}
 PHASE_CN = {None: "未检测到英雄联盟", "client": "客户端（选英雄界面会自动识别英雄）", "ingame": "对局中"}
 VISION_CN = {"idle": "待机", "paused": "游戏不在前台，暂停", "scanning": "扫描中"}
 UPDATE_EVERY_MS = 30 * 60 * 1000  # 常驻时多久查一次更新
@@ -818,6 +818,8 @@ class MainWindow(QMainWindow):
             if r.get("tier"):
                 meta.append(f"{r['tier']}级")
             lines.append("<span style='color:#777'>" + " ".join(m for m in meta if m) + "</span>")
+            if r["verdict"] == "nodata":
+                lines.append(f"<span style='color:#777'>{recommend.NODATA_NOTE}</span>")
             if r.get("score") is not None:
                 s = f"{r['score']:+.1f}"
                 if show_win and r.get("win") is not None:

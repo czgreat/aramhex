@@ -30,7 +30,8 @@ log = logging.getLogger(__name__)
 
 RARITY_CN = {"silver": "白银", "gold": "黄金", "prismatic": "棱彩"}
 VERDICT = {"best": ("首选", QColor(95, 211, 141)), "ok": ("可选", QColor(98, 168, 255)),
-           "reroll": ("可考虑刷新", QColor(255, 122, 107)), "unknown": ("未知", QColor(150, 150, 150))}
+           "reroll": ("可考虑刷新", QColor(255, 122, 107)), "unknown": ("未知", QColor(150, 150, 150)),
+           "nodata": ("无数据", QColor(150, 150, 150))}
 
 
 AUTO_HIDE_SECONDS = 5
