@@ -3,8 +3,9 @@
 开关：config.json 的 debug_capture（测试版默认开，界面上不显示）。
 每局一个文件夹 <程序数据目录>/debug/<开局时间>/：
 - env.json：显示器、游戏窗口（客户区 / 整窗）、DPI、游戏设置里的分辨率、窗口模式、HUD 和小地图缩放、小地图是否翻转；
+- mapskin.json：地图皮肤（游戏自己的日志 Logs/GameLogs/<开局时间>/*_r3dlog.txt 开局写一行「mapskin = Default」）；
 - game-config/：游戏 Config 下的 PersistedSettings.json、game.cfg 原样复制；
-- shots/：整窗 JPG。开局（2999 第一次读到等级起）90 秒内每 3 秒一张（开局选海克斯），之后每 15 秒一张；升级后 0.5、2、4 秒各一张；
+- shots/：整窗 JPG。开局（2999 第一次读到等级起）3 分钟内每 3 秒一张（开局选海克斯、乐队揭晓），之后每 15 秒一张；升级后 0.5、2、4 秒各一张；
   认出三选一时存一张无损 PNG 和识别结果（offer-*.json），选完后 0.3、1.5 秒各一张（看选完的特效）；
 - minimap/：和每张整窗图同时存的左下角、右下角无损 PNG。小地图默认在右下角，设置里「翻转小地图」后在左下角，
   对局中也能改，所以两边都存；范围按最大的 HUD 和小地图缩放留够。env.json 里记着开局时的翻转设置；
@@ -19,6 +20,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import shutil
 import threading
 import time
@@ -30,7 +32,7 @@ from .vision import window as win
 log = logging.getLogger(__name__)
 
 PERIOD_S = 15.0           # 对局中整窗截图间隔
-OPENING_S = 90.0          # 开局这么久内截得勤一些
+OPENING_S = 180.0         # 开局这么久内截得勤一些：开局选海克斯，之后乐队揭晓（10-18 测试服：出门以后才揭晓）
 OPENING_PERIOD_S = 3.0
 LEVEL_BURST = (0.5, 2.0, 4.0)
 AFTER_OFFER = (0.3, 1.5)
@@ -60,6 +62,25 @@ def minimap_boxes(width: int, height: int, flipped) -> dict[str, tuple[int, int,
     if flipped is None:
         return {"right": right, "left": left}
     return {"left": left} if flipped else {"right": right}
+
+
+MAPSKIN = re.compile(r"mapskin\s*=\s*(\S+)")
+
+
+def read_mapskin(game_dir: Path) -> str | None:
+    """游戏日志里这局的地图皮肤（Default / mapskin_ha_bilgewater / mapskin_map12_bloom ...）。只读最新一局的日志。"""
+    logs = game_dir / "Logs" / "GameLogs"
+    try:
+        latest = max((d for d in logs.iterdir() if d.is_dir()), key=lambda d: d.stat().st_mtime)
+        for f in latest.glob("*_r3dlog.txt"):
+            with open(f, encoding="utf-8", errors="replace") as fh:  # 游戏还开着、在写，照样能读
+                for line in fh:
+                    m = MAPSKIN.search(line)
+                    if m:
+                        return m.group(1).rstrip(",")
+    except (OSError, ValueError):
+        pass
+    return None
 
 
 def _flipped(settings: dict):
@@ -143,6 +164,8 @@ class DebugRecorder:
         self._pending_lcu = None
         self._opening_until = 0.0
         self._offer_open = False
+        self._game_dir: Path | None = None
+        self._mapskin = None
 
     # ---------- 引擎调用（任意线程） ----------
 
@@ -213,6 +236,11 @@ class DebugRecorder:
                 every = OPENING_PERIOD_S if now < self._opening_until else PERIOD_S
                 self._next_shot = now + every
                 self._save_frame(rect, f"t{int(now - self._started):04d}-{_stamp()}")
+        if self._mapskin is None and self._game_dir and now >= self._next_live:
+            self._mapskin = read_mapskin(self._game_dir)
+            if self._mapskin:
+                log.info("调试采集：这局地图皮肤 %s（游戏日志）", self._mapskin)
+                self._write_json(self.session / "mapskin.json", {"mapskin": self._mapskin})
         if self.engine.live and now >= self._next_live:
             data = self.engine.live.all_game_data()
             if data:
@@ -227,7 +255,8 @@ class DebugRecorder:
         self._started = now
         self._next_shot = self._next_live = now
         self._level = None
-        self._opening_until = now + 150  # 没开 2999 时按加载界面加开局算
+        self._mapskin = None
+        self._opening_until = now + 240  # 没开 2999 时按加载界面加开局算
         with self._lock:
             self._due = []
         cs, self._pending_lcu = self._pending_lcu, None
@@ -263,6 +292,10 @@ class DebugRecorder:
         except Exception:
             env["monitors"] = None
         exe = env["game"]["exe"]
+        if not exe:  # 游戏进程查不到路径时，按客户端位置推：<安装目录>/LeagueClient 和 <安装目录>/Game
+            client = win.process_path(win.find_client_window())
+            exe = client and str(Path(client).parent.parent / "Game" / "League of Legends.exe")
+        self._game_dir = Path(exe).parent if exe else None
         settings = {}
         if exe:
             cfg = Path(exe).parent / "Config"

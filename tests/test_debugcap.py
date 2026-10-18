@@ -79,3 +79,16 @@ def test_offer_before_session_only_marks_open(tmp_path):
     rec = debugcap.DebugRecorder(_Engine(tmp_path))
     rec.offer(Rect(0, 0, 640, 360), _Offer())
     assert rec._offer_open and not (tmp_path / "debug").exists()
+
+
+def test_read_mapskin_from_latest_game_log(tmp_path):
+    logs = tmp_path / "Logs" / "GameLogs"
+    old, new = logs / "2026-10-18T12-00-00", logs / "2026-10-18T14-20-45"
+    for d, skin in ((old, "mapskin_map12_bloom"), (new, "Default")):
+        d.mkdir(parents=True)
+        (d / f"{d.name}_r3dlog.txt").write_text(
+            "000001.792| ALWAYS| GameStartInfo GPP match Id = 1d5f2baa, mapskin = %s\n" % skin, encoding="utf-8")
+    import os
+    os.utime(old, (1, 1))
+    assert debugcap.read_mapskin(tmp_path) == "Default"
+    assert debugcap.read_mapskin(tmp_path / "missing") is None
