@@ -7,7 +7,6 @@
   可选读取游戏内 2999 接口（默认关闭）；
 - vision：游戏窗口在前台时截屏识别海克斯三选一。
 浮窗只读 snapshot()，并通过 set_hero / rescan / reset_calibration 操作。
-例外：测试版调试采集（debugcap.py，config.json 的 debug_capture）会只读客户端的 gameflow 会话存档。
 """
 
 from __future__ import annotations
@@ -87,17 +86,12 @@ class Engine:
         self._live_logged = False  # 这局「2999 读不到」只记一次
         self._last_eval_log = None  # 同一个三选一只记一次评估结果
         self._panel_cache: tuple[str | None, dict | None] = (None, None)
-        self.debug = None
-        if settings.debug_capture:
-            from .debugcap import DebugRecorder
-            self.debug = DebugRecorder(self)  # 测试版调试采集：多存截图和原始数据（见 debugcap.py）
         self.state: dict = {
             "phase": None,  # None / client / ingame
             "hero_id": None, "hero_source": None, "hero_candidates": [],
             "level": None, "game_window": False, "client_window": False,
             "vision": {"status": "idle", "calibrated": False, "last_scan": None, "blank": False},
             "offer": None, "evaluation": None,
-            "enemies": [],  # 对面英雄 ID（2999 接口读到时才有）
             "champ_select": None,  # {"bench": [...], "team": [...]}，每项带胜率和排名
         }
 
@@ -107,8 +101,6 @@ class Engine:
         for name, fn in (("data", self._data_loop), ("observer", self._observer_loop),
                          ("vision", self._vision_loop)):
             threading.Thread(target=fn, name=name, daemon=True).start()
-        if self.debug:
-            self.debug.start()
 
     def stop(self) -> None:
         self._stop.set()
@@ -293,12 +285,6 @@ class Engine:
             if self.live and not snap and not self._live_logged:
                 self._live_logged = True
                 log.info("2999 接口暂时读不到（刚进游戏加载时正常）")
-            if snap and snap.get("enemies") and not self.state["enemies"]:
-                ids = [self.store.resolve_hero(e) for e in snap["enemies"]]
-                self._set(enemies=[i for i in ids if i])
-                log.info("2999 读到对面阵容：%s（认出 %d/%d）", "、".join(
-                    (self.store.heroes.get(i) or {}).get("name") or str(i) for i in ids if i),
-                    len([i for i in ids if i]), len(ids))
             if snap and not self._manual_hero:
                 self._set(level=snap.get("level"))
                 if not self.state["hero_id"]:
@@ -406,7 +392,7 @@ class Engine:
     def _on_game_end(self) -> None:
         self._manual_hero = False
         self._set(hero_id=None, hero_source=None, hero_candidates=[], level=None,
-                  offer=None, evaluation=None, enemies=[])
+                  offer=None, evaluation=None)
         self._live_logged = False
         log.info("对局结束")
         self._data_wake.set()
@@ -475,8 +461,6 @@ class Engine:
                     misses = 0
                     if not visible:
                         self._save_offer_shot(rect)  # 趁浮窗还没画上去
-                        if self.debug:
-                            self.debug.offer(rect, offer)
                     self._on_offer(offer)
                     visible = True
                 elif visible:
@@ -484,8 +468,6 @@ class Engine:
                     if misses >= 3:
                         self._on_offer(None)
                         visible = False
-                        if self.debug:
-                            self.debug.offer_closed()
             self._stop.wait(0.1)
 
     SHOTS_KEEP = 3

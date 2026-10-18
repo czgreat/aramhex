@@ -938,9 +938,6 @@ class Tray(QSystemTrayIcon):
         m.addAction(self.act_overlay)
         m.addAction("重新识别", engine.rescan)
         m.addAction("检查更新", lambda: (window.show_and_raise(), window.check_update(manual=True)))
-        if engine.debug and hasattr(os, "startfile"):
-            m.addAction("打开调试文件夹", lambda: (engine.debug.root.mkdir(parents=True, exist_ok=True),
-                                             os.startfile(str(engine.debug.root))))
         self.messageClicked.connect(window.show_and_raise)
         self.act_auto = QAction("开机自动启动", m, checkable=True)
         self.act_auto.setChecked(autostart.is_enabled())

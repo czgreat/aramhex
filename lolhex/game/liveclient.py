@@ -36,27 +36,18 @@ class LiveClient:
     def game_stats(self) -> dict | None:
         return self._get("/gamestats")
 
-    def all_game_data(self) -> dict | None:
-        """整局数据（调试采集原样存档用）。"""
-        return self._get("/allgamedata")
-
     def snapshot(self) -> dict | None:
-        """→ {champion_raw, champion_name, level, game_mode, game_time, enemies}；不可用返回 None。
-        enemies：对面英雄的 rawChampionName 列表（认不出自己是哪一边时为空）。2026-10-18 国服海斗实测能读到全场 10 人。"""
+        """→ {champion_raw, champion_name, level, game_mode, game_time}；不可用返回 None。"""
         ap = self.active_player()
         if not ap:
             return None
         me = ap.get("riotId") or ap.get("summonerName")
-        players = self.player_list() or []
-        champ_raw = champ_name = my_team = None
-        for p in players:
+        champ_raw = champ_name = None
+        for p in self.player_list() or []:
             if me and me in (p.get("riotId"), p.get("summonerName")):
                 champ_raw = p.get("rawChampionName")
                 champ_name = p.get("championName")
-                my_team = p.get("team")
                 break
-        enemies = [p.get("rawChampionName") or p.get("championName") for p in players
-                   if my_team and p.get("team") and p.get("team") != my_team]
         gs = self.game_stats() or {}
         return {
             "champion_raw": champ_raw,
@@ -64,5 +55,4 @@ class LiveClient:
             "level": ap.get("level"),
             "game_mode": gs.get("gameMode"),
             "game_time": gs.get("gameTime"),
-            "enemies": [e for e in enemies if e],
         }

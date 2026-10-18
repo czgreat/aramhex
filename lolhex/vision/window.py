@@ -74,41 +74,6 @@ def client_rect(hwnd: int) -> Rect | None:
     return Rect(pt.x, pt.y, w, h)
 
 
-def window_rect(hwnd: int) -> Rect | None:
-    """整个窗口（含边框、标题栏）的屏幕坐标；和 client_rect 比能看出是窗口化还是无边框。"""
-    if not IS_WINDOWS or not hwnd:
-        return None
-    rc = wintypes.RECT()
-    if not ctypes.windll.user32.GetWindowRect(hwnd, ctypes.byref(rc)):
-        return None
-    return Rect(rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top)
-
-
-def window_dpi(hwnd: int) -> int | None:
-    try:
-        return int(ctypes.windll.user32.GetDpiForWindow(hwnd)) or None
-    except Exception:
-        return None
-
-
-def process_path(hwnd: int) -> str | None:
-    """窗口所属进程的 exe 路径（只读）。"""
-    if not IS_WINDOWS or not hwnd:
-        return None
-    pid = wintypes.DWORD()
-    ctypes.windll.user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
-    k = ctypes.windll.kernel32
-    h = k.OpenProcess(0x1000, False, pid.value)  # PROCESS_QUERY_LIMITED_INFORMATION
-    if not h:
-        return None
-    try:
-        buf = ctypes.create_unicode_buffer(1024)
-        n = wintypes.DWORD(len(buf))
-        return buf.value if k.QueryFullProcessImageNameW(h, 0, buf, ctypes.byref(n)) else None
-    finally:
-        k.CloseHandle(h)
-
-
 # 贴在客户端/游戏上的自己的悬浮小窗：点它时前台变成它，但画面上客户端还在，按客户端仍在前台算
 _companions: set[int] = set()
 

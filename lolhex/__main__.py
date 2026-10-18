@@ -97,10 +97,6 @@ def main(argv=None) -> int:
         settings.use_liveclient = settings.auto_screenshot = True
         settings.extra["beta_defaults"] = 1
         settings.save()
-    if BETA and not settings.extra.get("beta_debug"):  # 测试版：调试采集默认开（要关改 config.json 的 debug_capture）
-        settings.debug_capture = True
-        settings.extra["beta_debug"] = 1
-        settings.save()
     cloud.set_install_id(settings.install_id if settings.send_usage else None)
     logging.getLogger("lolhex").info("海克斯大乱斗助手 %s 启动；目录：%s；参数：%s", __version__,
                                      app_home(), " ".join(sys.argv[1:]) or "（无）")
