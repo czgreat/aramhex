@@ -17,7 +17,7 @@
 （底 = 英雄基准 + 合计胜率相对 50% 的差，按合计局数平滑），再用本英雄在测试服的局数微调；
 不参与上面的样本分档和"样本太少"判断，理由里写明测试服数据。
 统计里剔除的海克斯（数据集 excluded_augments，如尊我为王：完成任务后被替换，局末数据不准）标「无数据」，
-不打分、不用官方层级兜底、不参与首选比较。新海克斯（腾讯列表 isPBE/isNew）统计里还没有时也标「无数据」。
+不打分、不用官方层级兜底、不参与首选比较。新海克斯（腾讯列表 isPBE/isNew，或整份统计里一局都没有）也标「无数据」。
 """
 
 from __future__ import annotations
@@ -167,8 +167,9 @@ def evaluate(store, hero_id: str | None, slots: list[str | None], k: int = 300) 
             r["score"] = TIER_PP[r["tier"]]
             r["basis"] = "tier_only"
             r["reasons"].append("没有胜率数据，按官方层级估计，可信度低")
-        # 4) 新海克斯（测试服 / 刚上线）：统计里还没有，不当成「几乎不选」去扣分
-        if r["score"] is None and meta.get("new"):
+        # 4) 新海克斯（测试服 / 刚上线）：统计里还没有，不当成「几乎不选」去扣分。
+        #    腾讯上线后可能去掉 isPBE 标记，所以整份统计里一局都没有的也算新的
+        if r["score"] is None and (meta.get("new") or (global_augs and aid not in global_augs)):
             r.update(verdict="nodata", basis="new")
             r["reasons"].append(NEW_NOTE)
             results.append(r)

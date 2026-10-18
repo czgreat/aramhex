@@ -38,6 +38,7 @@ def test_win_rate_beats_official_tier(store):
 
 
 def test_unknown_slot_and_rare_augment(store):
+    store.ranks["augments"]["1001"] = {"win": 0.5, "games": 5000}  # 别的英雄拿过，这个英雄几乎不选
     ev = recommend.evaluate(store, "17", ["1029", None, "1001"])
     assert ev["slots"][1]["verdict"] == "unknown" and ev["slots"][1]["score"] is None
     assert ev["slots"][2]["basis"] in ("rare", "tier_only")
@@ -138,6 +139,14 @@ def test_new_augment_without_stats_has_no_data(store):
     store.augments["1029"] = {**store.augments.get("1029", {}), "new": True}
     ev = recommend.evaluate(store, "17", ["9999", "1029", "2128"])
     assert ev["slots"][1]["basis"] == "hero_win"
+
+
+def test_augment_missing_from_all_stats_is_new_even_without_flag(store):
+    # 4.0 上线后腾讯可能去掉 isPBE 标记：整份统计里一局都没有的海克斯照样标「无数据」，不提示刷新
+    store.augments["9998"] = {"id": "9998", "name": "上线后的新海克斯", "rarity": "gold"}
+    ev = recommend.evaluate(store, "17", ["9998", "1029", "2128"])
+    s = ev["slots"][0]
+    assert s["verdict"] == "nodata" and s["basis"] == "new" and s["score"] is None
 
 
 def test_provisional_augment_uses_pbe_total_and_skips_thin_rule(store):
