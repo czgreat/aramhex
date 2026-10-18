@@ -6,8 +6,8 @@
 - game-config/：游戏 Config 下的 PersistedSettings.json、game.cfg 原样复制；
 - shots/：整窗 JPG。开局（2999 第一次读到等级起）90 秒内每 3 秒一张（开局选海克斯），之后每 15 秒一张；升级后 0.5、2、4 秒各一张；
   认出三选一时存一张无损 PNG 和识别结果（offer-*.json），选完后 0.3、1.5 秒各一张（看选完的特效）；
-- minimap/：和每张整窗图同时存的右下角（小地图翻转时左下角，不知道时两边都存）无损 PNG，
-  范围按最大的 HUD 和小地图缩放留够；
+- minimap/：和每张整窗图同时存的左下角、右下角无损 PNG。小地图默认在右下角，设置里「翻转小地图」后在左下角，
+  对局中也能改，所以两边都存；范围按最大的 HUD 和小地图缩放留够。env.json 里记着开局时的翻转设置；
 - liveclient/：2999 接口的 allgamedata，读到的第一份和之后每 30 秒一份；
 - lcu/：客户端 /lol-gameflow/v1/session（地图、模式、变体），选英雄时和开局各一份。
   只读本机客户端，只在调试采集开着时读，凭据只在内存里用、不写日志；
@@ -303,7 +303,7 @@ class DebugRecorder:
         ok, buf = cv2.imencode(ext, img, params)
         if ok:
             (shots / f"{name}{ext}").write_bytes(buf.tobytes())
-        for side, (x, y, w, h) in minimap_boxes(img.shape[1], img.shape[0], self._flipped).items():
+        for side, (x, y, w, h) in minimap_boxes(img.shape[1], img.shape[0], None).items():  # 对局中可能改翻转：两边都存
             ok, buf = cv2.imencode(".png", img[y:y + h, x:x + w])
             if ok:
                 (mini / f"{name}-{side}.png").write_bytes(buf.tobytes())
