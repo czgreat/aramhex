@@ -453,8 +453,8 @@ class ControlPanel(QWidget):
             self.engine.rescan()
             self.give_back_focus()
         elif href == "quit":
-            self.engine.stop()
-            QApplication.quit()
+            from .mainwindow import quit_app
+            quit_app(self.engine)
 
     def place(self, rect) -> None:
         self.adjustSize()
