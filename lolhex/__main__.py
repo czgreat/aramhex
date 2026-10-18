@@ -91,7 +91,8 @@ def main(argv=None) -> int:
     _fix_stdio()
     _setup_logging(args.debug)
     settings = Settings.load()
-    from . import __version__
+    from . import __version__, cloud
+    cloud.set_install_id(settings.install_id if settings.send_usage else None)
     logging.getLogger("lolhex").info("海克斯大乱斗助手 %s 启动；目录：%s；参数：%s", __version__,
                                      app_home(), " ".join(sys.argv[1:]) or "（无）")
 

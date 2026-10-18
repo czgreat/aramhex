@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import os
+import secrets
 import sys
 from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
@@ -87,6 +88,9 @@ class Settings:
     last_version: str = ""
     # 第一次打开时的「请把游戏设成无边框」提示，看过就不再弹
     seen_welcome: bool = False
+    # 匿名使用统计：第一次打开时随机生成的编号（和硬件、账号无关，重装就是新的），只在查云控时带上；可以关
+    install_id: str = ""
+    send_usage: bool = True
     extra: dict = field(default_factory=dict)
 
     @classmethod
@@ -102,7 +106,10 @@ class Settings:
         s = cls(**{k: v for k, v in data.items() if k in known and k != "extra"})
         s.extra = {k: v for k, v in data.items() if k not in known}
         s.fresh_install = not data  # 没有设置文件：第一次装（用来区分「刚安装」和「刚更新」）
-        if not path.exists():
+        if not s.install_id:
+            s.install_id = secrets.token_hex(8)
+            s.save(path)
+        elif not path.exists():
             s.save(path)
         return s
 

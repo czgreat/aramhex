@@ -89,3 +89,19 @@ def test_community_list_is_sanitized(monkeypatch):
     assert [x["name"] for x in c] == ["QQ 群", "B 站", "赞助"]
     assert c[1]["url"] == "" and c[2]["qr"] == ""
     assert cloud.primary_link()["url"] == "https://qm.qq.com/q/x"
+
+
+def test_install_id_sent_only_when_enabled(monkeypatch, tmp_path):
+    # 匿名编号：第一次打开时生成并存下来；开着时查云控带上，关掉就不带
+    from lolhex.config import Settings
+    s = Settings.load(tmp_path / "config.json")
+    assert len(s.install_id) == 16 and Settings.load(tmp_path / "config.json").install_id == s.install_id
+    seen = []
+    monkeypatch.setattr(cloud.requests, "get", lambda url, headers=None, **k: seen.append(dict(headers or {})) or Resp({}))
+    monkeypatch.setattr(cloud, "_install_id", None)
+    cloud.set_install_id(s.install_id)
+    cloud.refresh()
+    cloud.set_install_id(None)
+    cloud.refresh()
+    assert seen[0]["X-AramHex-Id"] == s.install_id and "X-AramHex-Id" not in seen[1]
+    assert seen[1]["User-Agent"].startswith("aramhex/")

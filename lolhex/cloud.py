@@ -38,6 +38,12 @@ DEFAULT = {
 }
 _lock = threading.Lock()
 _cache: dict | None = None
+_install_id: str | None = None  # 匿名使用统计的编号；关掉时为 None，不带
+
+
+def set_install_id(value: str | None) -> None:
+    global _install_id
+    _install_id = value or None
 
 
 def _path():
@@ -123,7 +129,10 @@ def refresh(timeout: float = 6, url: str = URL) -> dict:
     """联网取最新配置并存下来；失败就返回上次的。"""
     global _cache
     try:
-        r = requests.get(url, headers={"User-Agent": f"aramhex/{__version__}"}, timeout=timeout)
+        headers = {"User-Agent": f"aramhex/{__version__}"}
+        if _install_id:
+            headers["X-AramHex-Id"] = _install_id  # 只用来数「同一台电脑是不是一直在用」
+        r = requests.get(url, headers=headers, timeout=timeout)
         r.raise_for_status()
         raw = r.json()
         if not isinstance(raw, dict):
