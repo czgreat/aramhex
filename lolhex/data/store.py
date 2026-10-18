@@ -131,6 +131,10 @@ class DataStore:
     def heroes(self) -> dict[str, dict]:
         return self.static.get("heroes", {})
 
+    def provisional_augments(self) -> dict[str, dict]:
+        """过渡数据里暂用测试服统计的新海克斯 {ID: {games, wins, win_rate, source}}。只有公开数据集有这一项。"""
+        return {}
+
     def excluded_augments(self) -> dict[str, str]:
         """统计里剔除的海克斯 {ID: 原因}（胜率不可信，不打分）。只有公开数据集有这一项。"""
         return {}

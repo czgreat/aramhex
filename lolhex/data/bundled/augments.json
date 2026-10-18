@@ -838,5 +838,161 @@
  "2157": {
   "name": "升级：死亡之舞",
   "rarity": "silver"
+ },
+ "3004": {
+  "name": "罪恶快感！",
+  "rarity": "gold"
+ },
+ "3016": {
+  "name": "伤不过三",
+  "rarity": "prismatic"
+ },
+ "3018": {
+  "name": "大腕",
+  "rarity": "prismatic"
+ },
+ "3025": {
+  "name": "音之屏障",
+  "rarity": "silver"
+ },
+ "3036": {
+  "name": "翻倍时间",
+  "rarity": "gold"
+ },
+ "3039": {
+  "name": "拯救",
+  "rarity": "gold"
+ },
+ "3048": {
+  "name": "弹跳蜜蜂",
+  "rarity": "prismatic"
+ },
+ "3049": {
+  "name": "装甲冲击",
+  "rarity": "gold"
+ },
+ "3051": {
+  "name": "蓝色屏障",
+  "rarity": "silver"
+ },
+ "3052": {
+  "name": "远射天资",
+  "rarity": "silver"
+ },
+ "3053": {
+  "name": "热舞怪兽",
+  "rarity": "prismatic"
+ },
+ "3055": {
+  "name": "终极循环往复",
+  "rarity": "silver"
+ },
+ "3058": {
+  "name": "嗡嗡怪兽",
+  "rarity": "gold"
+ },
+ "3063": {
+  "name": "溺水之赠礼",
+  "rarity": "silver"
+ },
+ "3071": {
+  "name": "黄铜爆音",
+  "rarity": "gold"
+ },
+ "3075": {
+  "name": "反冲",
+  "rarity": "gold"
+ },
+ "3078": {
+  "name": "鼓声暴起 低音轰鸣",
+  "rarity": "gold"
+ },
+ "3079": {
+  "name": "死之舞",
+  "rarity": "prismatic"
+ },
+ "3081": {
+  "name": "命运之武器",
+  "rarity": "gold"
+ },
+ "3085": {
+  "name": "灵魂乐流",
+  "rarity": "silver"
+ },
+ "3086": {
+  "name": "小蜜蜂！！！",
+  "rarity": "gold"
+ },
+ "3088": {
+  "name": "深红钴蓝闪光",
+  "rarity": "gold"
+ },
+ "3094": {
+  "name": "巫妖大脑",
+  "rarity": "silver"
+ },
+ "3116": {
+  "name": "将他们放倒倒倒",
+  "rarity": "gold"
+ },
+ "3118": {
+  "name": "奥术公理",
+  "rarity": "gold"
+ },
+ "3121": {
+  "name": "水果化",
+  "rarity": "silver"
+ },
+ "3123": {
+  "name": "珠光手镯",
+  "rarity": "gold"
+ },
+ "3129": {
+  "name": "吸元秘术",
+  "rarity": "gold"
+ },
+ "3131": {
+  "name": "屹立不倒",
+  "rarity": "gold"
+ },
+ "3132": {
+  "name": "王冠之重",
+  "rarity": "gold"
+ },
+ "3134": {
+  "name": "孤勇者",
+  "rarity": "silver"
+ },
+ "3149": {
+  "name": "一起抱抱",
+  "rarity": "prismatic"
+ },
+ "3150": {
+  "name": "升级：风暴狂涌",
+  "rarity": "gold"
+ },
+ "3163": {
+  "name": "迷人蝴蝶",
+  "rarity": "gold"
+ },
+ "3170": {
+  "name": "重型",
+  "rarity": "gold"
+ },
+ "3171": {
+  "name": "力量",
+  "rarity": "gold"
+ },
+ "3172": {
+  "name": "鞭挞",
+  "rarity": "gold"
+ },
+ "3173": {
+  "name": "厄运",
+  "rarity": "gold"
+ },
+ "3176": {
+  "name": "GoH_PentakillAug_Generic_BlankName",
+  "rarity": "gold"
  }
 }

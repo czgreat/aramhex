@@ -2,52 +2,52 @@
  "bands": true,
  "files": {
   "augments.json": {
-   "sha256": "36ee16f363c9d25d9590fa8f78b3fe960289903c130eb6654a08faea0ed17f78",
-   "size": 13261
+   "sha256": "dabb718c130bd1b978d36d2399f6b1dc7857cec0f352fa15ba49097cbf30ae0e",
+   "size": 16674
   },
   "bands/casual/hero_augments.json": {
-   "sha256": "9ab754e98e5fbc2128e10a407424c57a8fdf1989e070d2abe9f65e7fe09665af",
-   "size": 2165419
+   "sha256": "c8f480d48ae9566d5a22f25393f350125a547f8e84a2239df7a9dc78a7c6489c",
+   "size": 2688275
   },
   "bands/casual/heroes.json": {
    "sha256": "1a8047e3e5c900980de1e295ac75d79a6cce83d5a5de487a85388d29255b673a",
    "size": 28175
   },
   "bands/high/hero_augments.json": {
-   "sha256": "c01aa5817d631b8b7855a6a56e7403474442bce161aa9441a062101a0ffbe81c",
-   "size": 2112571
+   "sha256": "67168fe8d840974231a69d803c77ee6aaf7f739f99bf24992d6a26302d987340",
+   "size": 2635427
   },
   "bands/high/heroes.json": {
    "sha256": "aa36a736c4af6b0b4d48a6c61446e9e88e6d7587c8680bd73191c34892625baf",
    "size": 27859
   },
   "bands/mid/hero_augments.json": {
-   "sha256": "1e0b2e873e39596443d442aba74f7a374e27fc4ae9ce885c7509452feabc4d9e",
-   "size": 2155758
+   "sha256": "a76f0578834743b5f5ad3a133947de356e81617c0963b1de21f3422870545159",
+   "size": 2678614
   },
   "bands/mid/heroes.json": {
    "sha256": "1710683c1a3540053d266126d7f4e4f107b0db6621c6a74f468635a1a4a6a99a",
    "size": 28091
   },
   "bands/top/hero_augments.json": {
-   "sha256": "e845ad94d0eaf36d85f29ae520322d40f2d9f5960be42c7e507fd778b1f32a42",
-   "size": 2059064
+   "sha256": "89545f26b24863bab7275f4321bbdca7687c561324070adca1493200d1f38f19",
+   "size": 2581782
   },
   "bands/top/heroes.json": {
    "sha256": "be6a1e38ca3c5e5014bd67d06e24300f3c1f16ca3651364dbae9d514bc54be4d",
    "size": 27572
   },
   "hero_augments.json": {
-   "sha256": "6753bf6d85c31e8fb2229fa4bac4906b79c0f9a004d8ed6e27491a81003bf4e3",
-   "size": 2177981
+   "sha256": "f87314fda1c66f9b316551a2adf38ba6e4b38c81bfe9b64efd520aacde0177f5",
+   "size": 2700837
   },
   "heroes.json": {
    "sha256": "da1aecd0bdf1f0bde21f2b24147833187b4021bd122b6303ee58a08025643320",
    "size": 28282
   },
   "meta.json": {
-   "sha256": "04c3736c7e7e94eb98606d978e0b6c2de4dfc6a8cefc95c8e2d5f3d0f3273ff6",
-   "size": 5081
+   "sha256": "06f94028484bb0d6876781d15aacf8d9387aaf21e6e41e4f4ea0de34713def37",
+   "size": 11623
   }
  },
  "matches": 36992962,
@@ -61,9 +61,15 @@
  "mode_label": "常规",
  "patch": "16.20",
  "path": "patches/16.20/normal",
+ "provisional": {
+  "augments": 39,
+  "base_patch": "16.20",
+  "base_snapshot_at": "2026-10-17T18:51:45+08:00",
+  "source": "测试服 16.21.828，10-16 17:35 – 10-18 15:58，12817 局"
+ },
  "schema_version": 1,
  "seq": 2,
- "snapshot_at": "2026-10-17T18:51:45+08:00",
+ "snapshot_at": "2026-10-18T16:36:28+08:00",
  "window": {
   "end_exclusive": "2026-10-17T17:00:00+08:00",
   "periods": null,

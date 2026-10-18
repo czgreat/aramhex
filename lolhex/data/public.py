@@ -458,6 +458,11 @@ class PublicStore(DataStore):
         return {str(aid): str((v or {}).get("reason") or "") if isinstance(v, dict) else str(v or "")
                 for aid, v in ex.items()} if isinstance(ex, dict) else {}
 
+    def provisional_augments(self) -> dict[str, dict]:
+        """meta.json 的 provisional_augments（scripts/pbe_overlay.py 生成的过渡数据才有）。"""
+        pv = (self.dataset.meta if self.dataset else {}).get("provisional_augments") or {}
+        return {str(aid): v for aid, v in pv.items() if isinstance(v, dict) and v.get("games")} if isinstance(pv, dict) else {}
+
     def label(self) -> str:
         if not self.dataset:
             return "暂无统计数据"

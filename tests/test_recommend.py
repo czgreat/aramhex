@@ -138,3 +138,22 @@ def test_new_augment_without_stats_has_no_data(store):
     store.augments["1029"] = {**store.augments.get("1029", {}), "new": True}
     ev = recommend.evaluate(store, "17", ["9999", "1029", "2128"])
     assert ev["slots"][1]["basis"] == "hero_win"
+
+
+def test_provisional_augment_uses_pbe_total_and_skips_thin_rule(store):
+    # 过渡数据：3086 是测试服的新海克斯，合计 5000 人次 56%，提莫只有 40 局。
+    # 不能因为局数比同屏老海克斯少一个数量级就判「样本太少、刷新」，要按合计胜率打底
+    store.dataset.meta["provisional_augments"] = {"3086": {"games": 5000, "wins": 2800, "win_rate": 0.56,
+                                                           "source": "测试服 16.21.828"}}
+    store.dataset.table(None)[1]["17"]["3086"] = {"games": 40, "wins": 24, "win_rate": 0.6, "low_sample": True}
+    store.augments["3086"] = {"id": "3086", "name": "小蜜蜂！！！", "rarity": "gold", "new": True}
+    ev = recommend.evaluate(store, "17", ["3086", "2128", "1029"])
+    s = ev["slots"][0]
+    assert s["basis"] == "pbe" and not s.get("thin") and s["verdict"] in ("ok", "best")
+    assert 4.0 < s["score"] < 7.0  # 合计 +6pp 打底，本英雄 40 局 60% 微调
+    assert any("测试服" in x for x in s["reasons"])
+    assert ev["slots"][1]["verdict"] == "reroll" and ev["best_index"] == 2
+    # 本英雄在测试服一局没有：只按合计
+    del store.dataset.table(None)[1]["17"]["3086"]
+    s = recommend.evaluate(store, "17", ["3086", "2128", "1029"])["slots"][0]
+    assert s["basis"] == "pbe" and s["games"] is None and 5.0 < s["score"] < 6.0

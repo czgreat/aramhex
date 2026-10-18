@@ -13,6 +13,9 @@
    比同屏其他海克斯少一个数量级以上（<1/10）的，标"样本太少"并提示刷新，不管胜率多高；
    只是不足 1000 局的，不当首选、标"样本偏少"。三张都不足时才正常比较。
 选取率只展示，不进分数：常拿不代表强。
+过渡数据里暂用测试服统计的新海克斯（数据集 provisional_augments）：先用它在测试服所有英雄上的合计胜率打底
+（底 = 英雄基准 + 合计胜率相对 50% 的差，按合计局数平滑），再用本英雄在测试服的局数微调；
+不参与上面的样本分档和"样本太少"判断，理由里写明测试服数据。
 统计里剔除的海克斯（数据集 excluded_augments，如尊我为王：完成任务后被替换，局末数据不准）标「无数据」，
 不打分、不用官方层级兜底、不参与首选比较。新海克斯（腾讯列表 isPBE/isNew）统计里还没有时也标「无数据」。
 """
@@ -29,6 +32,7 @@ RELIABLE_GAMES = 1000  # 本英雄局数达到这个数才能当首选
 TOO_FEW_RATIO = 0.1    # 局数不到同屏最多那张的 1/10：样本太少，提示刷新
 NODATA_NOTE = "完成任务后会被替换，统计不准"
 NEW_NOTE = "新海克斯，还没有数据"
+PBE_NOTE = "测试服数据，样本少"
 
 
 def sample_level(games: int | None) -> str:
@@ -73,6 +77,24 @@ def win_ranks(augments: dict, static: dict) -> dict:
     return ranks
 
 
+def _provisional(r: dict, p: dict, mine: dict | None, base: float | None, k: int) -> dict:
+    """暂用测试服统计的新海克斯：合计胜率打底，本英雄测试服局数微调。"""
+    n_all, w_all = p["games"], p["win_rate"]
+    lift = (w_all - 0.5) * n_all / (n_all + k)   # 合计胜率相对 50% 的差，局数少时往 0 收
+    ref = 0.5 if base is None else base
+    prior = ref + lift
+    n = (mine or {}).get("games") or 0
+    win = (mine or {}).get("win")
+    smoothed = (win * n + prior * k) / (n + k) if n and win is not None else prior
+    d = (smoothed - ref) * 100
+    r.update(score=round(d, 2), basis="pbe", source="pbe", sample="low", games=n or None, win=win,
+             pbe_games=n_all, pbe_win=w_all)
+    r["reasons"].append(f"测试服：全英雄 {n_all} 人次胜率 {w_all * 100:.1f}%"
+                        + (f"，本英雄 {n} 局 {win * 100:.1f}%" if n and win is not None else "，本英雄没有局")
+                        + f"，较英雄基准 {d:+.1f}pp（{PBE_NOTE}）")
+    return r
+
+
 def evaluate(store, hero_id: str | None, slots: list[str | None], k: int = 300,
              enemies: list[str] | None = None) -> dict:
     """enemies：对面英雄 ID（2999 接口读到时才有），用来给掷骰狂人这类看对面阵容的海克斯加一行提示（只提示，不改分数）。"""
@@ -86,6 +108,7 @@ def evaluate(store, hero_id: str | None, slots: list[str | None], k: int = 300,
         base = ((store.ranks.get("heroes") or {}).get(str(hero_id)) or {}).get("win")
     official = {a["id"]: a for a in (hero or {}).get("augments", [])}
     excluded = store.excluded_augments()
+    provisional = store.provisional_augments() if hasattr(store, "provisional_augments") else {}
     rarity_total: dict[str, int] = {}
     for a in official.values():
         if a.get("tier") and a.get("rarity"):
@@ -113,6 +136,9 @@ def evaluate(store, hero_id: str | None, slots: list[str | None], k: int = 300,
             r.update(verdict="nodata", basis="excluded")
             r["reasons"].append(NODATA_NOTE)
             results.append(r)
+            continue
+        if aid in provisional:
+            results.append(_provisional(r, provisional[aid], ag_augs.get(aid), base, k))
             continue
         t = official.get(aid)
         if t:
@@ -200,6 +226,8 @@ def evaluate(store, hero_id: str | None, slots: list[str | None], k: int = 300,
         if passed:
             advice += "；" + "、".join(f"「{r.get('name')}」胜率虽高但" +
                                       {"too_few": "样本太少，不可信"}.get(r["thin"], "样本偏少") for r in passed)
+    if best is not None and best.get("basis") == "pbe":
+        advice += "（测试服数据）"
     if best is not None and best.get("basis") == "tier_only":
         advice += "（没有胜率数据，按官方层级）"
     if not hero_id:

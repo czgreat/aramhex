@@ -892,6 +892,8 @@ class MainWindow(QMainWindow):
             if r["verdict"] == "nodata":
                 note = recommend.NEW_NOTE if r.get("basis") == "new" else recommend.NODATA_NOTE
                 lines.append(f"<span style='color:#777'>{note}</span>")
+            if r.get("basis") == "pbe":
+                lines.append(f"<span style='color:#777'>{recommend.PBE_NOTE}</span>")
             if r.get("score") is not None:
                 s = f"{r['score']:+.1f}"
                 if show_win and r.get("win") is not None:
