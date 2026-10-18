@@ -4,6 +4,8 @@
         [--base lolhex/data/bundled] [--kiwi kiwi_augments.json]
 
 - 老海克斯：原样用 --base 的统计（含分段）。
+- 被删的海克斯：在 --base 里按出场比例，测试服应该出现至少 REMOVED_MIN_EXPECTED 次、实际一次都没有的，
+  从所有英雄的海克斯表里去掉（英雄详情页不再列出），记在 meta.json 的 removed_augments。
 - 新海克斯（测试服里出现、--base 里没有的）：补进每个英雄的海克斯表，局数、胜场照实写；
   meta.json 的 provisional_augments 记它们在测试服所有英雄上的合计（推荐按这个打底，见 recommend.py）。
   测试服不分段，分段表里补的是同一份。
@@ -27,6 +29,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 TZ = dt.timezone(dt.timedelta(hours=8))
 RARITY = {"kSilver": "silver", "kGold": "gold", "kPrismatic": "prismatic"}
+REMOVED_MIN_EXPECTED = 30
 
 
 def valid(g: dict, build: str) -> bool:
@@ -79,16 +82,29 @@ def main(argv=None) -> int:
         return 1
     per_hero: dict[str, dict[str, list[int]]] = defaultdict(lambda: defaultdict(lambda: [0, 0]))
     total: dict[str, list[int]] = defaultdict(lambda: [0, 0])
+    seen: set[str] = set()
+    rows = 0
     for g in games:
         for p in g["participants"]:
+            rows += 1
             w = 1 if p.get("win") else 0
             augs = {str(p.get(f"playerAugment{i}")) for i in range(1, 7) if p.get(f"playerAugment{i}")}
+            seen |= augs
             for aid in augs - known:
                 s = per_hero[str(p["championId"])][aid]
                 s[0] += 1
                 s[1] += w
                 total[aid][0] += 1
                 total[aid][1] += w
+
+    base_games: dict[str, int] = defaultdict(int)
+    for augs in base_ha.values():
+        for aid, v in augs.items():
+            base_games[aid] += v["games"]
+    base_rows = sum(json.loads((a.base / "heroes.json").read_text(encoding="utf-8"))[h]["games"]
+                    for h in json.loads((a.base / "heroes.json").read_text(encoding="utf-8")))
+    removed = {aid: n for aid, n in base_games.items()
+               if aid not in seen and n / max(1, base_rows) * rows >= REMOVED_MIN_EXPECTED}
 
     out = a.out
     if out.exists():
@@ -97,6 +113,9 @@ def main(argv=None) -> int:
 
     def merge(rel: str) -> None:
         ha = json.loads((out / rel).read_text(encoding="utf-8"))
+        for row in ha.values():
+            for aid in removed:
+                row.pop(aid, None)
         for hid, augs in per_hero.items():
             row = ha.setdefault(hid, {})
             for aid, (n, w) in augs.items():
@@ -114,6 +133,9 @@ def main(argv=None) -> int:
     source = f"测试服 {a.build}，{span}，{len(games)} 局"
     meta["provisional_augments"] = {aid: {"games": n, "wins": w, "win_rate": round(w / n, 6), "source": source}
                                     for aid, (n, w) in sorted(total.items())}
+    meta["removed_augments"] = {aid: {"base_games": n, "reason": f"{source}里一次都没出现（按 {base_manifest.get('patch')} 的出场比例应出现约 "
+                                                                f"{round(n / max(1, base_rows) * rows)} 次），判断已删除"}
+                                for aid, n in sorted(removed.items())}
     meta["provisional_note"] = (f"过渡数据：老海克斯用 {base_manifest.get('patch')} 正式服统计；"
                                 f"新海克斯用{source}（样本少，只作参考）")
     _dump(out / "meta.json", meta)
@@ -128,12 +150,12 @@ def main(argv=None) -> int:
 
     manifest = dict(base_manifest)
     manifest["snapshot_at"] = dt.datetime.now(TZ).isoformat(timespec="seconds")
-    manifest["provisional"] = {"source": source, "augments": len(total), "base_patch": base_manifest.get("patch"),
+    manifest["provisional"] = {"source": source, "augments": len(total), "removed": len(removed), "base_patch": base_manifest.get("patch"),
                                "base_snapshot_at": base_manifest.get("snapshot_at")}
     manifest["files"] = {rel: {"sha256": _sha(out / rel), "size": (out / rel).stat().st_size}
                          for rel in base_manifest["files"]}
     _dump(out / "latest.json", manifest)
-    print(f"{source}；新海克斯 {len(total)} 个，补进 {len(per_hero)} 个英雄；输出 {out}")
+    print(f"{source}；新海克斯 {len(total)} 个，补进 {len(per_hero)} 个英雄；判断已删除 {len(removed)} 个；输出 {out}")
     return 0
 
 

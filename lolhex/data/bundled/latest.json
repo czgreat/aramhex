@@ -6,48 +6,48 @@
    "size": 16674
   },
   "bands/casual/hero_augments.json": {
-   "sha256": "c8f480d48ae9566d5a22f25393f350125a547f8e84a2239df7a9dc78a7c6489c",
-   "size": 2688275
+   "sha256": "e14c6693466dac1d5a03a90c8fc1e889ceeaea455213af79ef2a3cf8860842e2",
+   "size": 2484874
   },
   "bands/casual/heroes.json": {
    "sha256": "1a8047e3e5c900980de1e295ac75d79a6cce83d5a5de487a85388d29255b673a",
    "size": 28175
   },
   "bands/high/hero_augments.json": {
-   "sha256": "67168fe8d840974231a69d803c77ee6aaf7f739f99bf24992d6a26302d987340",
-   "size": 2635427
+   "sha256": "760ef4ea4f8671cd12675b7b630d4e11f19680b16d26b3db362fc5959ab1c7ba",
+   "size": 2436764
   },
   "bands/high/heroes.json": {
    "sha256": "aa36a736c4af6b0b4d48a6c61446e9e88e6d7587c8680bd73191c34892625baf",
    "size": 27859
   },
   "bands/mid/hero_augments.json": {
-   "sha256": "a76f0578834743b5f5ad3a133947de356e81617c0963b1de21f3422870545159",
-   "size": 2678614
+   "sha256": "4de8f497ea6b9a0743ae3224ca01d218a1cd8683533da6e33aacdecf7654ebc6",
+   "size": 2476025
   },
   "bands/mid/heroes.json": {
    "sha256": "1710683c1a3540053d266126d7f4e4f107b0db6621c6a74f468635a1a4a6a99a",
    "size": 28091
   },
   "bands/top/hero_augments.json": {
-   "sha256": "89545f26b24863bab7275f4321bbdca7687c561324070adca1493200d1f38f19",
-   "size": 2581782
+   "sha256": "c7969a0e4d6f256db6c871d97162342126527648f401d7a9a83aad06dbc2b925",
+   "size": 2388538
   },
   "bands/top/heroes.json": {
    "sha256": "be6a1e38ca3c5e5014bd67d06e24300f3c1f16ca3651364dbae9d514bc54be4d",
    "size": 27572
   },
   "hero_augments.json": {
-   "sha256": "f87314fda1c66f9b316551a2adf38ba6e4b38c81bfe9b64efd520aacde0177f5",
-   "size": 2700837
+   "sha256": "dd580ae9d53a0fe488423b98e0503b1abe88150601dfefa996878fbd0784a4bf",
+   "size": 2496203
   },
   "heroes.json": {
    "sha256": "da1aecd0bdf1f0bde21f2b24147833187b4021bd122b6303ee58a08025643320",
    "size": 28282
   },
   "meta.json": {
-   "sha256": "06f94028484bb0d6876781d15aacf8d9387aaf21e6e41e4f4ea0de34713def37",
-   "size": 11623
+   "sha256": "3dc4b336acc11e5add44e38676c965e08fbe90769ef484fe58b10c268d160fee",
+   "size": 15085
   }
  },
  "matches": 36992962,
@@ -65,11 +65,12 @@
   "augments": 39,
   "base_patch": "16.20",
   "base_snapshot_at": "2026-10-17T18:51:45+08:00",
+  "removed": 16,
   "source": "测试服 16.21.828，10-16 17:35 – 10-18 15:58，12817 局"
  },
  "schema_version": 1,
  "seq": 2,
- "snapshot_at": "2026-10-18T16:36:28+08:00",
+ "snapshot_at": "2026-10-18T16:57:24+08:00",
  "window": {
   "end_exclusive": "2026-10-17T17:00:00+08:00",
   "periods": null,
