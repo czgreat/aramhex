@@ -22,7 +22,6 @@
 
 from __future__ import annotations
 
-from . import context
 from .data.tencent import RARITY_CN
 
 TIER_PP = {"S": 1.5, "A": 0.5, "B": -0.5, "C": -1.5, "D": -2.5}
@@ -95,9 +94,7 @@ def _provisional(r: dict, p: dict, mine: dict | None, base: float | None, k: int
     return r
 
 
-def evaluate(store, hero_id: str | None, slots: list[str | None], k: int = 300,
-             enemies: list[str] | None = None) -> dict:
-    """enemies：对面英雄 ID（2999 接口读到时才有），用来给掷骰狂人这类看对面阵容的海克斯加一行提示（只提示，不改分数）。"""
+def evaluate(store, hero_id: str | None, slots: list[str | None], k: int = 300) -> dict:
     hero = store.hero(hero_id) if hero_id else None
     ag = store.win_data(hero_id) if hero_id else None
     label = (ag or {}).get("label") or "自采统计"
@@ -129,9 +126,6 @@ def evaluate(store, hero_id: str | None, slots: list[str | None], k: int = 300,
         meta = store.augments.get(aid, {})
         r.update(name=meta.get("name", aid), rarity=meta.get("rarity"), icon=meta.get("icon"),
                  desc=meta.get("desc", ""))
-        note = context.enemy_note(aid, enemies, store.heroes)
-        if note:
-            r["context"] = note
         if aid in excluded:
             r.update(verdict="nodata", basis="excluded")
             r["reasons"].append(NODATA_NOTE)

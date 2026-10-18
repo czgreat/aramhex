@@ -377,7 +377,7 @@ class MainWindow(QMainWindow):
         outer.addLayout(f)
         self.set_win = QCheckBox("显示胜率数字")
         self.set_win.setChecked(s.show_winrate)
-        self.set_live = QCheckBox("对局中用游戏接口（认英雄更准、看对面阵容）")
+        self.set_live = QCheckBox("对局中用游戏接口（认英雄更准）")
         self.set_live.setChecked(s.use_liveclient)
         self.set_corner = QComboBox()
         self.set_corner.addItems(["右上角", "左上角"])
@@ -887,8 +887,6 @@ class MainWindow(QMainWindow):
             if r.get("tier"):
                 meta.append(f"{r['tier']}级")
             lines.append("<span style='color:#777'>" + " ".join(m for m in meta if m) + "</span>")
-            if r.get("context"):
-                lines.append(f"<span style='color:#2e9d5b'>{escape(r['context'])}</span>")
             if r["verdict"] == "nodata":
                 note = recommend.NEW_NOTE if r.get("basis") == "new" else recommend.NODATA_NOTE
                 lines.append(f"<span style='color:#777'>{note}</span>")

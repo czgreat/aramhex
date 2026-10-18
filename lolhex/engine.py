@@ -299,7 +299,6 @@ class Engine:
                 log.info("2999 读到对面阵容：%s（认出 %d/%d）", "、".join(
                     (self.store.heroes.get(i) or {}).get("name") or str(i) for i in ids if i),
                     len([i for i in ids if i]), len(ids))
-                self._reevaluate()  # 三选一已经在屏幕上时，补上看对面阵容的提示
             if snap and not self._manual_hero:
                 self._set(level=snap.get("level"))
                 if not self.state["hero_id"]:
@@ -535,18 +534,16 @@ class Engine:
         with self._lock:
             offer = self.state.get("offer")
             hid = self.state.get("hero_id")
-            enemies = list(self.state.get("enemies") or [])
         if not offer:
             return None
-        ev = recommend.evaluate(self.store, hid, offer["slots"], self.settings.smoothing_games, enemies=enemies)
+        ev = recommend.evaluate(self.store, hid, offer["slots"], self.settings.smoothing_games)
         self._set(evaluation=ev)
-        key = (hid, tuple(offer["slots"]), tuple(enemies))
+        key = (hid, tuple(offer["slots"]))
         if key != self._last_eval_log:
             self._last_eval_log = key
             log.info("三选一（%s）：%s｜%s", (self.store.heroes.get(str(hid)) or {}).get("name") or "未识别英雄",
                      "；".join(f"{s.get('name') or '未识别'} {s['verdict']}"
                               + (f" {s['score']:+.1f}" if s.get("score") is not None else "")
-                              + (f"（{s['basis']}）" if s.get("basis") else "")
-                              + (f" {s['context']}" if s.get("context") else "") for s in ev["slots"]),
+                              + (f"（{s['basis']}）" if s.get("basis") else "") for s in ev["slots"]),
                      ev["advice"])
         return ev

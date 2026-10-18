@@ -1,36 +1,6 @@
-"""看对面阵容的海克斯（掷骰狂人）：提示文字、三选一里的提示、2999 读对面英雄。"""
+"""2999 读对面阵容（只记日志），以及三选一评估结果写日志。"""
 
-from lolhex import context, recommend
 from lolhex.game.liveclient import LiveClient
-
-HEROES = {"90": {"name": "玛尔扎哈"}, "143": {"name": "婕拉"}, "1": {"name": "安妮"}, "57": {"name": "茂凯"}}
-
-
-def test_enemy_note_lists_strongest_first():
-    note = context.enemy_note("2095", ["1", "143", "90", "57"], HEROES)
-    assert note == "对面玛尔扎哈 +5.1、婕拉 +4.5"  # 只列前两个；安妮不比平时强，不提
-    assert context.enemy_note("2095", ["1"], HEROES) is None
-    assert context.enemy_note("2095", [], HEROES) is None
-    assert context.enemy_note("1029", ["90"], HEROES) is None  # 不看阵容的海克斯
-
-
-def test_real_table_is_loaded():
-    t = context.load()["augments"]["2095"]
-    assert t["name"] == "掷骰狂人" and 1 < t["base"] < 3 and t["enemies"]["90"] > t["base"]
-
-
-def test_evaluate_adds_note_without_changing_score(store):
-    table = {"augments": {"1029": {"base": 1.0, "enemies": {"90": 4.0}}}}
-    plain = recommend.evaluate(store, "17", ["2128", "1029", "1373"])
-    orig = context._TABLE
-    context._TABLE = table
-    try:
-        ev = recommend.evaluate(store, "17", ["2128", "1029", "1373"], enemies=["90"])
-    finally:
-        context._TABLE = orig
-    assert ev["slots"][1]["context"].startswith("对面") and "+4.0" in ev["slots"][1]["context"]
-    assert "context" not in ev["slots"][0]
-    assert [s["score"] for s in ev["slots"]] == [s["score"] for s in plain["slots"]]
 
 
 def test_liveclient_snapshot_splits_teams(monkeypatch):
