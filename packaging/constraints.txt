@@ -1,0 +1,37 @@
+# 打包用的第三方库版本全部固定成 1.0.0 正式版（GitHub Actions 2026-10-17）装的那一套。
+# 第三方库的文件一变，老用户就没法增量更新，只能重下完整安装包；要升级某个库时再改这里。
+PyInstaller==6.22.3
+pyinstaller-hooks-contrib==2026.8
+altgraph==0.17.5
+pefile==2024.8.26
+pywin32-ctypes==0.2.3
+packaging==26.3
+setuptools==84.0.0
+PySide6-Essentials==6.11.2
+shiboken6==6.11.2
+numpy==2.5.3
+opencv-python==5.0.0.93
+pillow==12.3.0
+mss==10.2.0
+rapidfuzz==3.14.6
+rapidocr==3.9.2
+onnxruntime==1.30.0
+flatbuffers==25.12.19
+protobuf==7.36.2
+omegaconf==2.4.0
+PyYAML==6.0.3
+Shapely==2.2.0
+pyclipper==1.4.0
+six==1.17.0
+tqdm==4.70.1
+colorlog==6.12.0
+colorama==0.4.6
+requests==2.34.2
+certifi==2026.7.22
+charset_normalizer==3.5.2
+idna==3.20
+urllib3==2.8.0
+pytest==9.1.1
+pluggy==1.7.0
+iniconfig==2.3.1
+pygments==2.21.0

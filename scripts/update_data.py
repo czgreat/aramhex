@@ -5,6 +5,7 @@
 
 需要认证时，设置环境变量 GITHUB_TOKEN。
 每个文件都按 latest.json 里的 SHA-256 校验；校验不过就不改 bundled/。
+内置数据比要换的新（例如上线前手工放进去的过渡数据）就不换，免得发版时被覆盖。
 """
 from __future__ import annotations
 
@@ -35,6 +36,19 @@ def _get(url: str) -> bytes:
     return r.content
 
 
+def _when(value):
+    from datetime import datetime
+    return datetime.fromisoformat(str(value))
+
+
+def _bundled_snapshot():
+    """现在内置数据的样本时间；没有或读不出来返回 None。"""
+    try:
+        return _when(json.loads((BUNDLED / "latest.json").read_text(encoding="utf-8"))["snapshot_at"])
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="更新内置统计数据")
     ap.add_argument("--from", dest="src", type=Path, help="本地 aramhex-data 目录（不填则从 GitHub 下载）")
@@ -46,6 +60,10 @@ def main(argv=None) -> int:
         manifest = json.loads(_get(f"{RAW_BASE}/latest.json"))
         read = lambda name: _get(f"{RAW_BASE}/{manifest['path']}/{name}")  # noqa: E731
     check_manifest(manifest)
+    current = _bundled_snapshot()
+    if current and _when(manifest.get("snapshot_at")) <= current:
+        print(f"内置数据（样本截至 {current:%Y-%m-%d %H:%M}）不比 {manifest.get('snapshot_at')} 的旧，不换")
+        return 0
     tmp = BUNDLED.with_name("bundled.new")
     shutil.rmtree(tmp, ignore_errors=True)
     tmp.mkdir(parents=True)

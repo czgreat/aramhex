@@ -1,3 +1,4 @@
 -r requirements.txt
 PyInstaller==6.22.3
 pyinstaller-hooks-contrib==2026.8
+-c packaging/constraints.txt
