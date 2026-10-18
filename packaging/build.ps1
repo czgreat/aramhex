@@ -1,7 +1,8 @@
 # 打包：PyInstaller 生成程序目录 → GUI 自检 → Inno Setup 安装版 + 便携版 ZIP + SHA256SUMS.txt。
-# 用法（PowerShell 7）：pwsh -NoProfile -File packaging/build.ps1 [-PythonExe <python>] [-InnoCompiler <ISCC.exe>]
+# 用法（PowerShell 7）：pwsh -NoProfile -File packaging/build.ps1 [-PythonExe <python>] [-InnoCompiler <ISCC.exe>] [-PortableOnly]
+# -PortableOnly：只出便携版（测试版自己用，不需要 Inno Setup）
 # 输出：build/release/AramHex-Setup-<版本>.exe、AramHex-Portable-<版本>.zip、SHA256SUMS.txt
-param([string]$PythonExe, [string]$InnoCompiler)
+param([string]$PythonExe, [string]$InnoCompiler, [switch]$PortableOnly)
 $ErrorActionPreference = 'Stop'
 $env:PYTHONUTF8 = '1'  # 控制台不是 UTF-8 时（如 GitHub 的 Windows 构建机）输出中文也不能崩
 $root = Split-Path -Parent $PSScriptRoot
@@ -51,18 +52,23 @@ $gui = Get-Content -Raw -Encoding UTF8 -LiteralPath $report | ConvertFrom-Json
 if (-not $gui.success -or $gui.version -ne $version -or $gui.platform -ne 'windows' -or -not $gui.ocr_ok) { throw "自检结果不对（界面或文字识别）：$($gui | ConvertTo-Json -Compress)" }
 Write-Host "自检通过：Qt $($gui.qt)，文字识别读到「$($gui.ocr_text)」"
 
-$iscc = @($InnoCompiler, (Join-Path $root '.tools\inno\ISCC.exe'), "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe",
-          "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe", "$env:ProgramFiles\Inno Setup 6\ISCC.exe") |
-    Where-Object { $_ } | Where-Object { Test-Path $_ } | Select-Object -First 1
-if (-not $iscc) { throw '缺少 Inno Setup 6：winget install --id JRSoftware.InnoSetup -e' }
-& $iscc "/DAppVersion=$version" packaging\LolHex.iss
-if ($LASTEXITCODE) { throw 'Inno Setup 编译失败' }
+$setup = $null
+if (-not $PortableOnly) {
+    $iscc = @($InnoCompiler, (Join-Path $root '.tools\inno\ISCC.exe'), "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe",
+              "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe", "$env:ProgramFiles\Inno Setup 6\ISCC.exe") |
+        Where-Object { $_ } | Where-Object { Test-Path $_ } | Select-Object -First 1
+    if (-not $iscc) { throw '缺少 Inno Setup 6：winget install --id JRSoftware.InnoSetup -e' }
+    & $iscc "/DAppVersion=$version" packaging\LolHex.iss
+    if ($LASTEXITCODE) { throw 'Inno Setup 编译失败' }
+}
 
 $out = Join-Path $root 'build\release'
 if (Test-Path $out) { Remove-Item -Recurse -Force $out }
 New-Item -ItemType Directory -Path $out | Out-Null
-$setup = "AramHex-Setup-$version.exe"
-Copy-Item (Join-Path $root "build\installer\$setup") (Join-Path $out $setup)
+if (-not $PortableOnly) {
+    $setup = "AramHex-Setup-$version.exe"
+    Copy-Item (Join-Path $root "build\installer\$setup") (Join-Path $out $setup)
+}
 
 # 便携版：同一份程序目录 + portable.txt（有它时配置、日志、数据都放在程序目录的 userdata 下）
 $stage = Join-Path $root "build\portable\AramHex-$version"
@@ -78,7 +84,7 @@ Copy-Item (Join-Path $root 'LICENSE') $stage
 $zip = "AramHex-Portable-$version.zip"
 Compress-Archive -Path $stage -DestinationPath (Join-Path $out $zip) -CompressionLevel Optimal
 
-$sums = foreach ($name in @($setup, $zip)) {
+$sums = foreach ($name in @($setup, $zip) | Where-Object { $_ }) {
     '{0}  {1}' -f (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $out $name)).Hash.ToLowerInvariant(), $name
 }
 Set-Content -LiteralPath (Join-Path $out 'SHA256SUMS.txt') -Encoding ascii -Value $sums
