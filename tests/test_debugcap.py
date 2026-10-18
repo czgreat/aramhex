@@ -92,3 +92,9 @@ def test_read_mapskin_from_latest_game_log(tmp_path):
     os.utime(old, (1, 1))
     assert debugcap.read_mapskin(tmp_path) == "Default"
     assert debugcap.read_mapskin(tmp_path / "missing") is None
+
+
+def test_card_lines_keeps_band_cards_only():
+    got = debugcap.card_lines(["太空律动 拉克丝", "迪斯科灯球闪烁着最耀眼的光芒！", "不灭狂雷", "113", "双方军团开始出兵了",
+                               "K/DA 阿狸"])
+    assert got == ["太空律动 拉克丝", "迪斯科灯球闪烁着最耀眼的光芒！", "K/DA 阿狸"]

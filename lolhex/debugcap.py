@@ -5,15 +5,17 @@
 - env.json：显示器、游戏窗口（客户区 / 整窗）、DPI、游戏设置里的分辨率、窗口模式、HUD 和小地图缩放、小地图是否翻转；
 - mapskin.json：地图皮肤（游戏自己的日志 Logs/GameLogs/<开局时间>/*_r3dlog.txt 开局写一行「mapskin = Default」）；
 - game-config/：游戏 Config 下的 PersistedSettings.json、game.cfg 原样复制；
-- shots/：整窗 JPG。开局（2999 第一次读到等级起）3 分钟内每 3 秒一张（开局选海克斯、乐队揭晓），之后每 15 秒一张；升级后 0.5、2、4 秒各一张；
+- shots/：整窗 JPG。开局（2999 第一次读到等级起）3 分钟内每 2 秒一张（开局选海克斯、乐队揭晓），之后每 15 秒一张；升级后 0.5、2、4 秒各一张；
   认出三选一时存一张无损 PNG 和识别结果（offer-*.json），选完后 0.3、1.5 秒各一张（看选完的特效）；
 - minimap/：和每张整窗图同时存的左下角、右下角无损 PNG。小地图默认在右下角，设置里「翻转小地图」后在左下角，
   对局中也能改，所以两边都存；范围按最大的 HUD 和小地图缩放留够。env.json 里记着开局时的翻转设置；
+- cards/：左上角嘉宾卡片区域（「太空律动 拉克丝：迪斯科灯球闪烁着最耀眼的光芒！」这类台词卡），整局每 2 秒读一次字，
+  读到乐队名或整句台词、而且和上次不一样时，存一张无损 PNG，文字写进 cards.txt 和日志（10-18 测试服：出兵时第一次出现）；
 - liveclient/：2999 接口的 allgamedata，读到的第一份和之后每 30 秒一份；
 - lcu/：客户端 /lol-gameflow/v1/session（地图、模式、变体），选英雄时和开局各一份。
   只读本机客户端，只在调试采集开着时读，凭据只在内存里用、不写日志；
 - 手动截图：Ctrl+Alt+S，整窗无损 PNG 存到 shots/（文件名带 manual）；不在对局里时截整个桌面，存到 debug/manual/。
-debug 文件夹超过 5GB 时，从最早的对局删起。
+debug 文件夹超过 20GB 时，从最早的对局删起。
 """
 
 from __future__ import annotations
@@ -33,11 +35,14 @@ log = logging.getLogger(__name__)
 
 PERIOD_S = 15.0           # 对局中整窗截图间隔
 OPENING_S = 180.0         # 开局这么久内截得勤一些：开局选海克斯，之后乐队揭晓（10-18 测试服：出门以后才揭晓）
-OPENING_PERIOD_S = 3.0
+OPENING_PERIOD_S = 2.0
+CARD_PERIOD_S = 2.0
+CARD_BOX = (0.0, 0.08, 0.30, 0.40)  # 嘉宾卡片区域（x0, y0, x1, y1，占窗口比例）：2560×1440 默认界面缩放时卡片在 y 0.13–0.26，按界面缩放放大留够
+CARD_OCR_W = 960                    # 读字前缩到这么宽，免得 4K 下占着文字识别、拖慢三选一
 LEVEL_BURST = (0.5, 2.0, 4.0)
 AFTER_OFFER = (0.3, 1.5)
 LIVE_PERIOD_S = 30.0
-MAX_BYTES = 5 * 1024 ** 3
+MAX_BYTES = 20 * 1024 ** 3
 JPEG_QUALITY = 90
 MINIMAP_W, MINIMAP_H = 0.40, 0.55   # 小地图区域占窗口宽、高的比例（最大缩放也装得下）
 HOTKEY_ID = 0xA11
@@ -107,6 +112,19 @@ def prune(root: Path, max_bytes: int = MAX_BYTES, keep: Path | None = None) -> l
     return removed
 
 
+BAND_WORDS = ("K/DA", "KDA", "真实伤害", "五杀", "心之钢", "小蜜蜂", "咖啡甜心", "迪斯科", "太空律动", "命令行",
+              "乐队", "嘉宾", "演出", "试音")  # 测试服中文文本里各乐队的名字和常见词
+
+
+def card_lines(lines: list[str]) -> list[str]:
+    """OCR 读到的行里，像嘉宾卡片的：带乐队名，或者是一整句台词（够长、有标点）。头顶的名字、伤害数字不算。"""
+    keep = []
+    for t in (x.strip() for x in lines):
+        if any(w in t for w in BAND_WORDS) or (len(t) >= 8 and re.search(r"[！!？?。…，,]", t)):
+            keep.append(t)
+    return keep
+
+
 def _stamp() -> str:
     return datetime.now().strftime("%H%M%S-%f")[:-3]
 
@@ -166,6 +184,9 @@ class DebugRecorder:
         self._offer_open = False
         self._game_dir: Path | None = None
         self._mapskin = None
+        self._next_card = 0.0
+        self._card_text = None
+        self._env_ok = False
 
     # ---------- 引擎调用（任意线程） ----------
 
@@ -232,6 +253,12 @@ class DebugRecorder:
         if visible:
             for _, tag in due:
                 self._save_frame(rect, f"{tag}-{_stamp()}")
+            if not self._env_ok:  # 开局时多半还在加载界面、拿不到游戏窗口：进游戏后补记一次
+                self._env_ok = True
+                self._write_json(self.session / "env.json", self._environment())
+            if now >= self._next_card:
+                self._next_card = now + CARD_PERIOD_S
+                self._card(rect)
             if now >= self._next_shot:
                 every = OPENING_PERIOD_S if now < self._opening_until else PERIOD_S
                 self._next_shot = now + every
@@ -256,6 +283,9 @@ class DebugRecorder:
         self._next_shot = self._next_live = now
         self._level = None
         self._mapskin = None
+        self._card_text = None
+        self._next_card = now
+        self._env_ok = False
         self._opening_until = now + 240  # 没开 2999 时按加载界面加开局算
         with self._lock:
             self._due = []
@@ -316,6 +346,39 @@ class DebugRecorder:
         return env
 
     # ---------- 存文件 ----------
+
+    def _card(self, rect) -> None:
+        """左上角嘉宾卡片区域：读字，像卡片（乐队名 / 整句台词）而且和上次不一样，就存图、记字。"""
+        import cv2
+
+        from .vision import capture
+        from .vision.detector import _resize
+        from .vision.ocr import OCR
+        x0, y0, x1, y1 = CARD_BOX
+        box = win.Rect(rect.left + int(rect.width * x0), rect.top + int(rect.height * y0),
+                       max(1, int(rect.width * (x1 - x0))), max(1, int(rect.height * (y1 - y0))))
+        img = capture.grab(box)
+        if capture.is_blank(img):
+            return
+        try:
+            small = _resize(img, min(1.0, CARD_OCR_W / img.shape[1]))
+            lines = card_lines([ln.text for ln in OCR.get().detect(small)])
+        except Exception:
+            log.exception("调试采集：卡片文字识别失败")
+            return
+        text = " / ".join(lines)
+        if not text or text == self._card_text:
+            return
+        self._card_text = text
+        folder = self.session / "cards"
+        folder.mkdir(exist_ok=True)
+        stamp = _stamp()
+        ok, buf = cv2.imencode(".png", img)
+        if ok:
+            (folder / f"{stamp}.png").write_bytes(buf.tobytes())
+        with open(self.session / "cards.txt", "a", encoding="utf-8") as fh:
+            fh.write(f"{stamp}\t{text}\n")
+        log.info("调试采集：左上角卡片 %s", text[:120])
 
     def _schedule(self, delays, tag: str) -> None:
         now = time.monotonic()
