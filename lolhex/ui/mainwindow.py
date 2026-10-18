@@ -868,6 +868,8 @@ class MainWindow(QMainWindow):
             if r.get("tier"):
                 meta.append(f"{r['tier']}级")
             lines.append("<span style='color:#777'>" + " ".join(m for m in meta if m) + "</span>")
+            if r.get("context"):
+                lines.append(f"<span style='color:#2e9d5b'>{escape(r['context'])}</span>")
             if r["verdict"] == "nodata":
                 lines.append(f"<span style='color:#777'>{recommend.NODATA_NOTE}</span>")
             if r.get("score") is not None:

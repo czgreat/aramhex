@@ -132,6 +132,8 @@ class BadgeLayer(QWidget):
                 meta.insert(0, "样本偏少")
             if meta:
                 lines.append(" · ".join(meta))
+            if r.get("context"):
+                lines.append(r["context"])
             h = 30 + 18 * len(lines)
             # 放在标题正上方（压在海克斯图标下半部分）：不挡名字、描述和下方的刷新按钮
             rect = QRect(int(cx - w / 2), int(y0 - 4 - h), int(w), int(h))

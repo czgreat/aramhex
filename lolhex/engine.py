@@ -90,6 +90,7 @@ class Engine:
             "level": None, "game_window": False, "client_window": False,
             "vision": {"status": "idle", "calibrated": False, "last_scan": None, "blank": False},
             "offer": None, "evaluation": None,
+            "enemies": [],  # 对面英雄 ID（2999 接口读到时才有）
             "champ_select": None,  # {"bench": [...], "team": [...]}，每项带胜率和排名
         }
 
@@ -279,15 +280,18 @@ class Engine:
             self._set(champ_select=None)
 
         if phase == "ingame":
-            if self.live and not self._manual_hero:
-                snap = self.live.snapshot()
-                if snap:
-                    self._set(level=snap.get("level"))
-                    if not self.state["hero_id"]:
-                        hid = self.store.resolve_hero(snap.get("champion_raw")) or \
-                            self.store.resolve_hero(snap.get("champion_name"))
-                        if hid:
-                            self._set_hero_auto(hid, "liveclient")
+            snap = self.live.snapshot() if self.live else None
+            if snap and snap.get("enemies") and not self.state["enemies"]:
+                ids = [self.store.resolve_hero(e) for e in snap["enemies"]]
+                self._set(enemies=[i for i in ids if i])
+                self._reevaluate()  # 三选一已经在屏幕上时，补上看对面阵容的提示
+            if snap and not self._manual_hero:
+                self._set(level=snap.get("level"))
+                if not self.state["hero_id"]:
+                    hid = self.store.resolve_hero(snap.get("champion_raw")) or \
+                        self.store.resolve_hero(snap.get("champion_name"))
+                    if hid:
+                        self._set_hero_auto(hid, "liveclient")
             return 2.0
         if phase == "client" and win.is_foreground(client):
             self._champ_select_scan(client)
@@ -388,7 +392,7 @@ class Engine:
     def _on_game_end(self) -> None:
         self._manual_hero = False
         self._set(hero_id=None, hero_source=None, hero_candidates=[], level=None,
-                  offer=None, evaluation=None)
+                  offer=None, evaluation=None, enemies=[])
         self._data_wake.set()
 
     # ---------- 海克斯识别 ----------
@@ -510,8 +514,9 @@ class Engine:
         with self._lock:
             offer = self.state.get("offer")
             hid = self.state.get("hero_id")
+            enemies = list(self.state.get("enemies") or [])
         if not offer:
             return None
-        ev = recommend.evaluate(self.store, hid, offer["slots"], self.settings.smoothing_games)
+        ev = recommend.evaluate(self.store, hid, offer["slots"], self.settings.smoothing_games, enemies=enemies)
         self._set(evaluation=ev)
         return ev

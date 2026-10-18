@@ -13,6 +13,7 @@ datas += [("../lolhex/ui/icon.png", "lolhex/ui")]
 datas += [("../lolhex/data/hero_aliases.json", "lolhex/data")]  # 英雄别名（来源 Hexdata）
 datas += [("../lolhex/data/bundled", "lolhex/data/bundled")]  # 内置统计数据（scripts/update_data.py）
 datas += [("../lolhex/data/hero_nicknames.json", "lolhex/data")]  # 英雄外号（网上常见叫法）
+datas += [("../lolhex/data/context.json", "lolhex/data")]  # 看对面阵容的海克斯（掷骰狂人等）
 binaries = collect_dynamic_libs("onnxruntime")
 
 a = Analysis(
