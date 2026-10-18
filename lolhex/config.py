@@ -88,7 +88,8 @@ class Settings:
     last_version: str = ""
     # 第一次打开时的「请把游戏设成无边框」提示，看过就不再弹
     seen_welcome: bool = False
-    # 匿名使用统计：第一次打开时随机生成的编号（和硬件、账号无关，重装就是新的），只在查云控时带上；可以关
+    # 匿名使用统计：第一次打开时随机生成的编号（和硬件、账号无关，重装就是新的），只在查云控时带上。
+    # 界面上不显示；要关就把 config.json 里的 send_usage 改成 false
     install_id: str = ""
     send_usage: bool = True
     extra: dict = field(default_factory=dict)

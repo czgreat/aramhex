@@ -83,6 +83,8 @@ class Engine:
         self._cs_memo = None    # 选人界面各位置的识别结果缓存（champselect.Memo）
         self.vision_hold_until = 0.0  # time.monotonic() 在这之前暂停识别（自动截图用）
         self._manual_hero = False
+        self._live_logged = False  # 这局「2999 读不到」只记一次
+        self._last_eval_log = None  # 同一个三选一只记一次评估结果
         self._panel_cache: tuple[str | None, dict | None] = (None, None)
         self.state: dict = {
             "phase": None,  # None / client / ingame
@@ -281,9 +283,15 @@ class Engine:
 
         if phase == "ingame":
             snap = self.live.snapshot() if self.live else None
+            if self.live and not snap and not self._live_logged:
+                self._live_logged = True
+                log.info("2999 接口暂时读不到（刚进游戏加载时正常）")
             if snap and snap.get("enemies") and not self.state["enemies"]:
                 ids = [self.store.resolve_hero(e) for e in snap["enemies"]]
                 self._set(enemies=[i for i in ids if i])
+                log.info("2999 读到对面阵容：%s（认出 %d/%d）", "、".join(
+                    (self.store.heroes.get(i) or {}).get("name") or str(i) for i in ids if i),
+                    len([i for i in ids if i]), len(ids))
                 self._reevaluate()  # 三选一已经在屏幕上时，补上看对面阵容的提示
             if snap and not self._manual_hero:
                 self._set(level=snap.get("level"))
@@ -393,6 +401,8 @@ class Engine:
         self._manual_hero = False
         self._set(hero_id=None, hero_source=None, hero_candidates=[], level=None,
                   offer=None, evaluation=None, enemies=[])
+        self._live_logged = False
+        log.info("对局结束")
         self._data_wake.set()
 
     # ---------- 海克斯识别 ----------
@@ -519,4 +529,13 @@ class Engine:
             return None
         ev = recommend.evaluate(self.store, hid, offer["slots"], self.settings.smoothing_games, enemies=enemies)
         self._set(evaluation=ev)
+        key = (hid, tuple(offer["slots"]), tuple(enemies))
+        if key != self._last_eval_log:
+            self._last_eval_log = key
+            log.info("三选一（%s）：%s｜%s", (self.store.heroes.get(str(hid)) or {}).get("name") or "未识别英雄",
+                     "；".join(f"{s.get('name') or '未识别'} {s['verdict']}"
+                              + (f" {s['score']:+.1f}" if s.get("score") is not None else "")
+                              + (f"（{s['basis']}）" if s.get("basis") else "")
+                              + (f" {s['context']}" if s.get("context") else "") for s in ev["slots"]),
+                     ev["advice"])
         return ev

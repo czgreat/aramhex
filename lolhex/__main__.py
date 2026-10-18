@@ -14,6 +14,7 @@ import json
 import logging
 import os
 import sys
+from logging.handlers import RotatingFileHandler
 
 from .config import Settings, app_home
 
@@ -36,7 +37,7 @@ def _fix_stdio() -> None:
 def _setup_logging(debug: bool) -> None:
     home = app_home()
     handlers = [logging.StreamHandler(sys.stderr),
-                logging.FileHandler(home / "aramhex.log", encoding="utf-8")]
+                RotatingFileHandler(home / "aramhex.log", maxBytes=20 * 1024 * 1024, backupCount=3, encoding="utf-8")]
     logging.basicConfig(level=logging.DEBUG if debug else logging.INFO, handlers=handlers,
                         format="%(asctime)s %(levelname)s %(name)s: %(message)s", force=True)
     for noisy in ("urllib3", "RapidOCR"):
@@ -89,9 +90,13 @@ def main(argv=None) -> int:
         return run(args.self_test_gui)
 
     _fix_stdio()
-    _setup_logging(args.debug)
+    from . import BETA, __version__, cloud
+    _setup_logging(args.debug or BETA)
     settings = Settings.load()
-    from . import __version__, cloud
+    if BETA and not settings.extra.get("beta_defaults"):  # 测试版第一次打开：默认开 2999 和自动截图（之后可以在设置里关）
+        settings.use_liveclient = settings.auto_screenshot = True
+        settings.extra["beta_defaults"] = 1
+        settings.save()
     cloud.set_install_id(settings.install_id if settings.send_usage else None)
     logging.getLogger("lolhex").info("海克斯大乱斗助手 %s 启动；目录：%s；参数：%s", __version__,
                                      app_home(), " ".join(sys.argv[1:]) or "（无）")

@@ -275,6 +275,7 @@ class PublicStore(DataStore):
         manual=True：用户点了「检查更新」或同意了更新提示，关了自动更新、正在对局也查。
         后台查时：正在对局就先不查（打完再查）；关了自动更新只看有没有新的，有就记到 data_offer 等用户点头。"""
         if not manual and self.hold():
+            log.debug("对局中，统计数据更新推迟到打完")
             return False
         if not self._sync_lock.acquire(blocking=False):
             return False
@@ -370,6 +371,7 @@ class PublicStore(DataStore):
                 log.info("从 %s 查看统计数据失败：%s", base, e)
                 continue
             if self._newer(remote):
+                log.info("发现新统计数据（%s），自动更新关着，等用户确认", self._describe(remote))
                 self.data_offer = {"id": f"{remote.get('patch')}|{remote.get('snapshot_at')}",
                                    "text": self._describe(remote)}
             return

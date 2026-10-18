@@ -393,9 +393,6 @@ class MainWindow(QMainWindow):
         f.addRow("", self.set_capture)
         f.addRow("", shot_row)
         f.addRow("", self.set_live)
-        self.set_usage = QCheckBox("发送匿名使用次数（随机编号，不含账号和电脑信息）")
-        self.set_usage.setChecked(s.send_usage)
-        f.addRow("", self.set_usage)
         f.addRow("", self.set_auto)
         f.addRow("", self.set_data)
         save = QPushButton("保存设置")
@@ -537,6 +534,7 @@ class MainWindow(QMainWindow):
         note = dd.get("data_note")
         if note and note.get("id") != self._shown_note:
             self._shown_note = note["id"]
+            logging.getLogger(__name__).info("右下角提示：%s", note["text"])
             self._toast(note["text"])
         offer = dd.get("data_offer")
         if offer and offer.get("id") not in self._asked_offers:
@@ -552,6 +550,8 @@ class MainWindow(QMainWindow):
         if hasattr(self, "btn_comm"):
             self._show_primary()
         if self._in_game():  # 公告、版本太旧都是弹窗：打完这局再弹
+            if self._deferred_cloud is None:
+                logging.getLogger(__name__).info("对局中，云控公告/版本检查推迟到打完")
             self._deferred_cloud = cfg
             return
         s = self.engine.settings
@@ -589,8 +589,6 @@ class MainWindow(QMainWindow):
         win.set_capture_allowed(s.allow_capture)
         s.show_winrate = self.set_win.isChecked()
         s.use_liveclient = self.set_live.isChecked()
-        s.send_usage = self.set_usage.isChecked()
-        cloud.set_install_id(s.install_id if s.send_usage else None)
         s.overlay = self.set_overlay.isChecked()
         s.overlay_corner = "top-right" if self.set_corner.currentIndex() == 0 else "top-left"
         s.save()
@@ -681,6 +679,7 @@ class MainWindow(QMainWindow):
         elif tray and known != info["version"]:  # 同一个版本只弹一次通知；对局中先攒着
             text = f"有新版本 {info['version']}，打开主界面点「立即更新」。"
             if self._in_game():
+                logging.getLogger(__name__).info("对局中，新版本提示推迟到打完")
                 self._deferred_toast = text
             else:
                 self._toast(text)
