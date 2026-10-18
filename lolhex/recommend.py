@@ -14,7 +14,7 @@
    只是不足 1000 局的，不当首选、标"样本偏少"。三张都不足时才正常比较。
 选取率只展示，不进分数：常拿不代表强。
 统计里剔除的海克斯（数据集 excluded_augments，如尊我为王：完成任务后被替换，局末数据不准）标「无数据」，
-不打分、不用官方层级兜底、不参与首选比较。
+不打分、不用官方层级兜底、不参与首选比较。新海克斯（腾讯列表 isPBE/isNew）统计里还没有时也标「无数据」。
 """
 
 from __future__ import annotations
@@ -28,6 +28,7 @@ REROLL_GAP = 2.0     # 比首选低 2pp 以上：可考虑刷新
 RELIABLE_GAMES = 1000  # 本英雄局数达到这个数才能当首选
 TOO_FEW_RATIO = 0.1    # 局数不到同屏最多那张的 1/10：样本太少，提示刷新
 NODATA_NOTE = "完成任务后会被替换，统计不准"
+NEW_NOTE = "新海克斯，还没有数据"
 
 
 def sample_level(games: int | None) -> str:
@@ -146,6 +147,12 @@ def evaluate(store, hero_id: str | None, slots: list[str | None], k: int = 300,
             r["score"] = TIER_PP[r["tier"]]
             r["basis"] = "tier_only"
             r["reasons"].append("没有胜率数据，按官方层级估计，可信度低")
+        # 4) 新海克斯（测试服 / 刚上线）：统计里还没有，不当成「几乎不选」去扣分
+        if r["score"] is None and meta.get("new"):
+            r.update(verdict="nodata", basis="new")
+            r["reasons"].append(NEW_NOTE)
+            results.append(r)
+            continue
         if r["score"] is None:
             if hero_id and (official or ag):
                 r["score"] = -3.0

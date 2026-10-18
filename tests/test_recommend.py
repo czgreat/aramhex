@@ -124,3 +124,17 @@ def test_excluded_augment_has_no_data(store):
     assert "tier" not in s
     assert ev["best_index"] == 1 and "缩小引擎" not in ev["advice"]
 
+
+
+def test_new_augment_without_stats_has_no_data(store):
+    # 测试服 / 刚上线的新海克斯：统计里没有时标「无数据」，不当成「几乎不选」扣分、提示刷新
+    store.augments["9999"] = {"id": "9999", "name": "测试新海克斯", "rarity": "gold", "new": True}
+    ev = recommend.evaluate(store, "17", ["9999", "1029", "2128"])
+    s = ev["slots"][0]
+    assert s["verdict"] == "nodata" and s["basis"] == "new" and s["score"] is None
+    assert recommend.NEW_NOTE in s["reasons"]
+    assert ev["best_index"] != 0
+    # 有统计的海克斯即使标了新，也照常按胜率算
+    store.augments["1029"] = {**store.augments.get("1029", {}), "new": True}
+    ev = recommend.evaluate(store, "17", ["9999", "1029", "2128"])
+    assert ev["slots"][1]["basis"] == "hero_win"

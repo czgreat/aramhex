@@ -92,6 +92,8 @@ class Settings:
     # 界面上不显示；要关就把 config.json 里的 send_usage 改成 false
     install_id: str = ""
     send_usage: bool = True
+    # 调试采集（测试版默认开，界面上不显示）：每局多存截图、小地图、2999 和客户端会话，见 debugcap.py
+    debug_capture: bool = False
     extra: dict = field(default_factory=dict)
 
     @classmethod

@@ -36,6 +36,10 @@ class LiveClient:
     def game_stats(self) -> dict | None:
         return self._get("/gamestats")
 
+    def all_game_data(self) -> dict | None:
+        """整局数据（调试采集原样存档用）。"""
+        return self._get("/allgamedata")
+
     def snapshot(self) -> dict | None:
         """→ {champion_raw, champion_name, level, game_mode, game_time, enemies}；不可用返回 None。
         enemies：对面英雄的 rawChampionName 列表（认不出自己是哪一边时为空）。2026-10-18 国服海斗实测能读到全场 10 人。"""

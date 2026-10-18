@@ -875,7 +875,8 @@ class MainWindow(QMainWindow):
             if r.get("context"):
                 lines.append(f"<span style='color:#2e9d5b'>{escape(r['context'])}</span>")
             if r["verdict"] == "nodata":
-                lines.append(f"<span style='color:#777'>{recommend.NODATA_NOTE}</span>")
+                note = recommend.NEW_NOTE if r.get("basis") == "new" else recommend.NODATA_NOTE
+                lines.append(f"<span style='color:#777'>{note}</span>")
             if r.get("score") is not None:
                 s = f"{r['score']:+.1f}"
                 if show_win and r.get("win") is not None:
@@ -919,6 +920,9 @@ class Tray(QSystemTrayIcon):
         m.addAction(self.act_overlay)
         m.addAction("重新识别", engine.rescan)
         m.addAction("检查更新", lambda: (window.show_and_raise(), window.check_update(manual=True)))
+        if engine.debug and hasattr(os, "startfile"):
+            m.addAction("打开调试文件夹", lambda: (engine.debug.root.mkdir(parents=True, exist_ok=True),
+                                             os.startfile(str(engine.debug.root))))
         self.messageClicked.connect(window.show_and_raise)
         self.act_auto = QAction("开机自动启动", m, checkable=True)
         self.act_auto.setChecked(autostart.is_enabled())

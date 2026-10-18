@@ -131,6 +131,7 @@ def parse_kiwi_augments(raw: list) -> dict[str, dict]:
             "desc": _TAG.sub("", a.get("tooltip") or a.get("desc") or "").strip(),
             "icon": a.get("small_Icon") or a.get("large_Icon") or "",
             "modes": modes,
+            "new": bool(a.get("isPBE") or a.get("isNew")),  # 测试服 / 刚上线的新海克斯：统计里还没有它
         }
     return out
 

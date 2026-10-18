@@ -7,6 +7,7 @@
   可选读取游戏内 2999 接口（默认关闭）；
 - vision：游戏窗口在前台时截屏识别海克斯三选一。
 浮窗只读 snapshot()，并通过 set_hero / rescan / reset_calibration 操作。
+例外：测试版调试采集（debugcap.py，config.json 的 debug_capture）会只读客户端的 gameflow 会话存档。
 """
 
 from __future__ import annotations
@@ -86,6 +87,10 @@ class Engine:
         self._live_logged = False  # 这局「2999 读不到」只记一次
         self._last_eval_log = None  # 同一个三选一只记一次评估结果
         self._panel_cache: tuple[str | None, dict | None] = (None, None)
+        self.debug = None
+        if settings.debug_capture:
+            from .debugcap import DebugRecorder
+            self.debug = DebugRecorder(self)  # 测试版调试采集：多存截图和原始数据（见 debugcap.py）
         self.state: dict = {
             "phase": None,  # None / client / ingame
             "hero_id": None, "hero_source": None, "hero_candidates": [],
@@ -102,6 +107,8 @@ class Engine:
         for name, fn in (("data", self._data_loop), ("observer", self._observer_loop),
                          ("vision", self._vision_loop)):
             threading.Thread(target=fn, name=name, daemon=True).start()
+        if self.debug:
+            self.debug.start()
 
     def stop(self) -> None:
         self._stop.set()
@@ -469,6 +476,8 @@ class Engine:
                     misses = 0
                     if not visible:
                         self._save_offer_shot(rect)  # 趁浮窗还没画上去
+                        if self.debug:
+                            self.debug.offer(rect, offer)
                     self._on_offer(offer)
                     visible = True
                 elif visible:
@@ -476,6 +485,8 @@ class Engine:
                     if misses >= 3:
                         self._on_offer(None)
                         visible = False
+                        if self.debug:
+                            self.debug.offer_closed()
             self._stop.wait(0.1)
 
     SHOTS_KEEP = 3
