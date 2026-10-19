@@ -176,3 +176,15 @@ def test_provisional_augment_with_tiny_sample_still_scored(store):
     s = recommend.evaluate(store, "17", ["3086", "2128", "1029"])["slots"][0]
     assert s["verdict"] != "nodata" and s["basis"] == "pbe" and s["pbe_games"] == 3
     assert 0 < s["score"] < 1.0  # 3 局全胜也只往上挪一点：方向对，不会被当成首选的理由
+
+
+def test_pbe_augments_not_ranked_with_live_ones(store):
+    # 测试服的新海克斯不和正式服的老海克斯一起排名：老海克斯的「第几/共几」不算它
+    rows = store.dataset.table(None)[1]["17"]
+    gold = [aid for aid in rows if store.augments.get(aid, {}).get("rarity") == "gold"]
+    before = recommend.evaluate(store, "17", [gold[0], None, None])["slots"][0].get("rank_total")
+    store.augments["3086"] = {"id": "3086", "name": "小蜜蜂！！！", "rarity": "gold", "new": True}
+    rows["3086"] = {"games": 500, "wins": 400, "win_rate": 0.8}
+    store.dataset.meta["provisional_augments"] = {"3086": {"games": 5000, "wins": 2800, "win_rate": 0.56}}
+    ev = recommend.evaluate(store, "17", [gold[0], "3086", None])
+    assert before and ev["slots"][0].get("rank_total") == before and ev["slots"][1].get("rank") is None

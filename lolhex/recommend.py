@@ -15,7 +15,7 @@
 选取率只展示，不进分数：常拿不代表强。
 过渡数据里暂用测试服统计的新海克斯（数据集 provisional_augments）：先用它在测试服所有英雄上的合计胜率打底
 （底 = 英雄基准 + 合计胜率相对 50% 的差，按合计局数平滑），再用本英雄在测试服的局数微调；
-不参与上面的样本分档和"样本太少"判断，理由里写明测试服数据。
+不参与上面的样本分档和"样本太少"判断，也不参与同稀有度胜率排名（不是同一个版本的数据），理由里写明测试服数据。
 统计里剔除的海克斯（数据集 excluded_augments，如尊我为王：完成任务后被替换，局末数据不准）标「无数据」，
 不打分、不用官方层级兜底、不参与首选比较。新海克斯（腾讯列表 isPBE/isNew，或整份统计里一局都没有）也标「无数据」。
 """
@@ -99,13 +99,16 @@ def evaluate(store, hero_id: str | None, slots: list[str | None], k: int = 300) 
     ag = store.win_data(hero_id) if hero_id else None
     label = (ag or {}).get("label") or "自采统计"
     ag_augs = (ag or {}).get("augments") or {}
-    ranks_by_win = win_ranks(ag_augs, store.augments)
+    excluded = store.excluded_augments()
+    provisional = store.provisional_augments() if hasattr(store, "provisional_augments") else {}
+    # 排名只在正式服统计的海克斯之间排：测试服的新海克斯不是同一个版本的数据，只显示测试服胜率、不排名；
+    # 剔除的不参与。4.0 删掉的海克斯过渡数据里已经去掉，名次的分母跟着变
+    ranks_by_win = win_ranks({aid: s for aid, s in ag_augs.items() if aid not in provisional and aid not in excluded},
+                             store.augments)
     base = (ag or {}).get("sample_win")
     if base is None and hero_id:
         base = ((store.ranks.get("heroes") or {}).get(str(hero_id)) or {}).get("win")
     official = {a["id"]: a for a in (hero or {}).get("augments", [])}
-    excluded = store.excluded_augments()
-    provisional = store.provisional_augments() if hasattr(store, "provisional_augments") else {}
     rarity_total: dict[str, int] = {}
     for a in official.values():
         if a.get("tier") and a.get("rarity"):

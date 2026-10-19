@@ -24,17 +24,21 @@ def hero_panel(store, hero_key, k: int = 300) -> dict | None:
     data = store.hero(hid) or {}
     ag = store.win_data(hid) or {}
     ag_augs = ag.get("augments") or {}
+    # 测试服数据的新海克斯：只显示测试服胜率，不算 Δ，不进「推荐海克斯」排行（不是同一个版本的数据）
+    provisional = store.provisional_augments() if hasattr(store, "provisional_augments") else {}
 
     augs = []
     for a in data.get("augments", []):
         meta = store.augments.get(a["id"], {})
         x = ag_augs.get(a["id"]) or {}
         d = None
-        if x.get("win") is not None and x.get("games") and ag.get("sample_win") is not None:
+        if a["id"] in provisional:
+            pass
+        elif x.get("win") is not None and x.get("games") and ag.get("sample_win") is not None:
             d = recommend.smoothed_delta(x["win"], x["games"], ag["sample_win"], k)
         augs.append({**a, "name": meta.get("name", a["id"]), "icon": meta.get("icon"),
                      "desc": meta.get("desc"), "win": x.get("win"), "games": x.get("games"),
-                     "source": "public" if x else None,
+                     "source": ("pbe" if a["id"] in provisional else "public") if x else None,
                      "delta": None if d is None else round(d, 2),
                      "sample": recommend.sample_level(x.get("games"))})
 
