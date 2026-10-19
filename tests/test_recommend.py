@@ -166,3 +166,13 @@ def test_provisional_augment_uses_pbe_total_and_skips_thin_rule(store):
     del store.dataset.table(None)[1]["17"]["3086"]
     s = recommend.evaluate(store, "17", ["3086", "2128", "1029"])["slots"][0]
     assert s["basis"] == "pbe" and s["games"] is None and 5.0 < s["score"] < 6.0
+
+
+def test_provisional_augment_with_tiny_sample_still_scored(store):
+    # 4.0 上线第一天的过渡数据：测试服样本再少也要给分（标测试服、写局数），不能显示「无数据」
+    store.dataset.meta["provisional_augments"] = {"3086": {"games": 3, "wins": 3, "win_rate": 1.0,
+                                                           "source": "测试服"}}
+    store.augments["3086"] = {"id": "3086", "name": "小蜜蜂！！！", "rarity": "gold", "new": True}
+    s = recommend.evaluate(store, "17", ["3086", "2128", "1029"])["slots"][0]
+    assert s["verdict"] != "nodata" and s["basis"] == "pbe" and s["pbe_games"] == 3
+    assert 0 < s["score"] < 1.0  # 3 局全胜也只往上挪一点：方向对，不会被当成首选的理由
