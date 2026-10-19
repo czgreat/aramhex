@@ -63,3 +63,23 @@ def test_overlay_drops_augments_missing_from_pbe(tmp_path, monkeypatch):
     assert "2128" not in ds.table(None)[1]["17"] and "2128" not in ds.table("top")[1].get("17", {})
     assert "1373" in ds.table(None)[1]["17"] and "1029" in ds.table(None)[1]["17"]
     assert list(ds.meta["removed_augments"]) == ["2128"] and ds.manifest["provisional"]["removed"] == 1
+
+
+def test_overlay_drops_augments_disabled_in_game_data(tmp_path):
+    # 1373 按比例不到门槛，但游戏数据标了停用、测试服也没出现 → 删除；1029 也标了停用，但测试服还在出现 → 保留
+    base = tmp_path / "base"
+    make_dataset(base)
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    with gzip.open(raw / "a.ndjson.gz", "wt", encoding="utf-8") as fh:
+        for g in (_game(1), _game(2)):
+            fh.write(json.dumps({"platform": "PBE", "id": g["gameId"], "body": {"json": g}}) + "\n")
+    gd = tmp_path / "kiwi.bin.json"
+    gd.write_text(json.dumps({f"Augments/{a}": {"__type": "AugmentData", "AugmentPlatformId": int(a), "Enabled": False}
+                              for a in ("1373", "1029")}), encoding="utf-8")
+    out = tmp_path / "out"
+    assert pbe_overlay.main(["--raw", str(raw), "--build", "16.21.828", "--out", str(out), "--base", str(base),
+                             "--game-data", str(gd)]) == 0
+    ds = Dataset(out, "bundled")
+    assert "1373" not in ds.table(None)[1]["17"] and "1029" in ds.table(None)[1]["17"]
+    assert "停用" in ds.meta["removed_augments"]["1373"]["reason"]

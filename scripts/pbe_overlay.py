@@ -4,8 +4,11 @@
         [--base lolhex/data/bundled] [--kiwi kiwi_augments.json]
 
 - 老海克斯：原样用 --base 的统计（含分段）。
-- 被删的海克斯：在 --base 里按出场比例，测试服应该出现至少 REMOVED_MIN_EXPECTED 次、实际一次都没有的，
-  从所有英雄的海克斯表里去掉（英雄详情页不再列出），记在 meta.json 的 removed_augments。
+- 被删的海克斯：在 --base 里按出场比例，测试服应该出现至少 REMOVED_MIN_EXPECTED 次、实际一次都没有的；
+  另外给了 --game-data（CommunityDragon 测试服 kiwi.bin.json）时，游戏数据标了停用（Enabled=false）、
+  测试服里也一次都没出现的，也算删除（停用但还出现的，多半是别的海克斯给的，照常保留）。
+  从所有英雄的海克斯表里去掉（英雄详情页不再列出，同稀有度排名的分母也跟着变），记在 meta.json 的 removed_augments。
+- 新海克斯不和老海克斯一起排名（recommend.py），只显示测试服胜率。
 - 新海克斯（测试服里出现、--base 里没有的）：补进每个英雄的海克斯表，局数、胜场照实写；
   meta.json 的 provisional_augments 记它们在测试服所有英雄上的合计（推荐按这个打底，见 recommend.py）。
   测试服不分段，分段表里补的是同一份。
@@ -67,6 +70,7 @@ def main(argv=None) -> int:
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--base", type=Path, default=ROOT / "lolhex" / "data" / "bundled")
     ap.add_argument("--kiwi", type=Path, help="腾讯 kiwi_augments.json（补新海克斯的名字和稀有度）")
+    ap.add_argument("--game-data", type=Path, help="CommunityDragon 测试服 kiwi.bin.json（看哪些海克斯停用了）")
     a = ap.parse_args(argv)
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -83,6 +87,7 @@ def main(argv=None) -> int:
     per_hero: dict[str, dict[str, list[int]]] = defaultdict(lambda: defaultdict(lambda: [0, 0]))
     total: dict[str, list[int]] = defaultdict(lambda: [0, 0])
     seen: set[str] = set()
+    seen_n: dict[str, int] = defaultdict(int)
     rows = 0
     for g in games:
         for p in g["participants"]:
@@ -90,6 +95,8 @@ def main(argv=None) -> int:
             w = 1 if p.get("win") else 0
             augs = {str(p.get(f"playerAugment{i}")) for i in range(1, 7) if p.get(f"playerAugment{i}")}
             seen |= augs
+            for aid in augs:
+                seen_n[aid] += 1
             for aid in augs - known:
                 s = per_hero[str(p["championId"])][aid]
                 s[0] += 1
@@ -105,6 +112,17 @@ def main(argv=None) -> int:
                     for h in json.loads((a.base / "heroes.json").read_text(encoding="utf-8")))
     removed = {aid: n for aid, n in base_games.items()
                if aid not in seen and n / max(1, base_rows) * rows >= REMOVED_MIN_EXPECTED}
+    disabled: set[str] = set()
+    if a.game_data:
+        gd = json.loads(a.game_data.read_text(encoding="utf-8"))
+        disabled = {str(v["AugmentPlatformId"]) for v in gd.values()
+                    if isinstance(v, dict) and v.get("__type") == "AugmentData" and v.get("AugmentPlatformId")
+                    and v.get("Enabled") in (False, 0)}
+        for aid in sorted(disabled):
+            if aid in base_games and aid not in seen:
+                removed[aid] = base_games[aid]
+            elif aid in base_games:
+                print(f"{aid}：游戏数据标了停用，但测试服里出现 {seen_n[aid]} 次，保留")
 
     out = a.out
     if out.exists():
@@ -134,7 +152,8 @@ def main(argv=None) -> int:
     meta["provisional_augments"] = {aid: {"games": n, "wins": w, "win_rate": round(w / n, 6), "source": source}
                                     for aid, (n, w) in sorted(total.items())}
     meta["removed_augments"] = {aid: {"base_games": n, "reason": f"{source}里一次都没出现（按 {base_manifest.get('patch')} 的出场比例应出现约 "
-                                                                f"{round(n / max(1, base_rows) * rows)} 次），判断已删除"}
+                                                                f"{round(n / max(1, base_rows) * rows)} 次）"
+                                                                + ("，游戏数据也标了停用" if aid in disabled else "") + "，判断已删除"}
                                 for aid, n in sorted(removed.items())}
     meta["provisional_note"] = (f"过渡数据：老海克斯用 {base_manifest.get('patch')} 正式服统计；"
                                 f"新海克斯用{source}（样本少，只作参考）")
