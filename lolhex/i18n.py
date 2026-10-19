@@ -18,7 +18,7 @@ PATH = Path(__file__).resolve().parent / "data" / "i18n.json"
 # 设置里的选项：(代码, 显示名)。中文是 zh_CN：简体名字用腾讯的（和拳头简中一致），
 # 繁中（台服等）的名字也一起认——繁中是另一套译名，台服玩家多半不会去改设置。
 # 以前单独有过繁中选项（zh_TW），存着这个值的当中文
-LANGS = [("zh_CN", "中文（国服、台服等，简繁都认）"), ("en_US", "English（美服、欧服等）"),
+LANGS = [("zh_CN", "中文 简-繁（国服、台服）"), ("en_US", "English（美服、欧服等）"),
          ("ja_JP", "日本語（日服）"), ("ko_KR", "한국어（韩服）")]
 LANG_CODES = {code for code, _ in LANGS}
 TW = "zh_TW"
