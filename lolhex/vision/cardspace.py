@@ -10,10 +10,10 @@ from __future__ import annotations
 import numpy as np
 
 SCAN_FROM = 20     # 标题中心往下多少开始看（跳过标题本身）
-SCAN_TO = 240      # 看到哪（卡片内框底边约在 248，再往下是边框）
+SCAN_TO = 228      # 看到哪（标签底边在 236；再往下到 248 是卡片内框，两角的花纹会伸进中间这一列）
 HALF_WIDTH = 120   # 卡片中间这么宽一列（卡片内宽约 270，避开两边的边框）
 EDGE = 25          # 左右相邻像素亮度差超过这个算笔画边缘
-MIN_SHARE = 0.03   # 一行里边缘占这一列宽度的比例够了才算有字；连续两行（1080P 像素）以上才算一行字，
+MIN_EDGES = 6      # 一行里至少这么多处边缘才算有字（一个汉字一行就有好几处）；连续两行（1080P 像素）以上才算一行字，
                    # 卡片边上一闪一闪的小星星只有几个像素、一两行高，不算
 
 
@@ -31,7 +31,7 @@ def desc_end(frame: np.ndarray, box, origin: tuple[int, int] = (0, 0)) -> float 
     if x1 - x0 < 10 or y1 - y0 < 10:
         return None
     lum = frame[y0:y1, x0:x1].max(axis=2).astype(np.int16)
-    rows = (np.abs(np.diff(lum, axis=1)) > EDGE).sum(axis=1) >= max(3, MIN_SHARE * (x1 - x0))
+    rows = (np.abs(np.diff(lum, axis=1)) > EDGE).sum(axis=1) >= MIN_EDGES
     need = max(2, round(2 * u))
     last, run = None, 0
     for i, on in enumerate(rows):
