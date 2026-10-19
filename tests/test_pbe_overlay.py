@@ -83,3 +83,20 @@ def test_overlay_drops_augments_disabled_in_game_data(tmp_path):
     ds = Dataset(out, "bundled")
     assert "1373" not in ds.table(None)[1]["17"] and "1029" not in ds.table(None)[1]["17"]
     assert "停用" in ds.meta["removed_augments"]["1373"]["reason"]
+
+
+def test_overlay_publish_path_and_seq(tmp_path):
+    # 发布到数据仓库：要有自己的目录和更大的序号；和底子一样的拒绝
+    base = tmp_path / "base"
+    m = make_dataset(base)
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    with gzip.open(raw / "a.ndjson.gz", "wt", encoding="utf-8") as fh:
+        fh.write(json.dumps({"platform": "PBE", "id": 1, "body": {"json": _game(1)}}) + "\n")
+    args = ["--raw", str(raw), "--build", "16.21.828", "--base", str(base)]
+    seq = int(m.get("seq") or 0)
+    assert pbe_overlay.main(args + ["--out", str(tmp_path / "o1"), "--path", str(m["path"]), "--seq", str(seq + 1)]) == 2
+    assert pbe_overlay.main(args + ["--out", str(tmp_path / "o2"), "--path", "patches/x-pbe/normal", "--seq", str(seq)]) == 2
+    assert pbe_overlay.main(args + ["--out", str(tmp_path / "o3"), "--path", "patches/x-pbe/normal", "--seq", str(seq + 1)]) == 0
+    ds = Dataset(tmp_path / "o3", "bundled")
+    assert ds.manifest["path"] == "patches/x-pbe/normal" and ds.seq == seq + 1

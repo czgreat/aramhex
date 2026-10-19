@@ -71,6 +71,8 @@ def main(argv=None) -> int:
     ap.add_argument("--base", type=Path, default=ROOT / "lolhex" / "data" / "bundled")
     ap.add_argument("--kiwi", type=Path, help="腾讯 kiwi_augments.json（补新海克斯的名字和稀有度）")
     ap.add_argument("--game-data", type=Path, help="CommunityDragon 测试服 kiwi.bin.json（看哪些海克斯停用了）")
+    ap.add_argument("--path", help="发布到数据仓库时的目录（如 patches/16.20-pbe/normal）；不给就沿用底子的（只适合内置）")
+    ap.add_argument("--seq", type=int, help="发布到数据仓库时的序号（底子的 seq + 1，对应 tag data-v<seq>）；不给就沿用底子的")
     a = ap.parse_args(argv)
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -171,6 +173,19 @@ def main(argv=None) -> int:
 
     manifest = dict(base_manifest)
     manifest["snapshot_at"] = dt.datetime.now(TZ).isoformat(timespec="seconds")
+    if a.path:
+        if a.path.strip("/") == str(base_manifest.get("path") or "").strip("/") or ".." in a.path:
+            print("--path 不能和底子的目录一样（会覆盖正式数据），也不能带 ..", file=sys.stderr)
+            return 2
+        manifest["path"] = a.path.strip("/")
+    if a.seq is not None:
+        if a.seq <= int(base_manifest.get("seq") or 0):
+            print(f"--seq 要比底子的 {base_manifest.get('seq')} 大", file=sys.stderr)
+            return 2
+        manifest["seq"] = a.seq
+    if not (a.path and a.seq is not None):
+        print(f"注意：目录 {manifest.get('path')}、序号 {manifest.get('seq')} 沿用底子，只能内置进测试版；"
+              "发布到数据仓库要给 --path 新目录和 --seq 底子+1", file=sys.stderr)
     manifest["provisional"] = {"source": source, "augments": len(total), "removed": len(removed), "base_patch": base_manifest.get("patch"),
                                "base_snapshot_at": base_manifest.get("snapshot_at")}
     manifest["files"] = {rel: {"sha256": _sha(out / rel), "size": (out / rel).stat().st_size}
