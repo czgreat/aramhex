@@ -55,7 +55,7 @@ class FakeButton:
 def _win():
     shown = []
     win = SimpleNamespace(
-        engine=SimpleNamespace(settings=SimpleNamespace()),
+        engine=SimpleNamespace(settings=SimpleNamespace(install_id="abc")),
         _worker=None, _update_info=None, btn_check=FakeButton(), btn_update=FakeButton(),
         update_text=SimpleNamespace(setText=lambda t: None),
         update_bar=SimpleNamespace(show=lambda: None),
@@ -145,3 +145,17 @@ def test_popups_wait_until_game_ends(monkeypatch):
     assert win._deferred_cloud == cfg
     MainWindow._update_found(win, {"version": "9.9.9"})
     assert not shown and "9.9.9" in win._deferred_toast
+
+
+def test_rollout_holds_back_timed_prompt_only(monkeypatch):
+    # 分批推送：没轮到的电脑定时检查不提示；手动检查、低于最低版本照常提示
+    from lolhex import cloud
+    win, shown = _win()
+    info = {"version": "9.9.9", "file": "AramHex-Setup-9.9.9.exe", "sha256": "0" * 64, "url": "http://x/a.exe"}
+    cfg = cloud._merge({"update": {"rollout_version": "9.9.9", "rollout_percent": 0}})
+    monkeypatch.setattr(cloud, "get", lambda: cfg)
+    win._update_found(info)
+    assert shown == [] and win._update_info is None and win._held_update == info  # 先不提示；「最低版本」弹窗还能直接更新
+    cfg["min_version"] = "9.9.9"
+    win._update_found(dict(info))
+    assert len(shown) == 1                                     # 版本太旧：照常提示

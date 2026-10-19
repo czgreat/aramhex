@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import os
+import random
 import threading
 import webbrowser
 from html import escape
@@ -35,7 +36,6 @@ VERDICT_CN = {"best": ("首选", "#2e9d5b"), "ok": ("可选", "#3b7dd8"), "rerol
               "unknown": ("未知", "#888"), "nodata": ("无数据", "#888")}
 PHASE_CN = {None: "未检测到英雄联盟", "client": "客户端（选英雄界面会自动识别英雄）", "ingame": "对局中"}
 VISION_CN = {"idle": "待机", "paused": "游戏不在前台，暂停", "scanning": "扫描中"}
-UPDATE_EVERY_MS = 30 * 60 * 1000  # 常驻时多久查一次更新
 
 
 def app_icon() -> QIcon:
@@ -258,7 +258,7 @@ class MainWindow(QMainWindow):
         # 助手常驻托盘，可能好几天不重启：平时也定时查更新
         self._update_timer = QTimer(self)
         self._update_timer.timeout.connect(self.check_update)
-        self._update_timer.start(UPDATE_EVERY_MS)
+        self._update_timer.start(self._check_interval_ms())
         # 提示和弹窗都不在对局中出现（会抢游戏的焦点）：对局中先攒着，回到游戏外再出
         self._deferred_cloud: dict | None = None
         self._deferred_toast: str | None = None
@@ -578,7 +578,14 @@ class MainWindow(QMainWindow):
                 st = self.engine.store
                 threading.Thread(target=lambda: st.sync_data(force=True, manual=True), daemon=True).start()
 
+    @staticmethod
+    def _check_interval_ms() -> int:
+        """定时检查的间隔：云控 update.check_minutes，每台电脑随机错开 ±10%，免得同一时刻一起请求。"""
+        return int(cloud.check_minutes() * 60_000 * random.uniform(0.9, 1.1))
+
     def _apply_cloud(self, cfg: dict):
+        if hasattr(self, "_update_timer"):
+            self._update_timer.setInterval(self._check_interval_ms())
         if hasattr(self, "about_label"):
             self.about_label.setText(about_html())
         if hasattr(self, "btn_comm"):
@@ -607,6 +614,7 @@ class MainWindow(QMainWindow):
             box.addButton("稍后", QMessageBox.RejectRole)
             box.exec()
             if box.clickedButton() is b_up:
+                self._update_info = self._update_info or getattr(self, "_held_update", None)
                 if self._update_info:
                     self._start_update()
                 else:
@@ -690,7 +698,7 @@ class MainWindow(QMainWindow):
     # ---------- 更新 ----------
 
     def check_update(self, manual: bool = False):
-        """启动、再次打开助手时各查一次，平时每 UPDATE_EVERY_MS 查一次；
+        """启动、再次打开助手时各查一次，平时按云控 update.check_minutes 查（默认 3 小时）；
         只提示，用户点了「立即更新」才下载安装。正在查或正在下载时跳过。
         manual=True 是设置页「检查更新」按钮：结果（最新 / 有新版本 / 失败）都弹窗告诉用户。"""
         if self._worker and self._worker.isRunning():
@@ -742,6 +750,13 @@ class MainWindow(QMainWindow):
 
     def _update_found(self, info: dict, manual: bool = False):
         known = (self._update_info or {}).get("version")
+        minv = cloud.get().get("min_version") or ""
+        if not manual and not (minv and update.is_newer(minv, __version__)) \
+                and not cloud.offer_update(info["version"], getattr(self.engine.settings, "install_id", None)):
+            # 分批推送还没轮到这台电脑（或暂停了）：先不提示；手动「检查更新」和「最低版本」照常
+            self._held_update = info
+            logging.getLogger(__name__).info("有新版本 %s，分批推送还没轮到本机，先不提示", info["version"])
+            return
         self._update_info = info
         notes = f"<br><span style='color:#777'>{escape(info['notes'][:200])}</span>" if info.get("notes") else ""
         # 打包后的程序都能先试增量更新；源码运行时只有带安装包地址的才能直接装

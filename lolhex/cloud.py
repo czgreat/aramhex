@@ -9,6 +9,12 @@
     event       当前活动 {mode, label, start, end}：例如 first-prismatic「首次必棱彩」，活动期间改用这个规则的统计数据
     mirrors     额外线路 {update: [".../{version}"], data: [...]}：换服务器、加线路不用发版，排在内置线路前面
     features    功能开关（预留）：{名字: true/false}
+    update      检查频率和分批推送（1.1.0 起）：
+                  check_minutes   多久查一次云控和新版本（默认 180，30–1440）；启动时、手动「检查更新」照常查
+                  data_minutes    多久查一次统计数据（默认 360，60–1440）
+                  rollout_version / rollout_percent  这个版本先只提示一部分人（0–100）。按本机随机编号分组，
+                                  同一台电脑分组固定，把比例调大，之前提示过的人仍在里面
+                  paused          true 时暂停提示新版本（发现问题时用）；「最低版本」和手动检查不受影响
 
 连不上就用上次存下的（app_home/cloud.json），再没有就用内置默认值。
 """
@@ -35,6 +41,8 @@ DEFAULT = {
     "event": {"mode": "", "label": "", "start": "", "end": ""},
     "mirrors": {"update": [], "data": []},
     "features": {},
+    "update": {"check_minutes": 180, "data_minutes": 360, "rollout_version": "", "rollout_percent": 100,
+               "paused": False},
 }
 _lock = threading.Lock()
 _cache: dict | None = None
@@ -118,6 +126,46 @@ def event() -> dict | None:
     except ValueError:
         return None
     return {"mode": mode, "label": str(ev.get("label") or mode)}
+
+
+def _minutes(key: str, default: int, lo: int, hi: int) -> int:
+    try:
+        v = int(float((get().get("update") or {}).get(key, default)))
+    except (TypeError, ValueError):
+        v = default
+    return max(lo, min(hi, v))
+
+
+def check_minutes() -> int:
+    """多久查一次云控和新版本（分钟）。"""
+    return _minutes("check_minutes", 180, 30, 1440)
+
+
+def data_minutes() -> int:
+    """多久查一次统计数据（分钟）。"""
+    return _minutes("data_minutes", 360, 60, 1440)
+
+
+def bucket(install_id: str | None) -> int:
+    """本机分组 0–99：按安装时生成的随机编号算，只在本机用。没有编号的算最后一组。"""
+    import hashlib
+    if not install_id:
+        return 99
+    return int(hashlib.sha256(install_id.encode()).hexdigest()[:8], 16) % 100
+
+
+def offer_update(version: str, install_id: str | None) -> bool:
+    """定时检查查到新版本后，要不要提示这台电脑（分批推送、暂停）。"""
+    u = get().get("update") or {}
+    if u.get("paused"):
+        return False
+    if str(u.get("rollout_version") or "").lstrip("vV") != str(version).lstrip("vV"):
+        return True
+    try:
+        pct = int(float(u.get("rollout_percent", 100)))
+    except (TypeError, ValueError):
+        pct = 100
+    return bucket(install_id) < max(0, min(100, pct))
 
 
 def feature(name: str, default: bool = True) -> bool:

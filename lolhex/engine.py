@@ -13,11 +13,12 @@ from __future__ import annotations
 
 import copy
 import logging
+import random
 import threading
 import time
 from pathlib import Path
 
-from . import i18n, recommend
+from . import cloud, i18n, recommend
 from .config import Settings, app_home
 from .data.public import PublicStore
 from .data.store import DataStore
@@ -215,7 +216,10 @@ class Engine:
                 self._reevaluate()
             except Exception:
                 log.exception("数据刷新异常")
-            self._data_wake.wait(max(600.0, self.settings.refresh_hours * 3600 / 4))
+            every = cloud.data_minutes() * 60 * random.uniform(0.9, 1.1)  # 每台电脑错开，免得新数据一发大家同时下载
+            if hasattr(self.store, "sync_every_s"):
+                self.store.sync_every_s = every
+            self._data_wake.wait(max(600.0, min(self.settings.refresh_hours * 3600 / 4, every / 2)))
             self._data_wake.clear()
 
     def _warm_up(self) -> None:

@@ -105,3 +105,18 @@ def test_install_id_sent_only_when_enabled(monkeypatch, tmp_path):
     cloud.refresh()
     assert seen[0]["X-AramHex-Id"] == s.install_id and "X-AramHex-Id" not in seen[1]
     assert seen[1]["User-Agent"].startswith("aramhex/")
+
+
+def test_update_policy_from_cloud(monkeypatch):
+    monkeypatch.setattr(cloud.requests, "get", lambda url, **k: Resp({"update": {
+        "check_minutes": 5, "data_minutes": "720", "rollout_version": "v1.2.0", "rollout_percent": 30}}))
+    cloud.refresh()
+    assert cloud.check_minutes() == 30 and cloud.data_minutes() == 720       # 太勤的按下限
+    ids = [f"id{i}" for i in range(400)]
+    got = [i for i in ids if cloud.offer_update("1.2.0", i)]
+    assert 60 < len(got) < 180                                              # 约 30% 的电脑先收到
+    assert all(cloud.offer_update("1.2.0", i) == (cloud.bucket(i) < 30) for i in ids[:50])  # 同一台分组固定
+    assert cloud.offer_update("1.3.0", "id1") and not cloud.offer_update("1.2.0", None)     # 别的版本不限；没有编号排最后
+    monkeypatch.setattr(cloud.requests, "get", lambda url, **k: Resp({"update": {"paused": True}}))
+    cloud.refresh()
+    assert not cloud.offer_update("1.3.0", "id1") and cloud.check_minutes() == 180

@@ -242,6 +242,7 @@ class PublicStore(DataStore):
         self.data_updated_at: float | None = None
         self.sync_error: str | None = None
         self.sync_progress: dict | None = None  # 下载统计数据时 {done, total}（字节）
+        self.sync_every_s = SYNC_EVERY_S  # 多久查一次数据仓库；引擎按云控 update.data_minutes 改
         self.hold = lambda: False  # 返回 True 时（正在对局）不在后台换数据，打完再换，一局里推荐前后一致
         self.data_note: dict | None = None   # 后台换了新数据：{id, text}，界面在游戏外提示一次
         self.data_offer: dict | None = None  # 关了自动更新、发现有新数据：{id, text}，界面在游戏外问一次
@@ -280,7 +281,7 @@ class PublicStore(DataStore):
         if not self._sync_lock.acquire(blocking=False):
             return False
         try:
-            if not force and time.time() - self._last_sync < SYNC_EVERY_S:
+            if not force and time.time() - self._last_sync < self.sync_every_s:
                 return False
             self._last_sync = time.time()
             if not self.check_updates and not manual:
