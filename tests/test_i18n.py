@@ -14,18 +14,21 @@ from lolhex.vision.matcher import NameMatcher
 def test_names_by_language():
     assert i18n.augment_names("zh_CN") == {} and i18n.hero_names("zh_CN") == {}  # 国服用腾讯的名字
     assert i18n.augment_names("en_US")["1305"] == "Leg Day"
-    assert i18n.augment_names("zh_TW")["1305"] == "腿部訓練日"   # 繁中是另一套译名，不是简转繁
+    assert i18n.traditional_augment_names()["1305"] == "腿部訓練日"   # 繁中是另一套译名，不是简转繁
+    assert i18n.normalize_lang("zh_TW") == "zh_CN" and i18n.augment_names("zh_TW") == {}  # 繁中并进了中文
     assert i18n.augment_names("ko_KR")["1305"] == "하체 운동의 날"
     assert i18n.hero_names("ja_JP")["157"][0] == "ヤスオ"
     assert i18n.ui_text("bench", "zh_CN") == "可用"
     assert i18n.ui_text("bench", "en_US") == "Available Champions"
     assert i18n.normalize_lang("xx") == "zh_CN"
+    assert i18n.ui_texts("bench", "zh_CN") == ["可用", "可使用的英雄"] and i18n.ui_texts("bench", "en_US") == ["Available Champions"]
 
 
 def test_augment_matcher_uses_game_language():
     store = SimpleNamespace(mayhem_augments=lambda: {"1305": {"name": "练腿日"}, "1195": {"name": "巨人杀手"}})
     cn = augment_matcher(store, SimpleNamespace(game_lang="zh_CN", match_threshold=72.0))
     assert cn.match("练腿日")[0] == "1305" and cn.match("Leg Day")[0] is None
+    assert cn.match("腿部訓練日")[0] == "1305"      # 中文模式也认繁中（台服）的名字
     en = augment_matcher(store, SimpleNamespace(game_lang="en_US", match_threshold=72.0))
     assert en.match("Leg Day")[0] == "1305" and en.match("Giant Slayer")[0] == "1195"
     ko = augment_matcher(store, SimpleNamespace(game_lang="ko_KR", match_threshold=72.0))
@@ -41,8 +44,27 @@ def test_matcher_several_names_and_short_english():
 
 def test_traditional_lookalike_chars():
     tw = augment_matcher(SimpleNamespace(mayhem_augments=lambda: {"1384": {"name": "捐赠"}}),
-                         SimpleNamespace(game_lang="zh_TW", match_threshold=72.0))
+                         SimpleNamespace(game_lang="zh_CN", match_threshold=72.0))
     assert tw.match("斗內")[0] == "1384" and tw.match("斗内")[0] == "1384"  # 单独认标题时「內」常读成「内」
+
+
+def test_chinese_tries_traditional_ui_text_sometimes():
+    from lolhex.engine import Engine
+    eng = Engine.__new__(Engine)
+    tried = []
+
+    def fn(t):
+        tried.append(t)
+        return t == "可使用的英雄"
+    texts = ["可用", "可使用的英雄"]
+    for eng._cs_tick in (1, 2, 3):
+        assert not eng._try_texts(texts, fn)
+    assert tried == ["可用"] * 3                          # 繁中写法不是每次都试：国服在大厅几乎不多花时间
+    eng._cs_tick = 4
+    assert eng._try_texts(texts, fn) and tried[-2:] == ["可用", "可使用的英雄"]
+    tried.clear()
+    eng._cs_tick = 5
+    assert eng._try_texts(texts, fn) and tried == ["可使用的英雄"]   # 认到过繁中以后先试繁中
 
 
 def test_marker_text_long_and_partial():
