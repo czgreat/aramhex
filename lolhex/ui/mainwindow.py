@@ -261,6 +261,7 @@ class MainWindow(QMainWindow):
         self._update_timer.start(self._check_interval_ms())
         # 提示和弹窗都不在对局中出现（会抢游戏的焦点）：对局中先攒着，回到游戏外再出
         self._deferred_cloud: dict | None = None
+        self._popup_open = False  # 有提醒类弹窗开着（不叠第二个）
         self._deferred_toast: str | None = None
         self._shown_note = None
         self._asked_offers: set = set()
@@ -549,16 +550,22 @@ class MainWindow(QMainWindow):
     def _in_game(self) -> bool:
         return self.engine.snapshot().get("phase") == "ingame"
 
+    def _busy(self) -> bool:
+        """对局中或正在选英雄：这时不弹窗（会抢游戏或客户端的焦点）。"""
+        snap = self.engine.snapshot()
+        return snap.get("phase") == "ingame" or bool(snap.get("champ_select"))
+
     def _toast(self, text: str) -> None:
         tray = getattr(self, "tray", None)
         if tray:
             tray.showMessage("海克斯大乱斗助手", text, app_icon(), 6000)
 
     def _notify_tick(self):
-        """游戏外才出：攒下的公告/新版本提示、数据已更新的提示、关了自动更新时的「是否更新」。"""
-        if self._in_game():
+        """游戏外才出：攒下的公告/新版本提示、数据已更新的提示、关了自动更新时的「是否更新」。
+        弹窗还要避开选英雄；已经有弹窗开着时不再叠一个（计时器在弹窗打开期间也会跑）。"""
+        if self._in_game() or self._popup_open:
             return
-        if self._deferred_cloud is not None:
+        if self._deferred_cloud is not None and not self._busy():
             cfg, self._deferred_cloud = self._deferred_cloud, None
             self._apply_cloud(cfg)
         if self._deferred_toast:
@@ -571,9 +578,13 @@ class MainWindow(QMainWindow):
             logging.getLogger(__name__).info("右下角提示：%s", note["text"])
             self._toast(note["text"])
         offer = dd.get("data_offer")
-        if offer and offer.get("id") not in self._asked_offers:
+        if offer and offer.get("id") not in self._asked_offers and not self._busy() and not self._popup_open:
             self._asked_offers.add(offer["id"])  # 每份新数据只问一次；点了「稍后」下次启动再问
-            ask = QMessageBox.question(self, "统计数据", f"检测到新数据（{offer['text']}），现在更新吗？")
+            self._popup_open = True
+            try:
+                ask = QMessageBox.question(self, "统计数据", f"检测到新数据（{offer['text']}），现在更新吗？")
+            finally:
+                self._popup_open = False
             if ask == QMessageBox.Yes:
                 st = self.engine.store
                 threading.Thread(target=lambda: st.sync_data(force=True, manual=True), daemon=True).start()
@@ -590,11 +601,18 @@ class MainWindow(QMainWindow):
             self.about_label.setText(about_html())
         if hasattr(self, "btn_comm"):
             self._show_primary()
-        if self._in_game():  # 公告、版本太旧都是弹窗：打完这局再弹
+        if self._busy() or self._popup_open:  # 公告、版本太旧都是弹窗：打完这局、选完英雄再弹；已有弹窗时也等一等
             if self._deferred_cloud is None:
-                logging.getLogger(__name__).info("对局中，云控公告/版本检查推迟到打完")
+                logging.getLogger(__name__).info("对局中或选英雄中，云控公告/版本检查推迟")
             self._deferred_cloud = cfg
             return
+        self._popup_open = True
+        try:
+            self._cloud_popups(cfg)
+        finally:
+            self._popup_open = False
+
+    def _cloud_popups(self, cfg: dict):
         s = self.engine.settings
         notice = cfg.get("notice") or {}
         if notice.get("id") and notice.get("text") and notice["id"] != s.seen_notice:
@@ -636,7 +654,7 @@ class MainWindow(QMainWindow):
         lang = self.set_lang.currentData() or "zh_CN"
         if lang != s.game_lang:
             self.engine.set_game_lang(lang)
-        s.save()
+        saved = s.save()
         if lang == "ko_KR" and langpack.installed() is None and not (
                 self._langpack_state and "error" not in self._langpack_state):
             ask = QMessageBox.question(self, "韩服识别数据",
@@ -649,7 +667,10 @@ class MainWindow(QMainWindow):
             autostart.set_enabled(self.set_auto.isChecked())
         except OSError as e:
             QMessageBox.warning(self, "开机自启", f"设置失败：{e}")
-        QMessageBox.information(self, "设置", "已保存。")
+        if saved:
+            QMessageBox.information(self, "设置", "已保存。")
+        else:
+            QMessageBox.warning(self, "设置", "设置文件写不进去，这次的改动关掉助手后会丢失。")
 
     def _update_lang_hint(self):
         """游戏语言下面那一行：只有选了韩文才显示（识别数据下没下好、下载进度）。"""

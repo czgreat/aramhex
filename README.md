@@ -19,6 +19,11 @@
 
 游戏要设成**无边框**或**窗口化**。Windows 提示「已保护你的电脑」时，点「更多信息」→「仍要运行」。
 
+## 隐私
+
+- 第一次打开时随机生成一个编号（和电脑硬件、游戏账号无关，重装就换新的），只在读取官网配置（aramhex.com/config.json）时带上，用来统计大约有多少台电脑在用、用的哪个版本。
+- 不收集游戏账号、对局内容和截图。要关掉：把设置文件 `config.json` 里的 `send_usage` 改成 `false`（安装版在 `%APPDATA%\AramHex`，便携版在程序目录的 `userdata`）。
+
 ## 数据
 
 - 胜率统计：自采对局，见 [aramhex-data](https://github.com/czgreat/aramhex-data)（CC BY-NC 4.0）。只统计采集到的对局，不是全服数据。

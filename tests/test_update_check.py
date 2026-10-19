@@ -140,6 +140,8 @@ def test_popups_wait_until_game_ends(monkeypatch):
                           update_text=SimpleNamespace(setText=lambda t: None), update_bar=SimpleNamespace(show=lambda: None),
                           tray=SimpleNamespace(showMessage=lambda *a: shown.append(a[1])))
     win._in_game = lambda: True
+    win._busy = lambda: True
+    win._popup_open = False
     cfg = {"notice": {"id": "n1", "text": "公告"}}
     MainWindow._apply_cloud(win, cfg)
     assert win._deferred_cloud == cfg
@@ -159,3 +161,25 @@ def test_rollout_holds_back_timed_prompt_only(monkeypatch):
     cfg["min_version"] = "9.9.9"
     win._update_found(dict(info))
     assert len(shown) == 1                                     # 版本太旧：照常提示
+
+
+def test_no_popups_in_champ_select_or_stacked(monkeypatch):
+    # 选英雄时云控弹窗也要等；已经有弹窗开着时不再叠一个
+    monkeypatch.setattr(mainwindow.QMessageBox, "exec", lambda self: pytest.fail("不该弹窗"))
+    monkeypatch.setattr(mainwindow.QMessageBox, "question", lambda *a: pytest.fail("不该弹窗"))
+    phase = {"phase": "client", "champ_select": {"bench": []}, "data": {"data_offer": {"id": "d1", "text": "x"}}}
+    win = SimpleNamespace(engine=SimpleNamespace(settings=SimpleNamespace(seen_notice=""), snapshot=lambda: phase),
+                          _deferred_cloud=None, _deferred_toast=None, _shown_note=None, _asked_offers=set(),
+                          _popup_open=False)
+    win._in_game = lambda: MainWindow._in_game(win)
+    win._busy = lambda: MainWindow._busy(win)
+    win._apply_cloud = lambda cfg: MainWindow._apply_cloud(win, cfg)
+    cfg = {"notice": {"id": "n1", "text": "公告"}}
+    MainWindow._apply_cloud(win, cfg)
+    assert win._deferred_cloud == cfg                   # 选英雄中：攒着
+    MainWindow._notify_tick(win)
+    assert win._deferred_cloud == cfg and not win._asked_offers   # 还在选英雄：公告、「要不要更新数据」都不弹
+    phase["champ_select"] = None
+    win._popup_open = True
+    MainWindow._notify_tick(win)
+    assert win._deferred_cloud == cfg and not win._asked_offers   # 已有弹窗开着：不叠

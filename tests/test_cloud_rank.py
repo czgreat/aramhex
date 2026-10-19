@@ -52,7 +52,7 @@ def test_rank_lookup_paths(monkeypatch):
     for rid, msg in (("slow#1", "一分钟"), ("down#1", "暂时不可用"), ("x#1", "没有查到"), ("没编号", "名字#编号")):
         with pytest.raises(rank.RankError, match=msg):
             rank.lookup(rid)
-    cloud._cache = cloud._merge({"rank": {"enabled": False, "message": "查询维护中"}})
+    monkeypatch.setattr(cloud, "_cache", cloud._merge({"rank": {"enabled": False, "message": "查询维护中"}}))
     with pytest.raises(rank.RankError, match="维护中"):
         rank.lookup("a#1")
 
@@ -120,3 +120,21 @@ def test_update_policy_from_cloud(monkeypatch):
     monkeypatch.setattr(cloud.requests, "get", lambda url, **k: Resp({"update": {"paused": True}}))
     cloud.refresh()
     assert not cloud.offer_update("1.3.0", "id1") and cloud.check_minutes() == 180
+
+
+def test_bad_cloud_values_never_crash(monkeypatch, tmp_path):
+    # 云控里写错一个数（无穷大、超大、NaN、文字）、整个文件不是对象、存下的缓存坏了：都按默认值，不能让程序起不来
+    bad = [{"update": {"check_minutes": 1e400, "data_minutes": "inf", "rollout_version": "1.2.0",
+                       "rollout_percent": "nan", "paused": "false"}},
+           {"update": {"check_minutes": 10 ** 400, "data_minutes": None, "rollout_percent": True}},
+           [1, 2], "x", {"notice": {"id": 5, "text": 123}, "rank": {"enabled": "false"}, "features": {"a": "no"}}]
+    for raw in bad:
+        monkeypatch.setattr(cloud, "_cache", cloud._merge(raw))
+        assert cloud.check_minutes() == 180 and cloud.data_minutes() == 360
+        assert cloud.offer_update("1.2.0", "abc") is True                    # 文字 "false" 不算暂停，比例认不出按 100
+    assert cloud.get()["notice"] == {"id": "5", "text": "123"} and cloud.get()["rank"]["enabled"] is True
+    assert cloud.feature("a") is True
+    monkeypatch.setattr(cloud, "_cache", None)
+    cloud._path().parent.mkdir(parents=True, exist_ok=True)
+    cloud._path().write_text("[1, 2, 3]", encoding="utf-8")                  # 存下的云控坏了
+    assert cloud.check_minutes() == 180

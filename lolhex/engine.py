@@ -216,7 +216,11 @@ class Engine:
                 self._reevaluate()
             except Exception:
                 log.exception("数据刷新异常")
-            every = cloud.data_minutes() * 60 * random.uniform(0.9, 1.1)  # 每台电脑错开，免得新数据一发大家同时下载
+            try:
+                every = cloud.data_minutes() * 60 * random.uniform(0.9, 1.1)  # 每台电脑错开，免得新数据一发大家同时下载
+            except Exception:  # 云控出什么怪值都不能让数据线程退出
+                log.exception("读云控的数据检查间隔失败，按 6 小时")
+                every = 6 * 3600.0
             if hasattr(self.store, "sync_every_s"):
                 self.store.sync_every_s = every
             self._data_wake.wait(max(600.0, min(self.settings.refresh_hours * 3600 / 4, every / 2)))

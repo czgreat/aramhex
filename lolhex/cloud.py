@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import threading
 
 import requests
@@ -58,9 +59,35 @@ def _path():
     return app_home() / "cloud.json"
 
 
+def _num(v, default: float) -> float:
+    """云控里的数：认不出、无穷大、NaN 都按默认值（写错一个数不能让程序起不来）。"""
+    if isinstance(v, bool):
+        return default
+    try:
+        f = float(v)
+    except (TypeError, ValueError, OverflowError):
+        return default
+    return f if math.isfinite(f) else default
+
+
+def _coerce(default, v):
+    """字典里的一项按默认值的类型收下：bool 只认 true/false，数按 _num，其余转成字符串。"""
+    if isinstance(default, bool):
+        return v if isinstance(v, bool) else default
+    if isinstance(default, (int, float)):
+        return _num(v, default)
+    return str(v)
+
+
+# 这些字典里的值都是文字（公告、网盘链接）；features 是开关
+_STR_DICTS = ("notice", "downloads")
+
+
 def _merge(raw: dict) -> dict:
     out = json.loads(json.dumps(DEFAULT))
-    for k, v in (raw or {}).items():
+    if not isinstance(raw, dict):
+        return out
+    for k, v in raw.items():
         if k == "community" and isinstance(v, list):
             items = []
             for it in v[:8]:
@@ -78,7 +105,18 @@ def _merge(raw: dict) -> dict:
                 if isinstance(urls, list):
                     out[k][kk] = [u for u in urls if isinstance(u, str) and u.startswith("https://")][:5]
         elif k in out and isinstance(out[k], dict) and isinstance(v, dict):
-            out[k].update({kk: vv for kk, vv in v.items() if isinstance(vv, (str, bool, int, float))})
+            for kk, vv in v.items():
+                if not isinstance(vv, (str, bool, int, float)):
+                    continue
+                if kk in out[k]:
+                    out[k][kk] = _coerce(out[k][kk], vv)
+                elif k in _STR_DICTS:
+                    out[k][kk] = str(vv)
+                elif k == "features":
+                    if isinstance(vv, bool):
+                        out[k][kk] = vv
+                else:
+                    out[k][kk] = vv
         elif k in out and not isinstance(out[k], dict) and isinstance(v, (str, int, float)):
             out[k] = str(v)
     return out
@@ -91,7 +129,7 @@ def get() -> dict:
         if _cache is None:
             try:
                 _cache = _merge(json.loads(_path().read_text(encoding="utf-8")))
-            except (OSError, ValueError):
+            except Exception:  # 存下的云控坏了：按内置默认值，下次联网再取
                 _cache = _merge({})
         return _cache
 
@@ -129,10 +167,7 @@ def event() -> dict | None:
 
 
 def _minutes(key: str, default: int, lo: int, hi: int) -> int:
-    try:
-        v = int(float((get().get("update") or {}).get(key, default)))
-    except (TypeError, ValueError):
-        v = default
+    v = int(_num((get().get("update") or {}).get(key, default), default))
     return max(lo, min(hi, v))
 
 
@@ -157,14 +192,11 @@ def bucket(install_id: str | None) -> int:
 def offer_update(version: str, install_id: str | None) -> bool:
     """定时检查查到新版本后，要不要提示这台电脑（分批推送、暂停）。"""
     u = get().get("update") or {}
-    if u.get("paused"):
+    if u.get("paused") is True:  # 只认 true；写成 "false"、"no" 这类文字不算暂停
         return False
     if str(u.get("rollout_version") or "").lstrip("vV") != str(version).lstrip("vV"):
         return True
-    try:
-        pct = int(float(u.get("rollout_percent", 100)))
-    except (TypeError, ValueError):
-        pct = 100
+    pct = int(_num(u.get("rollout_percent", 100), 100))
     return bucket(install_id) < max(0, min(100, pct))
 
 

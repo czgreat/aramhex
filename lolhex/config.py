@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import secrets
 import sys
@@ -100,30 +101,42 @@ class Settings:
     def load(cls, path: Path | None = None) -> "Settings":
         path = path or app_home() / "config.json"
         data: dict = {}
+        broken = False
         if path.exists():
             try:
                 # utf-8-sig：手改后存成带 BOM 的 UTF-8（Windows PowerShell、老记事本）也能读，不然会当成没有设置、被默认值覆盖
                 data = json.loads(path.read_text(encoding="utf-8-sig"))
-            except (OSError, ValueError):
-                data = {}
+                if not isinstance(data, dict):
+                    raise ValueError("不是 JSON 对象")
+            except (OSError, ValueError) as e:
+                logging.getLogger(__name__).warning("设置文件读不了，这次用默认设置（文件先不动）：%s", e)
+                data, broken = {}, True
         known = {f.name for f in fields(cls)}
-        s = cls(**{k: v for k, v in data.items() if k in known and k != "extra"})
+        try:
+            s = cls(**{k: v for k, v in data.items() if k in known and k != "extra"})
+        except TypeError:
+            s, broken = cls(), True
         s.extra = {k: v for k, v in data.items() if k not in known}
-        s.fresh_install = not data  # 没有设置文件：第一次装（用来区分「刚安装」和「刚更新」）
-        if not s.install_id:
-            s.install_id = secrets.token_hex(8)
-            s.save(path)
-        elif not path.exists():
-            s.save(path)
+        s.fresh_install = not data and not broken  # 没有设置文件：第一次装（用来区分「刚安装」和「刚更新」）
+        if not s.install_id or not path.exists():
+            s.install_id = s.install_id or secrets.token_hex(8)
+            if not broken:  # 读不了的设置文件这里不覆盖
+                s.save(path)
         return s
 
     @property
     def speed_factor(self) -> float:
         return SPEEDS.get(self.speed, SPEEDS["standard"])[1]
 
-    def save(self, path: Path | None = None) -> None:
+    def save(self, path: Path | None = None) -> bool:
+        """写设置文件；写不进去（只读、权限、磁盘满）只记日志，返回 False，程序照常用。"""
         path = path or app_home() / "config.json"
         data = asdict(self)
         extra = data.pop("extra", {}) or {}
         data.update(extra)
-        path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        try:
+            path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+            return True
+        except OSError as e:
+            logging.getLogger(__name__).warning("设置文件写不进去：%s", e)
+            return False

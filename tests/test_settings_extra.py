@@ -35,3 +35,24 @@ def test_load_config_with_bom(tmp_path):
     p.write_bytes(b"\xef\xbb\xbf" + '{"game_lang": "ko_KR", "send_usage": false, "install_id": "abc"}'.encode())
     s = Settings.load(p)
     assert s.game_lang == "ko_KR" and s.send_usage is False and s.install_id == "abc"
+
+
+def test_unwritable_or_broken_config_never_crashes(tmp_path, monkeypatch):
+    # 设置文件写不进去：照常用（老用户第一次开 1.1.0 要写编号，写不进去也不能每次启动都崩）
+    p = tmp_path / "config.json"
+    p.write_text('{"speed": "low"}', encoding="utf-8")
+    real = type(p).write_text
+
+    def deny(self, *a, **k):
+        if self.name == "config.json":
+            raise PermissionError("只读")
+        return real(self, *a, **k)
+    monkeypatch.setattr(type(p), "write_text", deny)
+    s = Settings.load(p)
+    assert s.speed == "low" and len(s.install_id) == 16 and s.save(p) is False
+    monkeypatch.setattr(type(p), "write_text", real)
+    # 设置文件坏了：读的时候不覆盖它（不是 JSON 对象也一样）
+    for bad in ("{坏了", "[1, 2]"):
+        p.write_text(bad, encoding="utf-8")
+        s = Settings.load(p)
+        assert p.read_text(encoding="utf-8") == bad and s.speed == "standard" and s.install_id
