@@ -28,3 +28,10 @@ def test_capture_toggle_applies_to_open_windows(monkeypatch):
     window.set_capture_allowed(True)  # 打开后，已经开着的浮窗立即能被截到
     assert sorted(applied) == [(101, True), (202, True)] and window.capture_allowed()
     window.set_capture_allowed(False)
+
+def test_load_config_with_bom(tmp_path):
+    """手改 config.json 后存成带 BOM 的 UTF-8：照样读，不能当成没有设置、被默认值覆盖。"""
+    p = tmp_path / "config.json"
+    p.write_bytes(b"\xef\xbb\xbf" + '{"game_lang": "ko_KR", "send_usage": false, "install_id": "abc"}'.encode())
+    s = Settings.load(p)
+    assert s.game_lang == "ko_KR" and s.send_usage is False and s.install_id == "abc"

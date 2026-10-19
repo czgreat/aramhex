@@ -102,7 +102,8 @@ class Settings:
         data: dict = {}
         if path.exists():
             try:
-                data = json.loads(path.read_text(encoding="utf-8"))
+                # utf-8-sig：手改后存成带 BOM 的 UTF-8（Windows PowerShell、老记事本）也能读，不然会当成没有设置、被默认值覆盖
+                data = json.loads(path.read_text(encoding="utf-8-sig"))
             except (OSError, ValueError):
                 data = {}
         known = {f.name for f in fields(cls)}
