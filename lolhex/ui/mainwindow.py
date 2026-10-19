@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QFormLayout, 
                                QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMenu, QMessageBox, QProgressBar, QScrollArea,
                                QPushButton, QSystemTrayIcon, QTabWidget, QVBoxLayout, QWidget)
 
-from .. import DATA_HOMEPAGE, HELP_PAGE, HOMEPAGE, WEBSITE, __version__, cloud, patch, rank, recommend, update
+from .. import DATA_HOMEPAGE, HELP_PAGE, HOMEPAGE, WEBSITE, __version__, cloud, i18n, langpack, patch, rank, recommend, update
 from ..config import SPEEDS, is_portable
 from ..vision import window as win
 from ..data.public import BANDS
@@ -401,6 +401,25 @@ class MainWindow(QMainWindow):
         self.set_auto.setChecked(autostart.is_enabled())
         self.set_data = QCheckBox("自动更新统计数据")
         self.set_data.setChecked(s.check_data_updates)
+        # 外服：游戏客户端的语言。韩文要另外下载识别数据（安装包里不带）
+        self.set_lang = QComboBox()
+        for code, label in i18n.LANGS:
+            self.set_lang.addItem(label, code)
+        self.set_lang.setCurrentIndex(max(0, self.set_lang.findData(i18n.normalize_lang(s.game_lang))))
+        self.lang_hint = QLabel()
+        self.lang_hint.setStyleSheet("color:#555")
+        self.btn_langpack = QPushButton(f"下载韩服识别数据（约 {langpack.KOREAN['size'] / 2 ** 20:.0f}MB）")
+        self.btn_langpack.clicked.connect(self._download_langpack)
+        lang_row = QHBoxLayout()
+        lang_row.addWidget(self.lang_hint, 1)
+        lang_row.addWidget(self.btn_langpack)
+        self._langpack_state: dict | None = None  # 下载中 {done, total}；失败 {error}
+        self._langpack_timer = QTimer(self)
+        self._langpack_timer.timeout.connect(self._update_lang_hint)
+        self.set_lang.currentIndexChanged.connect(self._update_lang_hint)
+        self._update_lang_hint()
+        f.addRow("游戏语言", self.set_lang)
+        f.addRow("", lang_row)
         f.addRow("识别频率", self.set_speed)
         f.addRow("", self.set_win)
         f.addRow("", self.set_overlay)
@@ -598,7 +617,7 @@ class MainWindow(QMainWindow):
         s.check_data_updates = self.set_data.isChecked()
         if hasattr(self.engine.store, "check_updates"):
             self.engine.store.check_updates = s.check_data_updates  # 马上生效，不用重开
-        s.speed =self.set_speed.currentData() or "standard"
+        s.speed = self.set_speed.currentData() or "standard"
         s.allow_capture = self.set_capture.isChecked()
         s.auto_screenshot = self.set_autoshot.isChecked()
         win.set_capture_allowed(s.allow_capture)
@@ -606,7 +625,16 @@ class MainWindow(QMainWindow):
         s.use_liveclient = self.set_live.isChecked()
         s.overlay = self.set_overlay.isChecked()
         s.overlay_corner = "top-right" if self.set_corner.currentIndex() == 0 else "top-left"
+        lang = self.set_lang.currentData() or "zh_CN"
+        if lang != s.game_lang:
+            self.engine.set_game_lang(lang)
         s.save()
+        if lang == "ko_KR" and langpack.installed() is None and not (
+                self._langpack_state and "error" not in self._langpack_state):
+            ask = QMessageBox.question(self, "韩服识别数据",
+                                       f"认韩文海克斯要先下载韩服识别数据（约 {langpack.KOREAN['size'] / 2 ** 20:.0f}MB），现在下载吗？")
+            if ask == QMessageBox.Yes:
+                self._download_langpack()
         self.overlay.set_visible(s.overlay)
         self.overlay.panel.corner = s.overlay_corner
         try:
@@ -614,6 +642,46 @@ class MainWindow(QMainWindow):
         except OSError as e:
             QMessageBox.warning(self, "开机自启", f"设置失败：{e}")
         QMessageBox.information(self, "设置", "已保存。")
+
+    def _update_lang_hint(self):
+        """游戏语言下面那一行：只有选了韩文才显示（识别数据下没下好、下载进度）。"""
+        korean = self.set_lang.currentData() == "ko_KR"
+        st = self._langpack_state
+        busy = bool(st and "error" not in st)
+        ready = langpack.installed() is not None
+        if not korean:
+            text = "国服选简体中文；外服按游戏客户端的语言选" if self.set_lang.currentData() == "zh_CN" else ""
+        elif busy:
+            text = f"正在下载韩服识别数据 {st['done'] / 2 ** 20:.1f} / {st['total'] / 2 ** 20:.1f} MB"
+        elif st and "error" in st:
+            text = f"下载失败：{st['error']}"
+        elif ready:
+            text = "韩服识别数据已下载"
+        else:
+            text = "韩服要先下载韩文识别数据才能认出海克斯"
+        self.lang_hint.setText(text)
+        self.lang_hint.setVisible(bool(text))
+        self.btn_langpack.setVisible(korean and not ready and not busy)
+        if not busy:
+            self._langpack_timer.stop()
+
+    def _download_langpack(self):
+        if self._langpack_state and "error" not in self._langpack_state:
+            return
+        state = {"done": 0, "total": langpack.KOREAN["size"]}
+        self._langpack_state = state
+
+        def run():
+            try:
+                langpack.download(progress=lambda done, total: state.update(done=done, total=total))
+                self._langpack_state = None
+                if self.engine.settings.game_lang == "ko_KR":
+                    self.engine.set_game_lang("ko_KR")  # 已经选了韩文：马上换上韩文模型
+            except Exception as e:
+                self._langpack_state = {"error": str(e)[:80]}
+        threading.Thread(target=run, name="langpack", daemon=True).start()
+        self._langpack_timer.start(300)
+        self._update_lang_hint()
 
     def _recalibrate(self):
         self.engine.reset_calibration()
@@ -891,7 +959,8 @@ class MainWindow(QMainWindow):
                 note = recommend.NEW_NOTE if r.get("basis") == "new" else recommend.NODATA_NOTE
                 lines.append(f"<span style='color:#777'>{note}</span>")
             if r.get("basis") == "pbe":
-                lines.append(f"<span style='color:#777'>{recommend.PBE_NOTE}</span>")
+                pbe = f"测试服 {r['pbe_games']} 局 · 胜率 {_pct(r['pbe_win'])}，" if r.get("pbe_games") else ""
+                lines.append(f"<span style='color:#777'>{pbe}{recommend.PBE_NOTE}</span>")
             if r.get("score") is not None:
                 s = f"{r['score']:+.1f}"
                 if show_win and r.get("win") is not None:

@@ -1,0 +1,97 @@
+"""外服：各语言名字表、认字匹配、选英雄界面的字、韩服识别数据下载。"""
+import hashlib
+from types import SimpleNamespace
+
+import numpy as np
+import pytest
+
+from lolhex import i18n, langpack
+from lolhex.engine import augment_matcher
+from lolhex.vision import champselect
+from lolhex.vision.matcher import NameMatcher
+
+
+def test_names_by_language():
+    assert i18n.augment_names("zh_CN") == {} and i18n.hero_names("zh_CN") == {}  # 国服用腾讯的名字
+    assert i18n.augment_names("en_US")["1305"] == "Leg Day"
+    assert i18n.augment_names("zh_TW")["1305"] == "腿部訓練日"   # 繁中是另一套译名，不是简转繁
+    assert i18n.augment_names("ko_KR")["1305"] == "하체 운동의 날"
+    assert i18n.hero_names("ja_JP")["157"][0] == "ヤスオ"
+    assert i18n.ui_text("bench", "zh_CN") == "可用"
+    assert i18n.ui_text("bench", "en_US") == "Available Champions"
+    assert i18n.normalize_lang("xx") == "zh_CN"
+
+
+def test_augment_matcher_uses_game_language():
+    store = SimpleNamespace(mayhem_augments=lambda: {"1305": {"name": "练腿日"}, "1195": {"name": "巨人杀手"}})
+    cn = augment_matcher(store, SimpleNamespace(game_lang="zh_CN", match_threshold=72.0))
+    assert cn.match("练腿日")[0] == "1305" and cn.match("Leg Day")[0] is None
+    en = augment_matcher(store, SimpleNamespace(game_lang="en_US", match_threshold=72.0))
+    assert en.match("Leg Day")[0] == "1305" and en.match("Giant Slayer")[0] == "1195"
+    ko = augment_matcher(store, SimpleNamespace(game_lang="ko_KR", match_threshold=72.0))
+    assert ko.match("하체 운동의 날")[0] == "1305"
+
+
+def test_matcher_several_names_and_short_english():
+    m = NameMatcher({"1": ["Stats!", "属性！"], "2": "From Beginning To End"})
+    assert m.match("Stats!")[0] == "1" and m.match("属性")[0] == "1"
+    assert m.match("Start")[0] is None              # 短英文名差一个字母不算（以前 80 分就过了）
+    assert m.match("From Beginning To Erd")[0] == "2"
+
+
+def test_marker_text_long_and_partial():
+    ok = champselect._has_text("Available Champions")
+    assert ok(("Available Champions", 0.9))
+    assert ok(("Avai1able Champions", 0.9))          # 认错一个字母
+    assert not ok(("Play Again", 0.9))
+    cn = champselect._has_text("可用")
+    assert cn(("可 用", 0.9)) and not cn(("可用", 0.3)) and not cn(("用", 0.9))
+
+
+def test_wide_boxes_for_foreign_text():
+    img = np.zeros((1080, 1920, 3), np.uint8)
+    seen = []
+    champselect.is_champ_select(img, lambda crop: seen.append(crop.shape) or ("", 0.0))
+    champselect.is_champ_select(img, lambda crop: seen.append(crop.shape) or ("", 0.0), marker="Available Champions")
+    assert seen[1][1] > seen[0][1] * 3              # 外服用更宽的框
+
+
+class _Resp:
+    def __init__(self, data):
+        self.data = data
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+    def raise_for_status(self):
+        pass
+
+    def iter_content(self, n):
+        for i in range(0, len(self.data), n):
+            yield self.data[i:i + n]
+
+
+def test_langpack_download_verifies(tmp_path, monkeypatch):
+    monkeypatch.setenv("ARAMHEX_HOME", str(tmp_path))
+    data = b"x" * 1000
+    pack = {"file": "k.onnx", "size": len(data), "sha256": hashlib.sha256(data).hexdigest(),
+            "urls": ["https://a.invalid/k", "https://b.invalid/k"]}
+    calls = []
+
+    def fake_get(url, **kw):
+        calls.append(url)
+        return _Resp(b"bad" if url.startswith("https://a.") else data)  # 第一个地址给了坏文件
+    monkeypatch.setattr(langpack.requests, "get", fake_get)
+    seen = []
+    assert langpack.installed(pack) is None
+    path = langpack.download(pack, progress=lambda d, t: seen.append(d))
+    assert calls == pack["urls"] and path.read_bytes() == data and langpack.installed(pack) == path
+    assert seen[-1] == len(data) and not path.with_name("k.onnx.part").exists()
+    monkeypatch.setattr(langpack.requests, "get", lambda url, **kw: _Resp(b"bad"))
+    path.unlink()
+    with pytest.raises(ValueError):
+        langpack.download(pack)
+    assert langpack.installed(pack) is None

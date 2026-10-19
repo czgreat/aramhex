@@ -128,6 +128,8 @@ class BadgeLayer(QWidget):
                 meta.append(f"{r['tier']}级")
             if r.get("basis") == "tier_only":
                 meta.append("按官方层级")
+            if r.get("basis") == "pbe" and r.get("pbe_games"):  # 新海克斯先用测试服数据：直接给局数和胜率，看得出高低
+                meta.append(f"测试服 {r['pbe_games']} 局 胜率{_pct(r['pbe_win'])}")
             if r.get("thin") == "few":
                 meta.insert(0, "样本偏少")
             if meta:

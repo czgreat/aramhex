@@ -15,17 +15,23 @@ def normalize(s: str) -> str:
     return _PUNCT.sub("", s).lower()
 
 
+# 短的英文名（如 Stats!）和别的词只差一两个字母就能过线（Start 对 Stats 有 80 分），要更像才算
+SHORT_ASCII = 6
+SHORT_ASCII_MIN = 90.0
+
+
 class NameMatcher:
-    def __init__(self, names: dict[str, str], threshold: float = 72.0):
-        """names: {id: 显示名}。"""
+    def __init__(self, names: dict[str, str | list[str]], threshold: float = 72.0):
+        """names: {id: 显示名} 或 {id: [几种语言的名字]}。"""
         self.threshold = threshold
         self._ids: list[str] = []
         self._keys: list[str] = []
-        for i, n in names.items():
-            k = normalize(n)
-            if k:
-                self._ids.append(i)
-                self._keys.append(k)
+        for i, ns in names.items():
+            for n in ([ns] if isinstance(ns, str) else ns):
+                k = normalize(n)
+                if k:
+                    self._ids.append(i)
+                    self._keys.append(k)
 
     def __len__(self) -> int:
         return len(self._keys)
@@ -43,6 +49,6 @@ class NameMatcher:
             hit2 = process.extractOne(q, self._keys, scorer=fuzz.partial_ratio)
             if hit2 and hit2[1] >= 90 and len(hit2[0]) >= 3 and abs(len(hit2[0]) - len(q)) <= 3:
                 key, score, pos = hit2
-        if score < self.threshold:
+        if score < self.threshold or (key.isascii() and len(key) <= SHORT_ASCII and score < SHORT_ASCII_MIN):
             return None, float(score)
         return self._ids[pos], float(score)

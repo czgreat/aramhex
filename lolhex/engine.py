@@ -17,7 +17,7 @@ import threading
 import time
 from pathlib import Path
 
-from . import recommend
+from . import i18n, recommend
 from .config import Settings, app_home
 from .data.public import PublicStore
 from .data.store import DataStore
@@ -26,6 +26,17 @@ from .vision import window as win
 from .vision.matcher import NameMatcher
 
 log = logging.getLogger(__name__)
+
+
+def augment_matcher(store, settings) -> NameMatcher:
+    """三选一认字用的名字表：国服用腾讯的名字；外服用那种语言的名字（ID 一样）。
+    外服名字表里没有的（刚上线、名字表还没更新），退回中文名，至少繁中能对上一部分。"""
+    names = {aid: a["name"] for aid, a in store.mayhem_augments().items()}
+    foreign = i18n.augment_names(settings.game_lang)
+    if foreign:
+        names = {aid: foreign.get(aid) or n for aid, n in names.items()}
+        names.update({aid: n for aid, n in foreign.items() if aid not in names})
+    return NameMatcher(names, settings.match_threshold)
 
 
 def pick_my_hero(found: list[tuple[str, float, int]]) -> tuple[str | None, list[str]]:
@@ -66,6 +77,7 @@ class Engine:
                                      check_updates=settings.check_data_updates)
         if hasattr(self.store, "set_band"):
             self.store.set_band(settings.data_band or None)
+        self._apply_rec_model()
         self.live = None
         if settings.use_liveclient:
             from .game.liveclient import LiveClient
@@ -155,6 +167,26 @@ class Engine:
             self._detector._last_fp = None
         self._rescan.set()
 
+    def set_game_lang(self, lang: str) -> None:
+        """设置里换了游戏语言：换认字用的名字表（韩服再换识别模型），选人界面的缓存作废。"""
+        self.settings.game_lang = i18n.normalize_lang(lang)
+        self._apply_rec_model()
+        self._hm = None
+        self._cs_memo = None
+        if self._detector:
+            self._detector._ocr = None
+            self._detector.set_matcher(self._augment_matcher())
+        self.rescan()
+        log.info("游戏语言：%s", self.settings.game_lang)
+
+    def _apply_rec_model(self) -> None:
+        from . import langpack
+        from .vision.ocr import OCR
+        path = langpack.installed() if self.settings.game_lang == "ko_KR" else None
+        if self.settings.game_lang == "ko_KR" and not path:
+            log.warning("选了韩服，但韩服识别数据还没下载，先用内置模型（认不出韩文）")
+        OCR.use_rec_model(path)
+
     def reset_calibration(self) -> None:
         if self._detector:
             self._detector.reset_calibration()
@@ -201,8 +233,7 @@ class Engine:
             log.exception("预热失败")
 
     def _augment_matcher(self) -> NameMatcher:
-        names = {aid: a["name"] for aid, a in self.store.mayhem_augments().items()}
-        return NameMatcher(names, self.settings.match_threshold)
+        return augment_matcher(self.store, self.settings)
 
     def _hero_matcher(self) -> NameMatcher:
         heroes = self.store.heroes
@@ -214,8 +245,12 @@ class Engine:
         return m
 
     def _build_hero_matcher(self) -> NameMatcher:
-        names = {}
+        names: dict[str, str | list[str]] = {}
+        foreign = i18n.hero_names(self.settings.game_lang)
         for hid, h in self.store.heroes.items():
+            if foreign:  # 外服：只认那种语言的名字和称号（选人界面写的是名字，开局卡片可能是称号）
+                names[hid] = foreign.get(hid) or []
+                continue
             names[hid] = h.get("name") or ""
             names[hid + "#nick"] = h.get("nick") or ""
             names[hid + "#full"] = f"{h.get('nick', '')} {h.get('name', '')}"
@@ -344,15 +379,22 @@ class Engine:
         if self._cs_memo is None:
             self._cs_memo = champselect.Memo()
         memo = self._cs_memo
-        in_cs = champselect.is_champ_select(img, ocr.recognize, memo)
+        lang = self.settings.game_lang
+        in_cs = champselect.is_champ_select(img, ocr.recognize, memo, i18n.ui_text("bench", lang))
         # 开局选卡时顶部预选栏被盖住、没有"可用"两个字，所以卡片按"选择你的英雄"单独判断，
         # 否则要等点完卡、回到正常选人界面才有标注
-        cards = champselect.read_cards(img, ocr.recognize, ocr.detect, self._hero_by_name, origin, memo)
+        cards = champselect.read_cards(img, ocr.recognize, ocr.detect, self._hero_by_name, origin, memo,
+                                       i18n.ui_text("pick", lang))
+        got = None
+        if not in_cs and not cards and lang != "zh_CN" and self._icon_bank is not None:
+            # 外服的字放在哪还没有实机截图核对过：读不到时看预选栏，认出 3 个以上英雄头像也算在选英雄界面
+            got = champselect.read(img, self._icon_bank, origin, self._read_hero_name, memo)
+            in_cs = len(got["bench"]) >= 3
         if not in_cs and not cards:
             return False  # 大厅、房间、商城等界面：不标注、不识别
         cs = None
         if in_cs and self._icon_bank is not None:
-            got = champselect.read(img, self._icon_bank, origin, self._read_hero_name, memo)
+            got = got or champselect.read(img, self._icon_bank, origin, self._read_hero_name, memo)
             if got["bench"] or got["team"]:
                 cs = {k: [{**s, **self.hero_brief(s["hero_id"])} for s in got[k]] for k in ("bench", "team")}
                 cs["mine"] = got["mine"]

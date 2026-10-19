@@ -13,7 +13,9 @@ import logging
 
 import cv2
 import numpy as np
+from rapidfuzz import fuzz
 
+from .matcher import normalize
 from .portraits import IconBank
 
 log = logging.getLogger(__name__)
@@ -36,9 +38,12 @@ LAYOUT: dict[str, list[tuple[float, float, float, float]]] = {
 # 预选栏左边的"可用"两个字：只有选英雄界面有，用来确认当前界面，避免在大厅等界面误标
 MARKER_BOX = _r(420, 28, 500, 64)
 MARKER_TEXT = "可用"
+# 外服客户端这两处字更长（如「Available Champions」「使用するチャンピオンをピックしてください」），框往外放宽
+MARKER_BOX_WIDE = _r(140, 24, 515, 68)
 # 开局"选择你的英雄"：标题、卡片称号所在的横条、卡片上下边和半宽
 CARD_TITLE_BOX = _r(780, 155, 1140, 220)
 CARD_TITLE_TEXT = "选择你的英雄"
+CARD_TITLE_BOX_WIDE = _r(520, 150, 1400, 225)
 CARD_NAME_BAND = _r(430, 600, 1490, 690)
 CARD_TOP, CARD_BOTTOM, CARD_HALF_W = 270 / REF_H, 718 / REF_H, 138 / REF_W
 # 我方每行的英雄名文字区域：自己那一行是金色字
@@ -93,14 +98,25 @@ def boxes(kind: str, width: int, height: int) -> list[tuple[int, int, int, int]]
             for x0, y0, x1, y1 in rects]
 
 
-def is_champ_select(img, recognize, memo=None) -> bool:
-    """recognize(小块图) → (文字, 置信度)。读到"可用"才算在选英雄界面。"""
-    txt, sc = (memo or _plain)("marker", _crop(img, MARKER_BOX), recognize, _has_text(MARKER_TEXT))
-    return _has_text(MARKER_TEXT)((txt, sc))
+def is_champ_select(img, recognize, memo=None, marker: str = MARKER_TEXT) -> bool:
+    """recognize(小块图) → (文字, 置信度)。读到"可用"（外服是那种语言的字）才算在选英雄界面。"""
+    box = MARKER_BOX if marker == MARKER_TEXT else MARKER_BOX_WIDE
+    txt, sc = (memo or _plain)("marker", _crop(img, box), recognize, _has_text(marker))
+    return _has_text(marker)((txt, sc))
 
 
 def _has_text(want):
-    return lambda r: r[1] >= 0.6 and want in (r[0] or "").replace(" ", "")
+    """读到的字里有 want。长的字（外服）允许认错一两个字母、只读到一部分。"""
+    key = normalize(want)
+
+    def ok(r):
+        got = normalize(r[0] or "")
+        if r[1] < 0.6 or not got:
+            return False
+        if key in got:
+            return True
+        return len(key) >= 6 and len(got) >= 4 and fuzz.partial_ratio(key, got) >= 85
+    return ok
 
 
 def _crop(img, box):
@@ -133,19 +149,20 @@ def text_spans(band) -> list[tuple[int, int]]:
 
 
 def read_cards(img, recognize, detect, name_to_hero, origin: tuple[int, int] = (0, 0),
-               memo=None) -> list[dict]:
+               memo=None, title_text: str = CARD_TITLE_TEXT) -> list[dict]:
     """开局英雄卡（二选一/三选一）。不在这个阶段时返回 []。
     detect(图) → 文字行列表（带 box）；name_to_hero(文字) → 英雄 id 或 None。"""
     memo = memo or _plain
-    title = memo("card_title", _crop(img, CARD_TITLE_BOX), recognize, _has_text(CARD_TITLE_TEXT))
+    box = CARD_TITLE_BOX if title_text == CARD_TITLE_TEXT else CARD_TITLE_BOX_WIDE
+    title = memo("card_title", _crop(img, box), recognize, _has_text(title_text))
     seen = getattr(memo, "seen", {})
-    if not _has_text(CARD_TITLE_TEXT)(title):
+    if not _has_text(title_text)(title):
         seen.pop("title", None)
         seen.pop("cards", None)
         return []
     if not seen.get("title"):
         seen["title"] = True
-        log.info("选英雄：看到「%s」", CARD_TITLE_TEXT)
+        log.info("选英雄：看到「%s」", title_text)
     h, w = img.shape[:2]
     bx0 = int(CARD_NAME_BAND[0] * w)
 

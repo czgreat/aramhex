@@ -56,9 +56,8 @@ def _scan_image(engine, path: str, hero: str | None) -> int:
         print("读不到图片：", path)
         return 2
     engine.store.refresh()
-    names = {aid: a["name"] for aid, a in engine.store.mayhem_augments().items()}
-    from .vision.matcher import NameMatcher
-    det = AugmentDetector(NameMatcher(names, engine.settings.match_threshold))
+    from .engine import augment_matcher
+    det = AugmentDetector(augment_matcher(engine.store, engine.settings))
     offer = det.scan_full(img)
     if not offer:
         print("没有识别到三选一画面。")
