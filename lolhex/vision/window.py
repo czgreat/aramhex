@@ -145,6 +145,23 @@ def _apply_affinity(hwnd: int) -> None:
             pass
 
 
+def capture_allowed() -> bool:
+    return _capture_allowed
+
+
+def hide_from_capture(hwnd: int) -> None:
+    """临时让这个浮窗不被截图（量画面时用），之后用 restore_capture 恢复成设置里的样子。"""
+    if IS_WINDOWS and hwnd:
+        try:
+            ctypes.windll.user32.SetWindowDisplayAffinity(hwnd, 0x11)
+        except Exception:
+            pass
+
+
+def restore_capture(hwnd: int) -> None:
+    _apply_affinity(int(hwnd))
+
+
 def set_capture_allowed(allowed: bool) -> None:
     """录屏、截图时是否显示浮窗；对已经打开的浮窗立即生效。"""
     global _capture_allowed

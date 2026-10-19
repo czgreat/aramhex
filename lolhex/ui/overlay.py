@@ -69,8 +69,9 @@ def _rect_text(r) -> str:
     return f"{r.left},{r.top} {r.width}x{r.height}" if r else "无"
 
 
-# 标签放在卡片下方时，标签中心在标题中心往下多少（1080P 像素）：描述文字下面、卡片底边上面那块空白
-BOTTOM_CENTER = 197
+# 标签放在卡片下方时，标签底边在标题中心往下多少（1080P 像素）：卡片内框底边约在 248
+BOTTOM_EDGE = 236
+BOTTOM_GAP = 10    # 标签顶边和描述文字最低一行至少隔开这么多，不然这一组放回标题上方
 
 
 class _Layer(QWidget):
@@ -134,15 +135,58 @@ class BadgeLayer(_Layer):
     def __init__(self):
         super().__init__()
         self.snapshot: dict = {}
+        # 放下方时：先看每张卡的描述写到哪（cardspace.desc_end），量出来之前不画
+        self._room_key = None
+        self._ends: list | None = None
+        self._room_logged = None
 
     def update_from(self, snap: dict, rect, hwnd: int = 0) -> None:
         self.snapshot = snap
         ev, offer = snap.get("evaluation"), snap.get("offer")
         if not ev or not offer or rect is None:
+            self._room_key = None
             self.hide()
             return
         self._place(rect, hwnd)
+        if snap.get("settings", {}).get("badge_position") == "bottom":
+            boxes = [tuple(b) if b else None for b in offer.get("boxes") or []]
+            key = (tuple(offer.get("slots") or []), tuple(boxes), rect)
+            if key != self._room_key:  # 新的一组卡（或刷新了一张、窗口变了）：重新量
+                self._room_key, self._ends = key, None
+                self._measure(key, boxes, rect, first=True)
         self.update()
+
+    def _measure(self, key, boxes, rect, first: bool) -> None:
+        """截一张游戏画面看描述写到哪。打开了「录屏、截图时显示浮窗」时，自己画的标签也会被截到，
+        先让标签层暂时不被截图（等 0.2 秒生效），量完再恢复。描述可能有淡入动画，0.6 秒后再量一次取最低。"""
+        hwnd = int(self.winId())
+        capturable = win.capture_allowed()
+        if capturable:
+            win.hide_from_capture(hwnd)
+
+        def grab():
+            try:
+                if key != self._room_key:
+                    return
+                from ..vision import capture, cardspace
+                frame = capture.grab(rect)
+                ends = [cardspace.desc_end(frame, b, (rect.left, rect.top)) for b in boxes]
+            except Exception:
+                log.exception("量卡片描述位置失败")
+                ends = [None] * len(boxes)
+            finally:
+                if capturable:
+                    win.restore_capture(hwnd)
+            if key != self._room_key:
+                return
+            if self._ends is not None:
+                ends = [None if a is None or b is None else max(a, b) for a, b in zip(self._ends, ends)]
+            self._ends = ends
+            self.update()
+            if first:
+                QTimer.singleShot(600, lambda: self._measure(key, boxes, rect, first=False))
+
+        QTimer.singleShot(200 if capturable else 0, grab)
 
     def paintEvent(self, _):
         snap = self.snapshot
@@ -151,6 +195,8 @@ class BadgeLayer(_Layer):
             return
         show_win = snap.get("settings", {}).get("show_winrate", True)
         below = snap.get("settings", {}).get("badge_position") == "bottom"
+        if below and self._ends is None:
+            return  # 还没量出描述写到哪：先不画（不到 0.2 秒）
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
         # 下面都按「1080P 像素」算：标签大小跟着卡片走
@@ -161,6 +207,7 @@ class BadgeLayer(_Layer):
         f_small = QFont("Microsoft YaHei UI", 9)
         boxes = offer.get("boxes") or []
         known = [b for b in boxes if b]
+        items = []
         for r in ev["slots"]:
             i = r["index"]
             box = boxes[i] if i < len(boxes) else None
@@ -197,9 +244,21 @@ class BadgeLayer(_Layer):
             if meta:
                 lines.append(" · ".join(meta))
             h = 30 + 18 * len(lines)
-            if below:  # 设置里选了放下方：描述文字下面的空白处
-                yc = ((box[1] + box[3]) / 2 - oy) / unit
-                rect = QRect(int(cx - w / 2), int(yc + BOTTOM_CENTER - h / 2), int(w), int(h))
+            yc = ((box[1] + box[3]) / 2 - oy) / unit
+            end = self._ends[i] if below and i < len(self._ends) else None
+            items.append((r, label, color, lines, cx, w, h, y0, yc, end))
+        # 设置里选了放下方：三张都放得下（描述最低一行和标签隔开 BOTTOM_GAP）才放下方，
+        # 有一张描述太长就这一组都放标题上方，不挡海克斯的内容，三张也不会一上一下
+        fits = below and bool(items) and all(end is not None and end + BOTTOM_GAP <= BOTTOM_EDGE - h
+                                             for *_, h, _y0, _yc, end in items)
+        if below and self._room_logged != (self._room_key, fits):
+            self._room_logged = (self._room_key, fits)
+            log.info("三选一标签放下方：描述最低到 %s（1080P 像素，标题中心往下），%s",
+                     [None if e is None else round(e) for e in self._ends],
+                     "放得下" if fits else "有一张放不下，这组放标题上方")
+        for r, label, color, lines, cx, w, h, y0, yc, end in items:
+            if fits:  # 描述文字下面、卡片底边上面那块空白
+                rect = QRect(int(cx - w / 2), int(yc + BOTTOM_EDGE - h), int(w), int(h))
             else:  # 默认放在标题正上方（压在海克斯图标下半部分）：不挡名字、描述和下方的刷新按钮
                 rect = QRect(int(cx - w / 2), int(y0 - 4 - h), int(w), int(h))
             p.setPen(Qt.NoPen)
