@@ -65,6 +65,11 @@ def test_chinese_tries_traditional_ui_text_sometimes():
     tried.clear()
     eng._cs_tick = 5
     assert eng._try_texts(texts, fn) and tried == ["可使用的英雄"]   # 认到过繁中以后先试繁中
+    tried.clear()
+    eng._cs_tick = 6
+    assert eng._try_texts(texts, lambda t: tried.append(t) or t == "可用") and tried == ["可使用的英雄", "可用"]  # 简体每次都试
+    tried.clear()
+    assert eng._try_texts(texts, fn) is False and tried == ["可用"]            # 又改回先试简体
 
 
 def test_marker_text_long_and_partial():

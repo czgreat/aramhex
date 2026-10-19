@@ -109,7 +109,7 @@ class Settings:
     last_version: str = ""
     # 第一次打开时的「请把游戏设成无边框」提示，看过就不再弹
     seen_welcome: bool = False
-    # 游戏客户端的语言（外服）：zh_CN 国服 / zh_TW / en_US / ja_JP / ko_KR，见 i18n.py。韩文要另外下载识别数据
+    # 游戏客户端的语言（外服）：zh_CN 中文（国服，繁中台服也认）/ en_US / ja_JP / ko_KR，见 i18n.py。韩文要另外下载识别数据
     game_lang: str = "zh_CN"
     # 匿名使用统计：第一次打开时随机生成的编号（和硬件、账号无关，重装就是新的），只在查云控时带上。
     # 界面上不显示；要关就把 config.json 里的 send_usage 改成 false

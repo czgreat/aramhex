@@ -419,16 +419,16 @@ class Engine:
         return cs
 
     def _try_texts(self, texts: list[str], fn):
-        """界面上的字有几种写法时（中文：简体、繁中）挨个试。上次认到的那种先试；
+        """界面上的字有几种写法时（中文：简体、繁中）挨个试。上次认到的那种先试，简体每次都试；
         别的写法每 4 次才试一次，国服玩家在大厅里几乎不多花时间。"""
         pref = getattr(self, "_cs_pref", {})
         self._cs_pref = pref
         first = pref.get(texts[0], texts[0])
-        got = fn(first)
-        if got or len(texts) == 1 or self._cs_tick % 4:
-            return got
-        for t in texts:
-            if t != first and (got := fn(t)):
+        got = None
+        for i, t in enumerate([first] + [t for t in texts if t != first]):
+            if i and t != texts[0] and self._cs_tick % 4:
+                continue
+            if got := fn(t):
                 pref[texts[0]] = t
                 return got
         return got
