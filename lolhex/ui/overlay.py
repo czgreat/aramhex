@@ -618,6 +618,8 @@ def run(make_engine, minimized: bool = False) -> int:
     app.setQuitOnLastWindowClosed(False)
     app.setApplicationName("海克斯大乱斗助手")
     app.setWindowIcon(app_icon())
+    # 界面颜色是按浅色配的（卡片底色、灰字写死）：不跟随 Windows 深色模式，否则白字压在浅色卡片上看不见
+    app.styleHints().setColorScheme(Qt.ColorScheme.Light)
 
     name = f"{SINGLE_INSTANCE}-{getpass.getuser()}"
 
