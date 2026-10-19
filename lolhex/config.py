@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import secrets
 import sys
 from dataclasses import asdict, dataclass, field, fields
@@ -46,6 +47,24 @@ def app_home() -> Path:
         home = Path(base) / APP_DIR_NAME
     home.mkdir(parents=True, exist_ok=True)
     return home
+
+
+def _parse_config(raw: bytes) -> dict:
+    """读设置文件。手改后常见的几种写法也认：带 BOM 的 UTF-8、GBK（老记事本存成 ANSI）、末尾多一个逗号。"""
+    for enc in ("utf-8-sig", "gbk"):
+        try:
+            text = raw.decode(enc)
+        except UnicodeDecodeError:
+            continue
+        for candidate in (text, re.sub(r",\s*([}\]])", r"\1", text)):
+            try:
+                data = json.loads(candidate)
+            except ValueError:
+                continue
+            if isinstance(data, dict):
+                return data
+            raise ValueError("不是 JSON 对象")
+    raise ValueError("不是合法的 JSON")
 
 
 @dataclass
@@ -100,28 +119,40 @@ class Settings:
     @classmethod
     def load(cls, path: Path | None = None) -> "Settings":
         path = path or app_home() / "config.json"
+        log = logging.getLogger(__name__)
         data: dict = {}
         broken = False
+        raw = b""
         if path.exists():
             try:
-                # utf-8-sig：手改后存成带 BOM 的 UTF-8（Windows PowerShell、老记事本）也能读，不然会当成没有设置、被默认值覆盖
-                data = json.loads(path.read_text(encoding="utf-8-sig"))
-                if not isinstance(data, dict):
-                    raise ValueError("不是 JSON 对象")
+                raw = path.read_bytes()
+                data = _parse_config(raw)
             except (OSError, ValueError) as e:
-                logging.getLogger(__name__).warning("设置文件读不了，这次用默认设置（文件先不动）：%s", e)
-                data, broken = {}, True
+                broken = True
+                log.warning("设置文件读不了：%s", e)
         known = {f.name for f in fields(cls)}
-        try:
-            s = cls(**{k: v for k, v in data.items() if k in known and k != "extra"})
-        except TypeError:
-            s, broken = cls(), True
+        s = cls(**{k: v for k, v in data.items() if k in known and k != "extra"})
         s.extra = {k: v for k, v in data.items() if k not in known}
         s.fresh_install = not data and not broken  # 没有设置文件：第一次装（用来区分「刚安装」和「刚更新」）
+        if not isinstance(s.install_id, str) or not re.fullmatch(r"[0-9a-f]{16}", s.install_id):
+            s.install_id = ""  # 手改坏了：重新生成（不是字符串时请求头发不出去）
+        if not isinstance(s.send_usage, bool):
+            s.send_usage = str(s.send_usage).strip().lower() not in ("false", "0", "no", "")
+        if broken:
+            # 实在读不懂：原文件留个备份，后面照常写新的；用户在里面关没关匿名统计看不出来，这次就当关了，
+            # 能从原文里找到 "send_usage": true/false 就照它的
+            m = re.search(rb'"send_usage"\s*:\s*(true|false)', raw)
+            s.send_usage = bool(m) and m.group(1) == b"true"
+            s.seen_welcome = True  # 不是新装，别再弹欢迎框
+            backup = path.with_name(path.name + ".broken")
+            try:
+                path.replace(backup)
+                log.warning("坏的设置文件改名为 %s，这次用默认设置", backup.name)
+            except OSError as e:
+                log.warning("坏的设置文件没法改名：%s", e)
         if not s.install_id or not path.exists():
             s.install_id = s.install_id or secrets.token_hex(8)
-            if not broken:  # 读不了的设置文件这里不覆盖
-                s.save(path)
+            s.save(path)
         return s
 
     @property
