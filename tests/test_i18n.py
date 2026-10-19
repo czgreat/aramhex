@@ -39,6 +39,12 @@ def test_matcher_several_names_and_short_english():
     assert m.match("From Beginning To Erd")[0] == "2"
 
 
+def test_traditional_lookalike_chars():
+    tw = augment_matcher(SimpleNamespace(mayhem_augments=lambda: {"1384": {"name": "捐赠"}}),
+                         SimpleNamespace(game_lang="zh_TW", match_threshold=72.0))
+    assert tw.match("斗內")[0] == "1384" and tw.match("斗内")[0] == "1384"  # 单独认标题时「內」常读成「内」
+
+
 def test_marker_text_long_and_partial():
     ok = champselect._has_text("Available Champions")
     assert ok(("Available Champions", 0.9))

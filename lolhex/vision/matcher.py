@@ -10,8 +10,12 @@ from rapidfuzz import fuzz, process
 _PUNCT = re.compile(r"[\s·•・:：,，.。!！?？'\"“”‘’()（）\[\]【】<>《》\-—_~～|/\\]+")
 
 
+# 繁简写法几乎一样的字，OCR 常认成另一个（台服「斗內」切出标题单独认时读成「斗内」）。两字名差一个字只有 50 分，所以先统一
+_VARIANTS = str.maketrans("內別戶吳眞", "内别户吴真")
+
+
 def normalize(s: str) -> str:
-    s = unicodedata.normalize("NFKC", s or "")
+    s = unicodedata.normalize("NFKC", s or "").translate(_VARIANTS)
     return _PUNCT.sub("", s).lower()
 
 
