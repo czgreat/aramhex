@@ -1,6 +1,7 @@
 """三选一标签放卡片下方时，先看描述文字写到哪：放不下就退回标题上方，不挡海克斯的内容。
 
-只看截图像素：标题中心往下、卡片中间一列里，亮像素（文字）最低出现在哪一行。
+只看截图像素：标题中心往下、卡片中间一列里，文字最低出现在哪一行。文字按笔画边缘认（左右相邻像素
+亮度差得多）：描述里有灰色的小字，只按亮度认会漏掉；卡片底色再亮也是平滑过渡，没有这种边缘。
 游戏界面按高度缩放，所以都按「1080P 像素」（游戏画面高度 / 1080）计。
 """
 
@@ -11,8 +12,8 @@ import numpy as np
 SCAN_FROM = 20     # 标题中心往下多少开始看（跳过标题本身）
 SCAN_TO = 240      # 看到哪（卡片内框底边约在 248，再往下是边框）
 HALF_WIDTH = 120   # 卡片中间这么宽一列（卡片内宽约 270，避开两边的边框）
-BRIGHT = 140       # 文字：任一通道比这个亮；卡片底色是深青黑
-MIN_SHARE = 0.03   # 一行里亮像素占这一列宽度的比例够了才算有字；连续两行（1080P 像素）以上才算一行字，
+EDGE = 25          # 左右相邻像素亮度差超过这个算笔画边缘
+MIN_SHARE = 0.03   # 一行里边缘占这一列宽度的比例够了才算有字；连续两行（1080P 像素）以上才算一行字，
                    # 卡片边上一闪一闪的小星星只有几个像素、一两行高，不算
 
 
@@ -29,7 +30,8 @@ def desc_end(frame: np.ndarray, box, origin: tuple[int, int] = (0, 0)) -> float 
     y0, y1 = int(max(0, cy + SCAN_FROM * u)), int(min(h, cy + SCAN_TO * u))
     if x1 - x0 < 10 or y1 - y0 < 10:
         return None
-    rows = (frame[y0:y1, x0:x1].max(axis=2) > BRIGHT).sum(axis=1) >= max(3, MIN_SHARE * (x1 - x0))
+    lum = frame[y0:y1, x0:x1].max(axis=2).astype(np.int16)
+    rows = (np.abs(np.diff(lum, axis=1)) > EDGE).sum(axis=1) >= max(3, MIN_SHARE * (x1 - x0))
     need = max(2, round(2 * u))
     last, run = None, 0
     for i, on in enumerate(rows):

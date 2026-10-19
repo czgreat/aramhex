@@ -31,8 +31,8 @@ def _badge_rows(position: str, monkeypatch, desc_to: int = 560) -> list[int]:
     from lolhex.vision import capture
     app = _app()
     frame = np.zeros((1080, 1920, 3), np.uint8)
-    frame[490:desc_to:20, 760:940] = 255           # 一行一行的描述文字
-    frame[491:desc_to:20, 760:940] = 255
+    for y in range(490, desc_to, 20):                # 一行一行的描述文字（竖条纹当笔画）
+        frame[y:y + 3, 760:940:4] = 255
     monkeypatch.setattr(capture, "grab", lambda rect: frame)
     layer = overlay.BadgeLayer()
     snap = {"settings": {"badge_position": position},
@@ -91,7 +91,9 @@ def test_desc_end_ignores_sparkles():
 
     from lolhex.vision.cardspace import desc_end
     frame = np.zeros((1080, 1920, 3), np.uint8)
-    frame[500:514, 800:900] = 255                    # 一行字：标题中心（450）往下 50–64
-    frame[640, 840:847] = 255                        # 卡片边上的小星星：一行、几个像素
-    assert desc_end(frame, (700, 430, 1000, 470)) == 63
+    frame[500:514, 800:900:3] = 200                  # 一行字：标题中心（450）往下 50–64
+    frame[520:530, 800:900:3] = 120                  # 灰色小字也算：往下 70–80
+    frame[640, 840:847:2] = 255                      # 卡片边上的小星星：一行、几个像素
+    frame[600:640, 760:940] = 90                     # 平滑的亮底色不算
+    assert desc_end(frame, (700, 430, 1000, 470)) == 79
     assert desc_end(frame, None) is None
