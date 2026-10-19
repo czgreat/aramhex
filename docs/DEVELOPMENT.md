@@ -11,6 +11,8 @@ lolhex/
   patch.py             增量更新：只下载变了的文件（updates 分支，GitHub / jsDelivr），退出后替换，失败还原
   recommend.py         三选一评分
   panel.py             单英雄面板（胜率、出装、加点、海克斯表）
+  i18n.py              外服：按游戏语言认海克斯名、英雄名、选人界面的字（名字表 data/i18n.json）
+  langpack.py          韩服识别数据（韩文识别模型，选了韩文再下载，不进安装包）
   data/
     store.py           腾讯官方资料（运行时获取，落盘缓存）
     public.py          自采统计数据：内置 + 从数据仓库下载更新，逐文件校验 SHA-256；分数段切换
@@ -19,6 +21,7 @@ lolhex/
   vision/              截屏、选人界面识别、三选一识别、OCR
   ui/                  主窗口、托盘、游戏内浮窗
 scripts/update_data.py 把数据仓库最新的一份放进 lolhex/data/bundled/
+scripts/update_i18n.py 从拳头公开数据生成外服名字表 lolhex/data/i18n.json（海斗加了新海克斯后重跑）
 packaging/             PyInstaller、Inno Setup、打包脚本
 ```
 
