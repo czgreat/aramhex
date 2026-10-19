@@ -26,6 +26,7 @@ from ..config import SPEEDS, is_portable
 from ..vision import window as win
 from ..data.public import BANDS
 from . import autostart
+from .badgepos import POSITIONS as BADGE_POSITIONS, BadgePosPreview
 from .autoshot import shots_dir
 from . import buildview
 from .data_status import data_status_html
@@ -383,6 +384,17 @@ class MainWindow(QMainWindow):
         self.set_corner = QComboBox()
         self.set_corner.addItems(["右上角", "左上角"])
         self.set_corner.setCurrentIndex(0 if s.overlay_corner == "top-right" else 1)
+        # 三选一标签放卡片上方还是下方，旁边的示意图跟着选项变
+        self.set_badge = QComboBox()
+        for code, label in BADGE_POSITIONS:
+            self.set_badge.addItem(label, code)
+        self.set_badge.setCurrentIndex(max(0, self.set_badge.findData(s.badge_position)))
+        self.badge_preview = BadgePosPreview(s.badge_position)
+        self.set_badge.currentIndexChanged.connect(
+            lambda i: self.badge_preview.set_position(self.set_badge.itemData(i)))
+        badge_row = QHBoxLayout()
+        badge_row.addWidget(self.set_badge, 1, Qt.AlignTop)
+        badge_row.addWidget(self.badge_preview)
         self.set_overlay = QCheckBox("显示游戏内浮窗")
         self.set_overlay.setChecked(s.overlay)
         self.set_speed = QComboBox()
@@ -425,6 +437,7 @@ class MainWindow(QMainWindow):
         f.addRow("", self.set_win)
         f.addRow("", self.set_overlay)
         f.addRow("浮窗位置", self.set_corner)
+        f.addRow("三选一标签", badge_row)
         f.addRow("", self.set_capture)
         f.addRow("", shot_row)
         f.addRow("", self.set_live)
@@ -651,6 +664,7 @@ class MainWindow(QMainWindow):
         s.use_liveclient = self.set_live.isChecked()
         s.overlay = self.set_overlay.isChecked()
         s.overlay_corner = "top-right" if self.set_corner.currentIndex() == 0 else "top-left"
+        s.badge_position = self.set_badge.currentData() or "top"
         lang = self.set_lang.currentData() or "zh_CN"
         if lang != s.game_lang:
             self.engine.set_game_lang(lang)

@@ -92,6 +92,8 @@ class Settings:
     overlay: bool = True
     # 悬浮按钮的位置：top-right / top-left。
     overlay_corner: str = "top-right"
+    # 三选一标签放在卡片哪里：top=标题上方（压在图标下半，默认）/ bottom=描述下面的空白处。
+    badge_position: str = "top"
     # 参考数据的分数段：""=全体（默认），casual/mid/high/top=娱乐/中分/高分/顶尖。
     data_band: str = ""
     # 识别频率（见 SPEEDS）：standard / saver / low。

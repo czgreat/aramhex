@@ -126,7 +126,7 @@ class Engine:
         with self._lock:
             s = copy.deepcopy(self.state)
         s["data"] = self.store.status()
-        s["settings"] = {"show_winrate": self.settings.show_winrate}
+        s["settings"] = {"show_winrate": self.settings.show_winrate, "badge_position": self.settings.badge_position}
         s["hero"] = self.store.heroes.get(s["hero_id"] or "")
         s["candidates"] = [self.store.heroes.get(h, {"id": h}) for h in s["hero_candidates"]]
         return s

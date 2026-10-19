@@ -74,6 +74,40 @@ def client_rect(hwnd: int) -> Rect | None:
     return Rect(pt.x, pt.y, w, h)
 
 
+def window_rect(hwnd: int) -> Rect | None:
+    """窗口在屏幕上的物理像素位置（含边框；无边框的悬浮层就是它画画的区域）。"""
+    if not IS_WINDOWS or not hwnd:
+        return None
+    rc = wintypes.RECT()
+    if not ctypes.windll.user32.GetWindowRect(wintypes.HWND(hwnd), ctypes.byref(rc)):
+        return None
+    return Rect(rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top)
+
+
+def set_window_rect(hwnd: int, r: Rect) -> None:
+    """按物理像素摆放窗口（和截图同一套坐标），不改前后顺序、不抢焦点。"""
+    if IS_WINDOWS and hwnd:
+        # 0x0004 SWP_NOZORDER | 0x0010 SWP_NOACTIVATE | 0x0200 SWP_NOOWNERZORDER
+        ctypes.windll.user32.SetWindowPos(wintypes.HWND(hwnd), None, r.left, r.top, r.width, r.height, 0x0214)
+
+
+def dpi_info(hwnd: int = 0) -> str:
+    """诊断用：窗口的 DPI 和它按哪种方式处理缩放；hwnd=0 时是本进程。拿不到返回空串。"""
+    if not IS_WINDOWS:
+        return ""
+    u = ctypes.windll.user32
+    try:
+        u.GetAwarenessFromDpiAwarenessContext.argtypes = (ctypes.c_void_p,)
+        u.GetWindowDpiAwarenessContext.restype = ctypes.c_void_p
+        u.GetThreadDpiAwarenessContext.restype = ctypes.c_void_p
+        ctx = u.GetWindowDpiAwarenessContext(wintypes.HWND(hwnd)) if hwnd else u.GetThreadDpiAwarenessContext()
+        aw = {0: "不感知缩放", 1: "系统缩放", 2: "按显示器缩放"}.get(u.GetAwarenessFromDpiAwarenessContext(ctx), "?")
+        dpi = u.GetDpiForWindow(wintypes.HWND(hwnd)) if hwnd else 0
+        return f"{aw} DPI {dpi}" if dpi else aw
+    except (AttributeError, OSError):
+        return ""
+
+
 # 贴在客户端/游戏上的自己的悬浮小窗：点它时前台变成它，但画面上客户端还在，按客户端仍在前台算
 _companions: set[int] = set()
 

@@ -59,31 +59,89 @@ def _pct(x) -> str:
     return "—" if x is None else f"{x * 100:.1f}%"
 
 
-class BadgeLayer(QWidget):
-    """覆盖游戏客户区的透明层，只画三张卡的标签。"""
+def _unit(height: int) -> float:
+    """游戏画面里 1 个「1080P 像素」等于几个屏幕物理像素：标签按这个缩放，跟卡片一样大小，
+    不管游戏分辨率、Windows 缩放是多少。"""
+    return min(3.0, max(0.6, height / 1080))
+
+
+def _rect_text(r) -> str:
+    return f"{r.left},{r.top} {r.width}x{r.height}" if r else "无"
+
+
+# 标签放在卡片下方时，标签中心在标题中心往下多少（1080P 像素）：描述文字下面、卡片底边上面那块空白
+BOTTOM_CENTER = 197
+
+
+class _Layer(QWidget):
+    """盖在游戏或客户端上的透明层，对鼠标完全透明。
+
+    按物理像素摆放（和截图同一套坐标），每次都读回窗口实际位置再画：以前按主显示器的缩放比例
+    换算成 Qt 坐标再摆、从不核对，Windows 缩放不是 100%（例如 2K 屏 125%、游戏开 1080P 窗口）时
+    有玩家看到标签放大、偏到卡片外面。位置或缩放有变化时记一行日志，方便查问题。"""
+
+    name = "标注层"
 
     def __init__(self):
         super().__init__()
         _flags(self, click_through=True)
-        self.snapshot: dict = {}
         self.origin = QPoint(0, 0)
+        self.target_h = 1080
+        self._diag = None
 
     def showEvent(self, e):
         win.exclude_from_capture(int(self.winId()))
         super().showEvent(e)
 
-    def update_from(self, snap: dict, rect) -> None:
+    def _scale(self) -> float:
+        return self.devicePixelRatioF() if win.IS_WINDOWS else _dpr()
+
+    def _place(self, rect, target_hwnd: int = 0) -> None:
+        self.target_h = rect.height
+        if not win.IS_WINDOWS:
+            geo = QRect(_logical(rect.left), _logical(rect.top), _logical(rect.width), _logical(rect.height))
+            if self.geometry() != geo:
+                self.setGeometry(geo)
+            self.origin = QPoint(rect.left, rect.top)
+            if not self.isVisible():
+                self.show()
+            return
+        if not self.isVisible():
+            self.show()
+        hwnd = int(self.winId())
+        actual = win.window_rect(hwnd)
+        if actual != rect:
+            win.set_window_rect(hwnd, rect)
+            actual = win.window_rect(hwnd) or rect
+        self.origin = QPoint(actual.left, actual.top)
+        key = (rect, actual, round(self._scale(), 3))
+        if key != self._diag:
+            self._diag = key
+            screens = "；".join(
+                f"{sc.name()} {sc.geometry().x()},{sc.geometry().y()} {sc.geometry().width()}x{sc.geometry().height()}"
+                f" 缩放{sc.devicePixelRatio():g}" for sc in QGuiApplication.screens())
+            (log.warning if actual != rect else log.info)(
+                "%s：要盖住 %s，实际 %s，浮层缩放 %g；目标窗口 %s；本程序 %s；屏幕 %s", self.name,
+                _rect_text(rect), _rect_text(actual), self._scale(), win.dpi_info(target_hwnd) or "?",
+                win.dpi_info() or "?", screens)
+
+
+class BadgeLayer(_Layer):
+    """覆盖游戏客户区的透明层，只画三张卡的标签。"""
+
+    name = "三选一标签"
+
+    def __init__(self):
+        super().__init__()
+        self.snapshot: dict = {}
+
+    def update_from(self, snap: dict, rect, hwnd: int = 0) -> None:
         self.snapshot = snap
         ev, offer = snap.get("evaluation"), snap.get("offer")
         if not ev or not offer or rect is None:
             self.hide()
             return
-        geo = QRect(_logical(rect.left), _logical(rect.top), _logical(rect.width), _logical(rect.height))
-        if self.geometry() != geo:
-            self.setGeometry(geo)
-        self.origin = QPoint(rect.left, rect.top)
-        if not self.isVisible():
-            self.show()
+        self._place(rect, hwnd)
         self.update()
 
     def paintEvent(self, _):
@@ -92,9 +150,13 @@ class BadgeLayer(QWidget):
         if not ev or not offer:
             return
         show_win = snap.get("settings", {}).get("show_winrate", True)
+        below = snap.get("settings", {}).get("badge_position") == "bottom"
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
-        dpr = _dpr()
+        # 下面都按「1080P 像素」算：标签大小跟着卡片走
+        unit = _unit(self.target_h)
+        p.scale(unit / self._scale(), unit / self._scale())
+        ox, oy = self.origin.x(), self.origin.y()
         f_big = QFont("Microsoft YaHei UI", 12, QFont.Bold)
         f_small = QFont("Microsoft YaHei UI", 9)
         boxes = offer.get("boxes") or []
@@ -106,9 +168,9 @@ class BadgeLayer(QWidget):
                 continue
             if box is None:
                 continue
-            x0 = (box[0] - self.origin.x()) / dpr
-            x1 = (box[2] - self.origin.x()) / dpr
-            y0 = (box[1] - self.origin.y()) / dpr
+            x0 = (box[0] - ox) / unit
+            x1 = (box[2] - ox) / unit
+            y0 = (box[1] - oy) / unit
             w = max(170.0, x1 - x0)
             cx = (x0 + x1) / 2
             label, color = VERDICT.get(r["verdict"], VERDICT["unknown"])
@@ -135,8 +197,11 @@ class BadgeLayer(QWidget):
             if meta:
                 lines.append(" · ".join(meta))
             h = 30 + 18 * len(lines)
-            # 放在标题正上方（压在海克斯图标下半部分）：不挡名字、描述和下方的刷新按钮
-            rect = QRect(int(cx - w / 2), int(y0 - 4 - h), int(w), int(h))
+            if below:  # 设置里选了放下方：描述文字下面的空白处
+                yc = ((box[1] + box[3]) / 2 - oy) / unit
+                rect = QRect(int(cx - w / 2), int(yc + BOTTOM_CENTER - h / 2), int(w), int(h))
+            else:  # 默认放在标题正上方（压在海克斯图标下半部分）：不挡名字、描述和下方的刷新按钮
+                rect = QRect(int(cx - w / 2), int(y0 - 4 - h), int(w), int(h))
             p.setPen(Qt.NoPen)
             p.setBrush(QColor(10, 12, 16, 215))
             p.drawRoundedRect(rect, 6, 6)
@@ -193,38 +258,29 @@ def champ_select_summary(cs: dict, show_win: bool = True) -> str:
     return f"{head}：" + "、".join(items)
 
 
-class ChampSelectLayer(QWidget):
+class ChampSelectLayer(_Layer):
     """选英雄界面：在预选栏和我方每个英雄头像旁标评级（国服排名换算 S–D）与胜率；
     预选栏里胜率比自己当前英雄高的标绿，最高的那个加金框（值得换）。
     覆盖客户端窗口，对鼠标完全透明，不挡点击。"""
 
+    name = "选英雄标注"
+
     def __init__(self):
         super().__init__()
-        _flags(self, click_through=True)
         self.cs: dict | None = None
-        self.origin = QPoint(0, 0)
         self.show_win = True
 
-    def showEvent(self, e):
-        win.exclude_from_capture(int(self.winId()))
-        super().showEvent(e)
-
-    def update_from(self, snap: dict, rect) -> None:
+    def update_from(self, snap: dict, rect, hwnd: int = 0) -> None:
         cs = snap.get("champ_select")
         if not cs or rect is None:
             self.cs = None
             self.hide()
             return
         self.show_win = snap.get("settings", {}).get("show_winrate", True)
-        geo = QRect(_logical(rect.left), _logical(rect.top), _logical(rect.width), _logical(rect.height))
-        if self.geometry() != geo:
-            self.setGeometry(geo)
-        self.origin = QPoint(rect.left, rect.top)
+        self._place(rect, hwnd)
         if cs != self.cs:
             self.cs = cs
             self.update()
-        if not self.isVisible():
-            self.show()
 
     def paintEvent(self, _):
         cs = self.cs
@@ -233,7 +289,7 @@ class ChampSelectLayer(QWidget):
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
         p.setRenderHint(QPainter.TextAntialiasing)
-        dpr = _dpr()
+        dpr = self._scale()
         bench = cs.get("bench") or []
         mine = next((t for t in cs.get("team") or [] if t["hero_id"] == cs.get("mine")), None)
         my_win = (mine or {}).get("win")
@@ -458,6 +514,17 @@ class ControlPanel(QWidget):
 
     def place(self, rect) -> None:
         self.adjustSize()
+        if rect is not None and win.IS_WINDOWS and self.isVisible():
+            # 和标注层一样按物理像素摆：贴在游戏/客户端窗口的角上
+            hwnd = int(self.winId())
+            cur = win.window_rect(hwnd)
+            if cur:
+                k = self.devicePixelRatioF()
+                x = rect.right - cur.width - round(12 * k) if self.corner == "top-right" else rect.left + round(12 * k)
+                y = rect.top + round(90 * k)
+                if (cur.left, cur.top) != (x, y):
+                    win.set_window_rect(hwnd, win.Rect(x, y, cur.width, cur.height))
+                return
         if rect is not None:
             left, top, right = _logical(rect.left), _logical(rect.top), _logical(rect.right)
         else:
@@ -573,11 +640,11 @@ class Overlay:
                 notify("截图是黑的：游戏可能是全屏模式。请在游戏设置 → 视频里，把窗口模式改成「无边框」。")
         game = win.find_game_window()
         grect = win.client_rect(game) if game else None
-        self.badges.update_from(snap, grect)
+        self.badges.update_from(snap, grect, game)
         client = None if grect else win.find_client_window()
         crect = win.client_rect(client) if client else None
         # 标注层置顶：客户端不在前台（切到别的窗口）时隐藏，免得盖在别的程序上
-        self.champ.update_from(snap, crect if crect and win.is_foreground(client) else None)
+        self.champ.update_from(snap, crect if crect and win.is_foreground(client) else None, client or 0)
         self.autoshot.tick(snap, grect, crect if crect and win.is_foreground(client) else None)
         self.panel.target_hwnd = game or client or 0
         self.panel.update_from(snap)
@@ -639,7 +706,15 @@ def run(make_engine, minimized: bool = False) -> int:
     if not single_instance.acquire(name):
         # 已经有助手在跑：让它显示主窗口。通知不到时多半是旧进程正在退出（例如更新后自动重启），
         # 等它退出后接班；等不到就不再起第二个
-        if notify_running() or not single_instance.acquire(name, 10_000):
+        if notify_running():
+            return 0
+        if single_instance.denied:  # 通知不到以管理员身份运行的那个：告诉玩家它在哪，不再起第二个
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.information(None, "海克斯大乱斗助手",
+                                    "助手已经在运行（是以管理员身份打开的），请在屏幕右下角托盘里找它。\n"
+                                    "想换成普通方式打开，先在托盘图标上右键退出它。")
+            return 0
+        if not single_instance.acquire(name, 10_000):
             return 0
     QLocalServer.removeServer(name)
     server = QLocalServer()

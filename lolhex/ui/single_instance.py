@@ -13,11 +13,16 @@ import sys
 
 WAIT_OBJECT_0, WAIT_ABANDONED = 0x0, 0x80
 _held: list = []  # 拿到的互斥量句柄：进程退出时由系统释放
+denied = False  # 已有的助手是以管理员身份运行的，这个进程没权限打开它的互斥量
+ERROR_ACCESS_DENIED = 5
 
 
 def acquire(name: str, wait_ms: int = 0) -> bool:
     """拿到名为 name 的互斥量返回 True（本进程就是唯一的助手）。等 wait_ms 毫秒还拿不到返回 False。
-    非 Windows 或系统调用失败时返回 True：判断不了就照常启动，不能让助手打不开。"""
+    非 Windows 或系统调用失败时返回 True：判断不了就照常启动，不能让助手打不开。
+    例外是「没有权限」：已有的助手是右键以管理员身份打开的，普通方式再打开就打不开它的互斥量。
+    以前这也当成判断不了，结果会开出第二个助手。现在算已经有人在跑（denied 记下来）。"""
+    global denied
     if sys.platform != "win32":
         return True
     k = ctypes.WinDLL("kernel32", use_last_error=True)
@@ -28,6 +33,9 @@ def acquire(name: str, wait_ms: int = 0) -> bool:
     if not _held:
         h = k.CreateMutexW(None, False, "Local\\" + name)
         if not h:
+            if ctypes.get_last_error() == ERROR_ACCESS_DENIED:
+                denied = True
+                return False
             return True
         _held.append(h)
     # 互斥量归拿到它的线程所有：在主线程调用，主线程一直活到进程结束
