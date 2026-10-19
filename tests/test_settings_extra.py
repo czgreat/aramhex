@@ -72,3 +72,15 @@ def test_hand_edited_config_common_mistakes(tmp_path):
     p.write_text('{"install_id": 123, "send_usage": "false"}', encoding="utf-8")
     s = Settings.load(p)
     assert len(s.install_id) == 16 and s.install_id != "123" and s.send_usage is False
+
+
+def test_broken_config_backups_kept_and_unknown_usage_off(tmp_path):
+    p = tmp_path / "config.json"
+    for bad in ("{坏了1", "{坏了2"):
+        p.write_text(bad, encoding="utf-8")
+        Settings.load(p)
+    kept = sorted(x.read_text(encoding="utf-8") for x in tmp_path.glob("config.json.broken*"))
+    assert kept == ["{坏了1", "{坏了2"]                      # 连续两次坏：两份备份都在
+    for v, want in (("null", False), ('"off"', False), ('"yes"', True), ("0", False)):
+        p.write_text('{"send_usage": %s}' % v, encoding="utf-8")
+        assert Settings.load(p).send_usage is want             # 认不出的值当关了

@@ -13,6 +13,7 @@ import os
 import re
 import secrets
 import sys
+import time
 from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 
@@ -137,7 +138,7 @@ class Settings:
         if not isinstance(s.install_id, str) or not re.fullmatch(r"[0-9a-f]{16}", s.install_id):
             s.install_id = ""  # 手改坏了：重新生成（不是字符串时请求头发不出去）
         if not isinstance(s.send_usage, bool):
-            s.send_usage = str(s.send_usage).strip().lower() not in ("false", "0", "no", "")
+            s.send_usage = str(s.send_usage).strip().lower() in ("true", "1", "yes", "on")  # 认不出就当关了
         if broken:
             # 实在读不懂：原文件留个备份，后面照常写新的；用户在里面关没关匿名统计看不出来，这次就当关了，
             # 能从原文里找到 "send_usage": true/false 就照它的
@@ -145,6 +146,8 @@ class Settings:
             s.send_usage = bool(m) and m.group(1) == b"true"
             s.seen_welcome = True  # 不是新装，别再弹欢迎框
             backup = path.with_name(path.name + ".broken")
+            if backup.exists():  # 以前也坏过：不覆盖上一次的备份
+                backup = path.with_name(f"{path.name}.broken-{time.strftime('%Y%m%d-%H%M%S')}")
             try:
                 path.replace(backup)
                 log.warning("坏的设置文件改名为 %s，这次用默认设置", backup.name)
