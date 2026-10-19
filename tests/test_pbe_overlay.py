@@ -66,7 +66,7 @@ def test_overlay_drops_augments_missing_from_pbe(tmp_path, monkeypatch):
 
 
 def test_overlay_drops_augments_disabled_in_game_data(tmp_path):
-    # 1373 按比例不到门槛，但游戏数据标了停用、测试服也没出现 → 删除；1029 也标了停用，但测试服还在出现 → 保留
+    # 以游戏数据为准：标了停用的都删（1373 按比例不到门槛；1029 测试服里还在出现，只打印出来核对）
     base = tmp_path / "base"
     make_dataset(base)
     raw = tmp_path / "raw"
@@ -81,5 +81,5 @@ def test_overlay_drops_augments_disabled_in_game_data(tmp_path):
     assert pbe_overlay.main(["--raw", str(raw), "--build", "16.21.828", "--out", str(out), "--base", str(base),
                              "--game-data", str(gd)]) == 0
     ds = Dataset(out, "bundled")
-    assert "1373" not in ds.table(None)[1]["17"] and "1029" in ds.table(None)[1]["17"]
+    assert "1373" not in ds.table(None)[1]["17"] and "1029" not in ds.table(None)[1]["17"]
     assert "停用" in ds.meta["removed_augments"]["1373"]["reason"]
