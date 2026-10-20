@@ -60,21 +60,15 @@ def test_badge_top_and_bottom(monkeypatch):
     assert max(bottom) <= 450 + 236
 
 
-def test_badge_back_on_top_when_description_long(monkeypatch):
-    rows = _badge_rows("bottom", monkeypatch, desc_to=640)  # 描述写到很下面：放不下，回到标题上方
-    assert rows and max(rows) < 430
+def test_bottom_stays_bottom_even_with_long_description(monkeypatch):
+    """选了下方就一直在下方：以前描述长（或卡片淡入时后面的画面透出来被当成描述）会整组跳回上方，玩家以为设置没生效。"""
+    rows = _badge_rows("bottom", monkeypatch, desc_to=660)
+    assert rows and min(rows) > 560
 
 
-def test_bottom_waits_for_second_measure(monkeypatch):
-    """下方模式两次都量完才画：先画了再挪到上方会跳一下（玩家实测看到先下后上）。"""
-    assert _badge_rows("bottom", monkeypatch, wait_ms=100) == []
-    assert _badge_rows("top", monkeypatch, wait_ms=0)            # 上方模式不等
-
-
-def test_bottom_room_counts_two_lines(monkeypatch):
-    """标签现在只有一行也按两行算：数据加载完多出一行时，不会从下方跳回上方。"""
-    rows = _badge_rows("bottom", monkeypatch, desc_to=620)  # 一行放得下、两行放不下
-    assert rows and max(rows) < 430
+def test_bottom_draws_at_once(monkeypatch):
+    """下方也不用等：不再截图量描述，三选一一出来就画。"""
+    assert _badge_rows("bottom", monkeypatch, wait_ms=0)
 
 
 def test_admin_instance_counts_as_running(monkeypatch):
@@ -104,17 +98,6 @@ def test_preview_widget_paints():
     assert not w.grab().isNull()
 
 
-def test_desc_end_ignores_sparkles():
-    import numpy as np
-
-    from lolhex.vision.cardspace import desc_end
-    frame = np.zeros((1080, 1920, 3), np.uint8)
-    frame[500:514, 800:900:3] = 200                  # 一行字：标题中心（450）往下 50–64
-    frame[520:530, 800:900:3] = 120                  # 灰色小字也算：往下 70–80
-    frame[640, 840:847:2] = 255                      # 卡片边上的小星星：一行、几个像素
-    frame[600:640, 760:940] = 90                     # 平滑的亮底色不算
-    assert desc_end(frame, (700, 430, 1000, 470)) == 79
-    assert desc_end(frame, None) is None
 
 
 def test_long_label_widens_box():
@@ -138,7 +121,7 @@ def test_long_label_widens_box():
 
 
 def test_reroll_keeps_bottom_badges(monkeypatch):
-    """放下方时刷新一张卡：另外两张（和刷新的这张）标签照常显示，后台重新量；以前三张会一起消失一两秒。"""
+    """放下方时刷新一张卡：三张标签一直在下方原位；以前三张会一起消失一两秒，量完还常跳回上方。"""
     import numpy as np
 
     from lolhex.ui import overlay
@@ -165,43 +148,11 @@ def test_reroll_keeps_bottom_badges(monkeypatch):
 
     layer.update_from(snap(["1", "2", None]), Rect(0, 0, 1920, 1080))
     app.processEvents()
-    _wait(800)
     before = green_rows()
     assert before and min(before) > 560
     for slots in (["1", None, None], ["1", "3", None]):  # 刷新中间那张：先读不出，再读出新的
         layer.update_from(snap(slots), Rect(0, 0, 1920, 1080))
         app.processEvents()
         assert green_rows() == before                 # 一直在原位，没有消失
-    layer.update_from({"settings": {"badge_position": "bottom"}}, Rect(0, 0, 1920, 1080))  # 这组选完了
-    layer.update_from(snap(["4", "5", None]), Rect(0, 0, 1920, 1080))  # 下一组：照旧量完才画
-    app.processEvents()
-    assert green_rows() == []
-
-
-def test_overlapping_measures_restore_capture_once(monkeypatch):
-    """开了「录屏、截图时显示浮窗」：刷新时前后两次量会重叠，等都量完才恢复可截图（不然后一次会截到自己的标签）。"""
-    import numpy as np
-
-    from lolhex.ui import overlay
-    from lolhex.vision import capture
-    app = _app()
-    calls = []
-    monkeypatch.setattr(overlay.win, "capture_allowed", lambda: True)
-    monkeypatch.setattr(overlay.win, "hide_from_capture", lambda h: calls.append("hide"))
-    monkeypatch.setattr(overlay.win, "restore_capture", lambda h: calls.append("restore"))
-    hidden = []
-
-    def grab(rect):
-        hidden.append(calls.count("hide") > calls.count("restore"))  # 截图这一刻标签是不是不会被截到
-        return np.zeros((1080, 1920, 3), np.uint8)
-    monkeypatch.setattr(capture, "grab", grab)
-    layer = overlay.BadgeLayer()
-    boxes = [[700, 430, 1000, 470], [1100, 430, 1400, 470], None]
-    ev = {"slots": [{"index": 0, "verdict": "best", "score": 2.0}]}
-    for slots in (["1", "2", None], ["1", "3", None]):
-        layer.update_from({"settings": {"badge_position": "bottom"}, "offer": {"slots": slots, "boxes": boxes},
-                           "evaluation": ev}, Rect(0, 0, 1920, 1080))
-        app.processEvents()
-    _wait(1200)
-    assert hidden and all(hidden)                    # 每次截图时都不会截到自己的标签
-    assert calls.count("hide") == calls.count("restore") and layer._hiding == 0  # 量完都恢复了
+    _wait(1500)
+    assert green_rows() == before                     # 过一会儿也不跳
