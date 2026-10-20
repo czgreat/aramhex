@@ -29,7 +29,7 @@ REROLL_BELOW = -0.5  # 低于英雄基准 0.5pp 以上：可考虑刷新
 REROLL_GAP = 2.0     # 比首选低 2pp 以上：可考虑刷新
 RELIABLE_GAMES = 1000  # 本英雄局数达到这个数才能当首选
 TOO_FEW_RATIO = 0.1    # 局数不到同屏最多那张的 1/10：样本太少，提示刷新
-NODATA_NOTE = "完成任务后会被替换，统计不准"
+NODATA_NOTE = "完成任务即被替换，无可靠数据"
 NEW_NOTE = "新海克斯，还没有数据"
 PBE_NOTE = "测试服数据，样本少"
 

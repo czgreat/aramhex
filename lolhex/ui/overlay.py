@@ -18,6 +18,7 @@ from PySide6.QtGui import QColor, QCursor, QFont, QFontMetrics, QGuiApplication,
 from PySide6.QtWidgets import (QApplication, QHBoxLayout, QLabel, QLineEdit, QPushButton,
                                QVBoxLayout, QWidget)
 
+from ..recommend import NODATA_NOTE
 from ..vision import window as win
 from .. import patch
 from . import buildview, single_instance
@@ -225,6 +226,8 @@ class BadgeLayer(_Layer):
             w = max(170.0, x1 - x0)
             cx = (x0 + x1) / 2
             label, color = VERDICT.get(r["verdict"], VERDICT["unknown"])
+            if r.get("basis") == "excluded":  # 尊我为王这类：写明原因，免得以为是助手没数据
+                label = NODATA_NOTE
             if r.get("thin") == "too_few":
                 label = "样本太少 · 建议刷新"
             lines = []
