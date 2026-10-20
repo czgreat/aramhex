@@ -379,7 +379,7 @@ class MainWindow(QMainWindow):
         outer.addLayout(f)
         self.set_win = QCheckBox("显示胜率数字")
         self.set_win.setChecked(s.show_winrate)
-        self.set_live = QCheckBox("对局中用游戏接口（认英雄更准）")
+        self.set_live = QCheckBox("对局中读取游戏接口（认英雄更准，会连接游戏客户端）")
         self.set_live.setChecked(s.use_liveclient)
         self.set_corner = QComboBox()
         self.set_corner.addItems(["右上角", "左上角"])
