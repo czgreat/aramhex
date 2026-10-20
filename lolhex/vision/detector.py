@@ -102,7 +102,8 @@ class AugmentDetector:
         self._last_fp: np.ndarray | None = None
         self._last_result: Offer | None = None
         # 这局花在认字上的次数和时间（秒），对局结束写进日志，玩家说卡的时候看
-        self.cost = {"strip": 0, "strip_s": 0.0, "full": 0, "full_s": 0.0}
+        # *_cpu 是本线程实际算了多久（单线程推理在调用线程上跑）；比 *_s（墙钟）小很多说明线程在排队等 CPU
+        self.cost = {"strip": 0, "strip_s": 0.0, "strip_cpu": 0.0, "full": 0, "full_s": 0.0, "full_cpu": 0.0}
         if calib_path and calib_path.exists():
             try:
                 d = json.loads(calib_path.read_text(encoding="utf-8"))
@@ -147,12 +148,13 @@ class AugmentDetector:
 
     def scan_full(self, frame: np.ndarray, origin: tuple[int, int] = (0, 0)) -> Offer | None:
         """frame 为整个游戏客户区。找到 ≥2 张卡返回 Offer；3 张齐全时顺便校准。"""
-        t0 = time.perf_counter()
+        t0, c0 = time.perf_counter(), time.thread_time()
         try:
             return self._scan_full(frame, origin)
         finally:
             self.cost["full"] += 1
             self.cost["full_s"] += time.perf_counter() - t0
+            self.cost["full_cpu"] += time.thread_time() - c0
 
     def _scan_full(self, frame: np.ndarray, origin: tuple[int, int]) -> Offer | None:
         H, W = frame.shape[:2]
@@ -245,12 +247,13 @@ class AugmentDetector:
         if not fp_changed(self._last_fp, fp):
             return self._last_result
         self._last_fp = fp
-        t0 = time.perf_counter()
+        t0, c0 = time.perf_counter(), time.thread_time()
         try:
             return self._read_strip(strip, win)
         finally:
             self.cost["strip"] += 1
             self.cost["strip_s"] += time.perf_counter() - t0
+            self.cost["strip_cpu"] += time.thread_time() - c0
 
     def _read_strip(self, strip: np.ndarray, win: Rect) -> Offer | None:
         pb = self.calibration.pixel_boxes(win.width, win.height)

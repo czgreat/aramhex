@@ -100,11 +100,22 @@ def test_ocr_uses_one_thread(monkeypatch):
     assert seen[1]["Rec.model_path"] == "k.onnx"
 
 
+def test_ocr_sessions_really_single_thread():
+    """上面只看传进去的参数；参数名写错时 RapidOCR 不报错、静默用默认（占满所有核），所以再看真实会话。"""
+    pytest.importorskip("rapidocr")
+    from lolhex.vision.ocr import OCR
+    eng = OCR()._engine
+    for part in (eng.text_det, eng.text_cls, eng.text_rec):
+        opts = part.session.session.get_session_options()
+        assert opts.intra_op_num_threads == 1 and opts.inter_op_num_threads == 1
+
+
 def test_vision_cost_logged_per_game(detector, caplog):
     from lolhex.engine import Engine
     from lolhex.vision.window import Rect
     size = (1920, 1080)
     detector.calibration = None
+    detector._last_fp = None                          # 不受前面测试留下的画面指纹影响
     detector.cost = dict.fromkeys(detector.cost, 0)
     detector.scan_full(synth.render_offer(["炽燃利息", "虚幻武器", "泰坦的坚决"], size))
     win = Rect(0, 0, *size)
@@ -115,5 +126,5 @@ def test_vision_cost_logged_per_game(detector, caplog):
     assert detector.cost["full"] == 1 and detector.cost["strip"] == 1
     with caplog.at_level("INFO"):
         Engine._log_vision_cost(detector)
-    assert "标题条 1 次" in caplog.text and "整块扫描 1 次" in caplog.text
+    assert "标题条 1 次" in caplog.text and "整块扫描 1 次" in caplog.text and "CPU" in caplog.text
     assert detector.cost["strip"] == 0 and detector.cost["full"] == 0

@@ -476,6 +476,11 @@ class Engine:
         from .vision.detector import AugmentDetector
 
         win.lower_thread_priority()  # 认字和游戏抢 CPU 时让游戏先
+        try:
+            import cv2
+            cv2.setNumThreads(1)  # OpenCV 缩图也默认开满核的线程池
+        except Exception:
+            pass
         last_full = last_strip = 0.0
         visible = False
         misses = 0  # 刷新动画会短暂缺卡，连续 3 次识别不到才算关闭
@@ -549,8 +554,11 @@ class Engine:
     def _log_vision_cost(det) -> None:
         c = det.cost
         if c["strip"] or c["full"]:
-            log.info("这局认字：标题条 %d 次（平均 %.0f 毫秒），整块扫描 %d 次（平均 %.0f 毫秒）",
-                     c["strip"], c["strip_s"] * 1000 / max(1, c["strip"]), c["full"], c["full_s"] * 1000 / max(1, c["full"]))
+            def avg(k, n):
+                return c[k] * 1000 / max(1, c[n])
+            log.info("这局认字：标题条 %d 次（平均 %.0f 毫秒，CPU %.0f），整块扫描 %d 次（平均 %.0f 毫秒，CPU %.0f）",
+                     c["strip"], avg("strip_s", "strip"), avg("strip_cpu", "strip"),
+                     c["full"], avg("full_s", "full"), avg("full_cpu", "full"))
         det.cost = dict.fromkeys(c, 0)
 
     SHOTS_KEEP = 3
