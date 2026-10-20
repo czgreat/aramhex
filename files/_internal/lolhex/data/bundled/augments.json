@@ -1,0 +1,842 @@
+{
+ "1001": {
+  "name": "泰坦的坚决",
+  "rarity": "prismatic"
+ },
+ "1002": {
+  "name": "尖端发明家",
+  "rarity": "gold"
+ },
+ "1004": {
+  "name": "回归基本功",
+  "rarity": "prismatic"
+ },
+ "1005": {
+  "name": "喂呜喂呜",
+  "rarity": "gold"
+ },
+ "1006": {
+  "name": "利刃华尔兹",
+  "rarity": "prismatic"
+ },
+ "1007": {
+  "name": "大力",
+  "rarity": "silver"
+ },
+ "1011": {
+  "name": "你摸不到",
+  "rarity": "prismatic"
+ },
+ "1013": {
+  "name": "星界躯体",
+  "rarity": "gold"
+ },
+ "1015": {
+  "name": "死亡之环",
+  "rarity": "prismatic"
+ },
+ "1018": {
+  "name": "巨像的勇气",
+  "rarity": "prismatic"
+ },
+ "1019": {
+  "name": "全凭身法",
+  "rarity": "prismatic"
+ },
+ "1020": {
+  "name": "黎明使者的坚决",
+  "rarity": "gold"
+ },
+ "1022": {
+  "name": "灵巧",
+  "rarity": "silver"
+ },
+ "1025": {
+  "name": "俯冲轰炸",
+  "rarity": "silver"
+ },
+ "1026": {
+  "name": "唯快不破",
+  "rarity": "silver"
+ },
+ "1027": {
+  "name": "大地苏醒",
+  "rarity": "prismatic"
+ },
+ "1028": {
+  "name": "侵蚀",
+  "rarity": "silver"
+ },
+ "1029": {
+  "name": "虚幻武器",
+  "rarity": "gold"
+ },
+ "1030": {
+  "name": "尤里卡",
+  "rarity": "prismatic"
+ },
+ "1034": {
+  "name": "防护面纱",
+  "rarity": "silver"
+ },
+ "1036": {
+  "name": "火上浇油",
+  "rarity": "gold"
+ },
+ "1037": {
+  "name": "急救用具",
+  "rarity": "silver"
+ },
+ "1038": {
+  "name": "有始有终",
+  "rarity": "gold"
+ },
+ "1041": {
+  "name": "歌利亚巨人",
+  "rarity": "prismatic"
+ },
+ "1044": {
+  "name": "冰寒",
+  "rarity": "silver"
+ },
+ "1045": {
+  "name": "炼狱导管",
+  "rarity": "prismatic"
+ },
+ "1046": {
+  "name": "炼狱龙魂",
+  "rarity": "silver"
+ },
+ "1047": {
+  "name": "关键暴击",
+  "rarity": "gold"
+ },
+ "1048": {
+  "name": "珠光护手",
+  "rarity": "prismatic"
+ },
+ "1051": {
+  "name": "点亮他们！",
+  "rarity": "silver"
+ },
+ "1053": {
+  "name": "科学狂人",
+  "rarity": "prismatic"
+ },
+ "1054": {
+  "name": "物法皆修",
+  "rarity": "prismatic"
+ },
+ "1056": {
+  "name": "由心及物",
+  "rarity": "silver"
+ },
+ "1057": {
+  "name": "山脉龙魂",
+  "rarity": "silver"
+ },
+ "1058": {
+  "name": "秘术冲拳",
+  "rarity": "prismatic"
+ },
+ "1060": {
+  "name": "海洋龙魂",
+  "rarity": "silver"
+ },
+ "1061": {
+  "name": "回力OK镖",
+  "rarity": "gold"
+ },
+ "1062": {
+  "name": "全能龙魂",
+  "rarity": "prismatic"
+ },
+ "1063": {
+  "name": "狂徒豪气",
+  "rarity": "gold"
+ },
+ "1067": {
+  "name": "活力焕发",
+  "rarity": "gold"
+ },
+ "1068": {
+  "name": "循环往复",
+  "rarity": "gold"
+ },
+ "1071": {
+  "name": "更万用的瞄准镜",
+  "rarity": "gold"
+ },
+ "1072": {
+  "name": "炽烈黎明",
+  "rarity": "gold"
+ },
+ "1073": {
+  "name": "暗影疾奔",
+  "rarity": "silver"
+ },
+ "1074": {
+  "name": "缩小射线",
+  "rarity": "gold"
+ },
+ "1076": {
+  "name": "天音爆",
+  "rarity": "silver"
+ },
+ "1077": {
+  "name": "灵魂虹吸",
+  "rarity": "gold"
+ },
+ "1079": {
+  "name": "战争交响乐",
+  "rarity": "prismatic"
+ },
+ "1080": {
+  "name": "会心防御",
+  "rarity": "silver"
+ },
+ "1081": {
+  "name": "踢踏舞",
+  "rarity": "prismatic"
+ },
+ "1084": {
+  "name": "穿针引线",
+  "rarity": "gold"
+ },
+ "1087": {
+  "name": "台风",
+  "rarity": "silver"
+ },
+ "1088": {
+  "name": "终极刷新",
+  "rarity": "prismatic"
+ },
+ "1092": {
+  "name": "易损",
+  "rarity": "gold"
+ },
+ "1095": {
+  "name": "风语者的祝福",
+  "rarity": "prismatic"
+ },
+ "1097": {
+  "name": "巫师式思考",
+  "rarity": "silver"
+ },
+ "1098": {
+  "name": "急急小子",
+  "rarity": "gold"
+ },
+ "1103": {
+  "name": "面包和黄油",
+  "rarity": "gold"
+ },
+ "1104": {
+  "name": "仆从大师",
+  "rarity": "gold"
+ },
+ "1105": {
+  "name": "家园卫士",
+  "rarity": "silver"
+ },
+ "1112": {
+  "name": "终极不可阻挡",
+  "rarity": "silver"
+ },
+ "1113": {
+  "name": "老练狙神",
+  "rarity": "gold"
+ },
+ "1115": {
+  "name": "最万用的瞄准镜",
+  "rarity": "prismatic"
+ },
+ "1116": {
+  "name": "闪现向前",
+  "rarity": "gold"
+ },
+ "1118": {
+  "name": "会心治疗",
+  "rarity": "gold"
+ },
+ "1129": {
+  "name": "神射法师",
+  "rarity": "gold"
+ },
+ "1133": {
+  "name": "魔法飞弹",
+  "rarity": "gold"
+ },
+ "1134": {
+  "name": "亮出你的剑",
+  "rarity": "prismatic"
+ },
+ "1136": {
+  "name": "扇巴掌",
+  "rarity": "silver"
+ },
+ "1138": {
+  "name": "渴血",
+  "rarity": "silver"
+ },
+ "1141": {
+  "name": "全心为你",
+  "rarity": "gold"
+ },
+ "1149": {
+  "name": "不动如山",
+  "rarity": "gold"
+ },
+ "1150": {
+  "name": "面包和果酱",
+  "rarity": "gold"
+ },
+ "1151": {
+  "name": "面包和奶酪",
+  "rarity": "gold"
+ },
+ "1152": {
+  "name": "钢化你心",
+  "rarity": "gold"
+ },
+ "1154": {
+  "name": "海牛阿福的勇士",
+  "rarity": "prismatic"
+ },
+ "1156": {
+  "name": "沃格勒特的巫师帽",
+  "rarity": "prismatic"
+ },
+ "1170": {
+  "name": "万用瞄准镜",
+  "rarity": "silver"
+ },
+ "1180": {
+  "name": "超强大脑",
+  "rarity": "gold"
+ },
+ "1181": {
+  "name": "重量级打击手",
+  "rarity": "silver"
+ },
+ "1187": {
+  "name": "闪光弹",
+  "rarity": "silver"
+ },
+ "1194": {
+  "name": "精怪魔法",
+  "rarity": "prismatic"
+ },
+ "1195": {
+  "name": "巨人杀手",
+  "rarity": "prismatic"
+ },
+ "1204": {
+  "name": "叠角龙",
+  "rarity": "silver"
+ },
+ "1205": {
+  "name": "物理转魔法",
+  "rarity": "silver"
+ },
+ "1206": {
+  "name": "魔法转物理",
+  "rarity": "silver"
+ },
+ "1211": {
+  "name": "杀戮时间到了",
+  "rarity": "gold"
+ },
+ "1214": {
+  "name": "旋转至胜",
+  "rarity": "silver"
+ },
+ "1220": {
+  "name": "连拨击锤",
+  "rarity": "prismatic"
+ },
+ "1225": {
+  "name": "双刀流",
+  "rarity": "prismatic"
+ },
+ "12317": {
+  "name": "潘朵拉的盒子",
+  "rarity": "prismatic"
+ },
+ "1237": {
+  "name": "质变：黄金阶",
+  "rarity": "silver"
+ },
+ "1238": {
+  "name": "质变：棱彩阶",
+  "rarity": "gold"
+ },
+ "1243": {
+  "name": "质变：混沌",
+  "rarity": "prismatic"
+ },
+ "1301": {
+  "name": "神圣干预",
+  "rarity": "gold"
+ },
+ "1305": {
+  "name": "练腿日",
+  "rarity": "silver"
+ },
+ "1308": {
+  "name": "火狐",
+  "rarity": "silver"
+ },
+ "1310": {
+  "name": "小丑学院",
+  "rarity": "prismatic"
+ },
+ "1311": {
+  "name": "溢流",
+  "rarity": "gold"
+ },
+ "1314": {
+  "name": "强力护盾",
+  "rarity": "silver"
+ },
+ "1315": {
+  "name": "快中求稳",
+  "rarity": "silver"
+ },
+ "1318": {
+  "name": "升级：中娅",
+  "rarity": "silver"
+ },
+ "1319": {
+  "name": "升级：献祭",
+  "rarity": "silver"
+ },
+ "1320": {
+  "name": "升级：收集者",
+  "rarity": "silver"
+ },
+ "1322": {
+  "name": "罪恶快感",
+  "rarity": "gold"
+ },
+ "1323": {
+  "name": "残忍",
+  "rarity": "prismatic"
+ },
+ "1324": {
+  "name": "蛋白粉奶昔",
+  "rarity": "prismatic"
+ },
+ "1325": {
+  "name": "玻璃大炮",
+  "rarity": "prismatic"
+ },
+ "1326": {
+  "name": "夜狩",
+  "rarity": "gold"
+ },
+ "1328": {
+  "name": "暴击律动",
+  "rarity": "gold"
+ },
+ "1329": {
+  "name": "史上最大雪球",
+  "rarity": "prismatic"
+ },
+ "1331": {
+  "name": "至高天诺言",
+  "rarity": "prismatic"
+ },
+ "1332": {
+  "name": "不祥契约",
+  "rarity": "prismatic"
+ },
+ "1333": {
+  "name": "逃跑计划",
+  "rarity": "silver"
+ },
+ "1335": {
+  "name": "夺金",
+  "rarity": "prismatic"
+ },
+ "1336": {
+  "name": "升级：无尽之刃",
+  "rarity": "gold"
+ },
+ "1344": {
+  "name": "最终形态",
+  "rarity": "prismatic"
+ },
+ "1345": {
+  "name": "心灵净化",
+  "rarity": "gold"
+ },
+ "1347": {
+  "name": "吵闹鬼",
+  "rarity": "silver"
+ },
+ "1348": {
+  "name": "闪闪现现",
+  "rarity": "silver"
+ },
+ "1349": {
+  "name": "终极唤醒",
+  "rarity": "prismatic"
+ },
+ "1353": {
+  "name": "坦克引擎",
+  "rarity": "gold"
+ },
+ "1356": {
+  "name": "暴击飞弹",
+  "rarity": "gold"
+ },
+ "1358": {
+  "name": "弹球",
+  "rarity": "gold"
+ },
+ "1361": {
+  "name": "艾卡西亚的陷落",
+  "rarity": "prismatic"
+ },
+ "1373": {
+  "name": "缩小引擎",
+  "rarity": "gold"
+ },
+ "1375": {
+  "name": "吞噬灵魂",
+  "rarity": "gold"
+ },
+ "1379": {
+  "name": "升级：花晓之剑",
+  "rarity": "prismatic"
+ },
+ "1384": {
+  "name": "捐赠",
+  "rarity": "gold"
+ },
+ "1386": {
+  "name": "转得我眩晕了",
+  "rarity": "silver"
+ },
+ "1388": {
+  "name": "无限循环往复",
+  "rarity": "prismatic"
+ },
+ "1389": {
+  "name": "男爵之手",
+  "rarity": "prismatic"
+ },
+ "1390": {
+  "name": "超凡邪恶",
+  "rarity": "gold"
+ },
+ "1392": {
+  "name": "神圣雪球",
+  "rarity": "prismatic"
+ },
+ "1401": {
+  "name": "生机迸发",
+  "rarity": "gold"
+ },
+ "1402": {
+  "name": "属性叠属性叠属性！",
+  "rarity": "prismatic"
+ },
+ "1403": {
+  "name": "属性叠属性！",
+  "rarity": "gold"
+ },
+ "1404": {
+  "name": "属性！",
+  "rarity": "silver"
+ },
+ "1413": {
+  "name": "和我一起困在这里",
+  "rarity": "prismatic"
+ },
+ "1415": {
+  "name": "双生火焰",
+  "rarity": "silver"
+ },
+ "1416": {
+  "name": "海克斯科技龙魂",
+  "rarity": "silver"
+ },
+ "1420": {
+  "name": "咏叹奏鸣",
+  "rarity": "gold"
+ },
+ "1421": {
+  "name": "舞会女王",
+  "rarity": "prismatic"
+ },
+ "1996": {
+  "name": "升级：耀光",
+  "rarity": "gold"
+ },
+ "2004": {
+  "name": "信念者的强化",
+  "rarity": "prismatic"
+ },
+ "2005": {
+  "name": "扳机炼狱",
+  "rarity": "prismatic"
+ },
+ "2006": {
+  "name": "飞身踢",
+  "rarity": "prismatic"
+ },
+ "2009": {
+  "name": "狂热者",
+  "rarity": "silver"
+ },
+ "2010": {
+  "name": "双发快射",
+  "rarity": "prismatic"
+ },
+ "2016": {
+  "name": "注魔",
+  "rarity": "silver"
+ },
+ "2018": {
+  "name": "纯粹主义者 - 术师",
+  "rarity": "silver"
+ },
+ "2024": {
+  "name": "由暴生急",
+  "rarity": "silver"
+ },
+ "2026": {
+  "name": "杀意翻涌",
+  "rarity": "silver"
+ },
+ "2031": {
+  "name": "空投熊",
+  "rarity": "prismatic"
+ },
+ "2032": {
+  "name": "鲨鱼诱饵",
+  "rarity": "gold"
+ },
+ "2034": {
+  "name": "鲨鱼暴风",
+  "rarity": "gold"
+ },
+ "2042": {
+  "name": "藏身草丛",
+  "rarity": "gold"
+ },
+ "2043": {
+  "name": "自然即是治愈",
+  "rarity": "gold"
+ },
+ "2046": {
+  "name": "魄罗蛮冲",
+  "rarity": "prismatic"
+ },
+ "2054": {
+  "name": "三重射击",
+  "rarity": "prismatic"
+ },
+ "2055": {
+  "name": "多重射击",
+  "rarity": "prismatic"
+ },
+ "2062": {
+  "name": "回响施放",
+  "rarity": "prismatic"
+ },
+ "2063": {
+  "name": "位面转移",
+  "rarity": "prismatic"
+ },
+ "2064": {
+  "name": "快步",
+  "rarity": "gold"
+ },
+ "2065": {
+  "name": "惊惧",
+  "rarity": "gold"
+ },
+ "2072": {
+  "name": "咒语裂变",
+  "rarity": "prismatic"
+ },
+ "2073": {
+  "name": "虹吸",
+  "rarity": "silver"
+ },
+ "2076": {
+  "name": "保持坚定",
+  "rarity": "silver"
+ },
+ "2077": {
+  "name": "贪欲束缚",
+  "rarity": "gold"
+ },
+ "2078": {
+  "name": "连锁反应",
+  "rarity": "prismatic"
+ },
+ "2080": {
+  "name": "冰雪爆裂",
+  "rarity": "gold"
+ },
+ "2082": {
+  "name": "我们的治疗",
+  "rarity": "gold"
+ },
+ "2083": {
+  "name": "牙仙子",
+  "rarity": "gold"
+ },
+ "2087": {
+  "name": "大法师",
+  "rarity": "prismatic"
+ },
+ "2088": {
+  "name": "下雪天",
+  "rarity": "silver"
+ },
+ "2089": {
+  "name": "哎哟，我的硬币！",
+  "rarity": "gold"
+ },
+ "2091": {
+  "name": "无尽大杀四方",
+  "rarity": "gold"
+ },
+ "2095": {
+  "name": "掷骰狂人",
+  "rarity": "prismatic"
+ },
+ "2096": {
+  "name": "小小的额外帮助",
+  "rarity": "gold"
+ },
+ "2098": {
+  "name": "吃过路兵",
+  "rarity": "prismatic"
+ },
+ "2099": {
+  "name": "飞升仪式",
+  "rarity": "prismatic"
+ },
+ "2100": {
+  "name": "急速之追求",
+  "rarity": "gold"
+ },
+ "2102": {
+  "name": "高压锅",
+  "rarity": "gold"
+ },
+ "2103": {
+  "name": "狙神飞星",
+  "rarity": "gold"
+ },
+ "2104": {
+  "name": "灵魄炸弹",
+  "rarity": "prismatic"
+ },
+ "2107": {
+  "name": "濒死悟道",
+  "rarity": "prismatic"
+ },
+ "2111": {
+  "name": "邦！",
+  "rarity": "gold"
+ },
+ "2115": {
+  "name": "软弹啪叽抓",
+  "rarity": "prismatic"
+ },
+ "2116": {
+  "name": "威能之追求",
+  "rarity": "gold"
+ },
+ "2118": {
+  "name": "大招工具人",
+  "rarity": "prismatic"
+ },
+ "2119": {
+  "name": "过量延伸者",
+  "rarity": "gold"
+ },
+ "2123": {
+  "name": "超负荷",
+  "rarity": "prismatic"
+ },
+ "2125": {
+  "name": "前进时间到",
+  "rarity": "silver"
+ },
+ "2127": {
+  "name": "大师铸就",
+  "rarity": "silver"
+ },
+ "2128": {
+  "name": "炽燃利息",
+  "rarity": "gold"
+ },
+ "2129": {
+  "name": "地形专家",
+  "rarity": "gold"
+ },
+ "2131": {
+  "name": "别停止引导",
+  "rarity": "silver"
+ },
+ "2132": {
+  "name": "术士果汁盒",
+  "rarity": "gold"
+ },
+ "2133": {
+  "name": "仁慈打击",
+  "rarity": "gold"
+ },
+ "2134": {
+  "name": "电涌力场",
+  "rarity": "prismatic"
+ },
+ "2135": {
+  "name": "针插垫",
+  "rarity": "prismatic"
+ },
+ "2136": {
+  "name": "可靠武器",
+  "rarity": "silver"
+ },
+ "2137": {
+  "name": "轻拍背部",
+  "rarity": "gold"
+ },
+ "2138": {
+  "name": "自适应防护",
+  "rarity": "silver"
+ },
+ "2139": {
+  "name": "豪猪",
+  "rarity": "gold"
+ },
+ "2140": {
+  "name": "升级：贪欲九头蛇",
+  "rarity": "gold"
+ },
+ "2141": {
+  "name": "终极九头蛇",
+  "rarity": "prismatic"
+ },
+ "2143": {
+  "name": "升级：焚天",
+  "rarity": "gold"
+ },
+ "2144": {
+  "name": "加固护盾",
+  "rarity": "silver"
+ },
+ "2157": {
+  "name": "升级：死亡之舞",
+  "rarity": "silver"
+ }
+}

@@ -1,0 +1,107 @@
+{
+ "augment_exposure": "对局结束时持有；同一玩家六个槽位去重，任意槽位持有即计入",
+ "bands": {
+  "bands": {
+   "casual": {
+    "hero_participations": 205472690,
+    "hint": "区内多数玩家（约 64%）",
+    "label": "娱乐",
+    "max_score_exclusive": 1600,
+    "min_score": 0
+   },
+   "high": {
+    "hero_participations": 24493306,
+    "hint": "区内排名前 0.6–5%",
+    "label": "高分",
+    "max_score_exclusive": 3000,
+    "min_score": 2400
+   },
+   "mid": {
+    "hero_participations": 141114177,
+    "hint": "区内排名前 5–36%",
+    "label": "中分",
+    "max_score_exclusive": 2400,
+    "min_score": 1600
+   },
+   "top": {
+    "hero_participations": 3298467,
+    "hint": "区内排名前 0.6%",
+    "label": "顶尖",
+    "max_score_exclusive": null,
+    "min_score": 3000
+   }
+  },
+  "note": "分段按玩家在所在区的「同局关系显示分」划分（根据同局胜负关系推算，各区分别计算），不是官方段位。娱乐：区内多数玩家（约 64%）；中分：前 5–36%；高分：前 0.6–5%；顶尖：前 0.6%。",
+  "score_as_of": "2026-10-17T19:55:27+08:00"
+ },
+ "excluded_augments": {
+  "1337": {
+   "name": "尊我为王",
+   "reason": "尊我为王：16.20 起任务完成即被替换为新海克斯，局末仍持有者都是没完成任务的人，胜率系统性偏低，不代表海克斯本身"
+  }
+ },
+ "files": {
+  "augments.json": "36ee16f363c9d25d9590fa8f78b3fe960289903c130eb6654a08faea0ed17f78",
+  "bands/casual/hero_augments.csv": "0137521e663d3cdd428c2ce4f3831c343203076fe187284b71654b53406c48b4",
+  "bands/casual/hero_augments.json": "9ab754e98e5fbc2128e10a407424c57a8fdf1989e070d2abe9f65e7fe09665af",
+  "bands/casual/heroes.csv": "a91ec21ec343be725b83bc03729ba5413783b86dc03c7cd86975b07d33fb6a7a",
+  "bands/casual/heroes.json": "1a8047e3e5c900980de1e295ac75d79a6cce83d5a5de487a85388d29255b673a",
+  "bands/high/hero_augments.csv": "943b75baad5a38240ba328a060c61191e18d9585659c9f6e4459104af658d84c",
+  "bands/high/hero_augments.json": "c01aa5817d631b8b7855a6a56e7403474442bce161aa9441a062101a0ffbe81c",
+  "bands/high/heroes.csv": "85aa378ef412117392ca7e9ff93fdd874d11fb600f25e270849025e74f83d7f0",
+  "bands/high/heroes.json": "aa36a736c4af6b0b4d48a6c61446e9e88e6d7587c8680bd73191c34892625baf",
+  "bands/mid/hero_augments.csv": "f6432b13af9f21e46e507a9fa5fcc2d56f554ea82060bebaf9a9febf358055a2",
+  "bands/mid/hero_augments.json": "1e0b2e873e39596443d442aba74f7a374e27fc4ae9ce885c7509452feabc4d9e",
+  "bands/mid/heroes.csv": "41404bfeff8923ad7d14aae7124c1ce441a73e25ba52068b4f0aa98aa024a8c4",
+  "bands/mid/heroes.json": "1710683c1a3540053d266126d7f4e4f107b0db6621c6a74f468635a1a4a6a99a",
+  "bands/top/hero_augments.csv": "20808e47dbf2fb439a2343ac969e697d58b7221d46b808440920636bfa66e469",
+  "bands/top/hero_augments.json": "e845ad94d0eaf36d85f29ae520322d40f2d9f5960be42c7e507fd778b1f32a42",
+  "bands/top/heroes.csv": "54a472621e73ace8a732a3459e2aff1dcb48f243c0160bc64b4ed0285ce96bfe",
+  "bands/top/heroes.json": "be6a1e38ca3c5e5014bd67d06e24300f3c1f16ca3651364dbae9d514bc54be4d",
+  "hero_augments.csv": "fa85ea9062f5fe45baa50186a91d1b2396969a812f57c1f7b7e897a69409adad",
+  "hero_augments.json": "6753bf6d85c31e8fb2229fa4bac4906b79c0f9a004d8ed6e27491a81003bf4e3",
+  "heroes.csv": "8d7e8d64f9e099c0711c0bed64f59366c3a97bea6238ab68e0cda0ba8102055e",
+  "heroes.json": "da1aecd0bdf1f0bde21f2b24147833187b4021bd122b6303ee58a08025643320"
+ },
+ "hero_participations": 369929620,
+ "heroes": 173,
+ "label": "16.20 版本 · 常规",
+ "license": "CC BY-NC 4.0",
+ "limitations": [
+  "只统计我们采集到的对局，不是全服数据。",
+  "只计有效对局：对局时长不少于 4 分钟（240 秒）、10 名玩家齐全且正好 5 胜 5 负、正常结束（GameComplete）；重开、提前解散、数据不全的对局不计。",
+  "海克斯按对局结束时持有的计算：同一玩家的六个海克斯槽位去重，任意槽位持有即计入。",
+  "持有某个海克斯和赢下对局是相关关系，不代表拿了它就会赢。",
+  "各大区的样本直接合在一起计算，没有按区加权；每份数据覆盖哪些区见 regions。",
+  "样本少的组合（low_sample 为 true，或局数很少）胜率波动大，请谨慎参考。"
+ ],
+ "matches": {
+  "collected": 38581953,
+  "excluded": 1588991,
+  "valid": 36992962,
+  "validity_rule": "对局时长不少于 4 分钟（240 秒）、10 名玩家齐全且正好 5 胜 5 负、正常结束（GameComplete）；重开、提前解散、数据不全的对局不计"
+ },
+ "mode": "normal",
+ "mode_label": "常规",
+ "mode_rule": "常规规则。",
+ "notes": [],
+ "patch": "16.20",
+ "regions": [
+  "联盟二区",
+  "艾欧尼亚",
+  "联盟一区",
+  "联盟三区",
+  "联盟四区",
+  "黑色玫瑰",
+  "联盟五区"
+ ],
+ "regions_combined": true,
+ "schema_version": 1,
+ "snapshot_at": "2026-10-17T18:51:45+08:00",
+ "window": {
+  "end_exclusive": "2026-10-17T17:00:00+08:00",
+  "periods": null,
+  "start": "2026-10-09T08:14:00+08:00",
+  "time_field": "对局创建时间（北京时间）"
+ }
+}
