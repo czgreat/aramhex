@@ -4,10 +4,10 @@
 ≥2 个能匹配到海克斯字典的文字，且它们在同一水平线上、左右排开。
 
 负载控制分三级：
-1. 未校准：每 bootstrap_interval 秒截取画面中部，缩小后做一次"检测+识别"（约 0.3–0.5s）。
+1. 未校准：每 bootstrap_interval 秒截取画面中部，缩小后做一次"检测+识别"（单线程约 1 秒）。
    一旦完整识别到三张，就记住三个标题的位置（按窗口比例保存，换分辨率自动失效）。
 2. 已校准：每 scan_interval 只截三个标题所在的一条窄带；先算缩略图指纹，
-   和上次一样就直接复用结果（几乎零开销）；变了才对三个小块做"仅识别"（每块约 10–20ms）。
+   和上次一样就直接复用结果（几乎零开销）；变了才对三个小块做"仅识别"（每块约 20ms）。
 3. 已校准但识别不到：说明没在选海克斯，保持第 2 级的轻量检查。
 """
 
@@ -101,6 +101,8 @@ class AugmentDetector:
         self.calibration: Calibration | None = None
         self._last_fp: np.ndarray | None = None
         self._last_result: Offer | None = None
+        # 这局花在认字上的次数和时间（秒），对局结束写进日志，玩家说卡的时候看
+        self.cost = {"strip": 0, "strip_s": 0.0, "full": 0, "full_s": 0.0}
         if calib_path and calib_path.exists():
             try:
                 d = json.loads(calib_path.read_text(encoding="utf-8"))
@@ -145,6 +147,14 @@ class AugmentDetector:
 
     def scan_full(self, frame: np.ndarray, origin: tuple[int, int] = (0, 0)) -> Offer | None:
         """frame 为整个游戏客户区。找到 ≥2 张卡返回 Offer；3 张齐全时顺便校准。"""
+        t0 = time.perf_counter()
+        try:
+            return self._scan_full(frame, origin)
+        finally:
+            self.cost["full"] += 1
+            self.cost["full_s"] += time.perf_counter() - t0
+
+    def _scan_full(self, frame: np.ndarray, origin: tuple[int, int]) -> Offer | None:
         H, W = frame.shape[:2]
         x0, y0, x1, y1 = int(BAND[0] * W), int(BAND[1] * H), int(BAND[2] * W), int(BAND[3] * H)
         band = frame[y0:y1, x0:x1]
@@ -235,6 +245,14 @@ class AugmentDetector:
         if not fp_changed(self._last_fp, fp):
             return self._last_result
         self._last_fp = fp
+        t0 = time.perf_counter()
+        try:
+            return self._read_strip(strip, win)
+        finally:
+            self.cost["strip"] += 1
+            self.cost["strip_s"] += time.perf_counter() - t0
+
+    def _read_strip(self, strip: np.ndarray, win: Rect) -> Offer | None:
         pb = self.calibration.pixel_boxes(win.width, win.height)
         sx, sy = min(b[0] for b in pb), min(b[1] for b in pb)
         slots: list[str | None] = []

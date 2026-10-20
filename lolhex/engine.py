@@ -475,6 +475,7 @@ class Engine:
         from .vision import capture
         from .vision.detector import AugmentDetector
 
+        win.lower_thread_priority()  # 认字和游戏抢 CPU 时让游戏先
         last_full = last_strip = 0.0
         visible = False
         misses = 0  # 刷新动画会短暂缺卡，连续 3 次识别不到才算关闭
@@ -486,6 +487,8 @@ class Engine:
                 if visible:
                     self._on_offer(None)
                     visible = False
+                if self._detector is not None:
+                    self._log_vision_cost(self._detector)
                 self.state["vision"]["status"] = "idle"
                 self._rescan.wait(1.0)
                 self._rescan.clear()
@@ -541,6 +544,14 @@ class Engine:
                         self._on_offer(None)
                         visible = False
             self._stop.wait(0.1)
+
+    @staticmethod
+    def _log_vision_cost(det) -> None:
+        c = det.cost
+        if c["strip"] or c["full"]:
+            log.info("这局认字：标题条 %d 次（平均 %.0f 毫秒），整块扫描 %d 次（平均 %.0f 毫秒）",
+                     c["strip"], c["strip_s"] * 1000 / max(1, c["strip"]), c["full"], c["full_s"] * 1000 / max(1, c["full"]))
+        det.cost = dict.fromkeys(c, 0)
 
     SHOTS_KEEP = 3
 

@@ -84,3 +84,36 @@ def test_default_calibration_reads_first_offer(tmp_path, size):
     assert names(offer) == ["质变：棱彩阶", "炽燃利息", "虚幻武器"]
     assert det.confirmed_for(*size)
     assert AugmentDetector(NameMatcher(NAMES), tmp_path / "calibration.json").confirmed_for(*size)
+
+
+def test_ocr_uses_one_thread(monkeypatch):
+    """认字引擎只用一个线程：默认会占满所有核，对局中和游戏抢 CPU（玩家反馈掉帧、卡顿）。"""
+    import rapidocr
+    from lolhex.vision.ocr import OCR
+    seen = []
+    monkeypatch.setattr(rapidocr, "RapidOCR", lambda params=None: seen.append(params))
+    OCR()
+    OCR(rec_model="k.onnx")
+    for p in seen:
+        assert p["EngineConfig.onnxruntime.intra_op_num_threads"] == 1
+        assert p["EngineConfig.onnxruntime.inter_op_num_threads"] == 1
+    assert seen[1]["Rec.model_path"] == "k.onnx"
+
+
+def test_vision_cost_logged_per_game(detector, caplog):
+    from lolhex.engine import Engine
+    from lolhex.vision.window import Rect
+    size = (1920, 1080)
+    detector.calibration = None
+    detector.cost = dict.fromkeys(detector.cost, 0)
+    detector.scan_full(synth.render_offer(["炽燃利息", "虚幻武器", "泰坦的坚决"], size))
+    win = Rect(0, 0, *size)
+    sr = detector.strip_rect(win)
+    strip = synth.render_offer(["炽燃利息", "虚幻武器", "泰坦的坚决"], size, seed=5)[sr.top:sr.bottom, sr.left:sr.right]
+    detector.check_strip(strip, win)
+    detector.check_strip(strip, win)                 # 画面没变：不再认字，不算次数
+    assert detector.cost["full"] == 1 and detector.cost["strip"] == 1
+    with caplog.at_level("INFO"):
+        Engine._log_vision_cost(detector)
+    assert "标题条 1 次" in caplog.text and "整块扫描 1 次" in caplog.text
+    assert detector.cost["strip"] == 0 and detector.cost["full"] == 0

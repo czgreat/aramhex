@@ -80,7 +80,7 @@ class Settings:
     check_data_updates: bool = True
     # 已校准时，检查三张卡标题区域的间隔（毫秒）。
     scan_interval_ms: int = 300
-    # 未校准时，整块中部区域检测+识别的间隔（秒）。单次约 0.3–0.5s CPU。
+    # 未校准时，整块中部区域检测+识别的间隔（秒）。单次约 1 秒（单线程）。
     bootstrap_interval_s: float = 3.0
     # 海克斯名称模糊匹配的最低分（0–100）。
     match_threshold: float = 72.0

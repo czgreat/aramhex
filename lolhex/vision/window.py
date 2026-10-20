@@ -117,6 +117,19 @@ def add_companion(hwnd: int) -> None:
         _companions.add(int(hwnd))
 
 
+def lower_thread_priority() -> None:
+    """当前线程降到「低于正常」：游戏要用 CPU 时先让给游戏（只影响抢不到核的时候）。"""
+    if not IS_WINDOWS:
+        return
+    try:
+        k = ctypes.windll.kernel32
+        k.GetCurrentThread.restype = wintypes.HANDLE
+        k.SetThreadPriority.argtypes = (wintypes.HANDLE, ctypes.c_int)
+        k.SetThreadPriority(k.GetCurrentThread(), -1)  # THREAD_PRIORITY_BELOW_NORMAL
+    except (OSError, AttributeError):
+        pass  # 降不了就按原样跑
+
+
 def is_foreground(hwnd: int) -> bool:
     if not IS_WINDOWS or not hwnd:
         return False

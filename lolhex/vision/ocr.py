@@ -1,10 +1,12 @@
 """RapidOCR（PaddleOCR 模型的 ONNX 版）封装，离线运行。
 
 两种用法：
-- detect(img)：检测+识别，找出画面中所有文字行（约 0.3–0.5s，仅在未校准时用）；
-- recognize(img)：已知文字区域时只做识别（每块约 10–20ms）。
+- detect(img)：检测+识别，找出画面中所有文字行（单线程约 1 秒，只在少数时候用）；
+- recognize(img)：已知文字区域时只做识别（每块约 20ms）。
 模型首次使用时加载（约 0.5s），之后常驻。
 韩服：识别模型换成韩文的（use_rec_model，见 langpack.py），检测模型不变。
+只用一个线程：onnxruntime 默认把所有核都拉来算，对局中每次认字都会和游戏抢 CPU，玩家会掉帧、卡顿。
+单线程总 CPU 少一半，慢一点（标题条约 70ms、整块扫描约 1 秒）不影响使用。
 """
 
 from __future__ import annotations
@@ -37,6 +39,9 @@ class TextLine:
         return self.box[3] - self.box[1]
 
 
+THREADS = {"EngineConfig.onnxruntime.intra_op_num_threads": 1, "EngineConfig.onnxruntime.inter_op_num_threads": 1}
+
+
 class OCR:
     _inst = None
     _inst_lock = threading.Lock()
@@ -45,12 +50,12 @@ class OCR:
     def __init__(self, rec_model: str | None = None):
         from rapidocr import RapidOCR
         logging.getLogger("RapidOCR").setLevel(logging.ERROR)
+        params = dict(THREADS)
         if rec_model:
             from rapidocr.utils.typings import LangRec, ModelType, OCRVersion
-            self._engine = RapidOCR(params={"Rec.lang_type": LangRec.KOREAN, "Rec.model_type": ModelType.MOBILE,
-                                            "Rec.ocr_version": OCRVersion.PPOCRV5, "Rec.model_path": rec_model})
-        else:
-            self._engine = RapidOCR()
+            params.update({"Rec.lang_type": LangRec.KOREAN, "Rec.model_type": ModelType.MOBILE,
+                           "Rec.ocr_version": OCRVersion.PPOCRV5, "Rec.model_path": rec_model})
+        self._engine = RapidOCR(params=params)
         self.rec_model = rec_model
         self._lock = threading.Lock()
 
