@@ -146,3 +146,23 @@ def test_old_traditional_setting_loads_as_chinese(tmp_path):
     assert Settings.load(p).game_lang == "zh_CN"
     p.write_text('{"game_lang": "xx", "install_id": "0123456789abcdef"}', encoding="utf-8")
     assert Settings.load(p).game_lang == "zh_CN"
+
+
+def test_whole_screen_ocr_skips_one_char_lines(store, tmp_path, monkeypatch):
+    """头像库没下载好时整屏认字：屏幕上单独一个字（聊天、玩家名里的）不当英雄名，固定位置的小块里照常认。"""
+    import numpy as np
+
+    from lolhex.config import Settings
+    from lolhex.engine import Engine
+    from lolhex.vision import ocr
+    from lolhex.vision.ocr import TextLine
+    eng = Engine(Settings(), home=tmp_path, store=store)
+    m = NameMatcher({"98": "慎", "157": "亚索"}, 86.0)
+    monkeypatch.setattr(eng, "_hero_matcher", lambda: m)
+    lines = [TextLine("慎", 0.9, (0, 0, 60, 60)), TextLine("亚索", 0.9, (0, 100, 80, 130))]
+    monkeypatch.setattr(ocr.OCR, "get", classmethod(lambda cls: type("O", (), {"detect": lambda self, img: lines})()))
+    picked = []
+    monkeypatch.setattr(eng, "_set_hero_auto", lambda hid, src: picked.append(hid))
+    eng._champ_select_ocr(np.zeros((200, 200, 3), np.uint8))
+    assert picked == ["157"]                         # 字最大的「慎」没算，认的是亚索
+    assert eng._hero_by_name("慎") == "98"           # 我方每行、英雄卡的小块里一个字的名字照常认

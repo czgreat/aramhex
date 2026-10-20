@@ -115,3 +115,23 @@ def test_desc_end_ignores_sparkles():
     frame[600:640, 760:940] = 90                     # 平滑的亮底色不算
     assert desc_end(frame, (700, 430, 1000, 470)) == 79
     assert desc_end(frame, None) is None
+
+
+def test_long_label_widens_box():
+    """还没校准时标题框只有标题文字那么宽：尊我为王那句长标签按字撑开底框，字不出框。"""
+    from lolhex.ui import overlay
+    app = _app()
+    layer = overlay.BadgeLayer()
+    snap = {"settings": {"badge_position": "top"},
+            "offer": {"slots": ["1"], "boxes": [[900, 430, 1000, 470], None, None]},
+            "evaluation": {"slots": [{"index": 0, "verdict": "unknown", "basis": "excluded"}]}}
+    layer.update_from(snap, Rect(0, 0, 1920, 1080))
+    app.processEvents()
+    img = QImage(1920, 1080, QImage.Format_ARGB32)
+    img.fill(0)
+    layer.render(img)
+    y = 430 - 4 - 15                                 # 标签中间一行（只有大字，高 30）
+    xs = [x for x in range(0, 1920) if img.pixelColor(x, y).alpha() > 100]
+    from PySide6.QtGui import QFont, QFontMetrics
+    need = QFontMetrics(QFont("Microsoft YaHei UI", 12, QFont.Bold), layer).horizontalAdvance(overlay.NODATA_NOTE)
+    assert xs and max(xs) - min(xs) >= need and abs((max(xs) + min(xs)) / 2 - 950) <= 2

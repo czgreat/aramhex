@@ -214,6 +214,7 @@ class BadgeLayer(_Layer):
         ox, oy = self.origin.x(), self.origin.y()
         f_big = QFont("Microsoft YaHei UI", 12, QFont.Bold)
         f_small = QFont("Microsoft YaHei UI", 9)
+        fm_big, fm_small = QFontMetrics(f_big, self), QFontMetrics(f_small, self)
         boxes = offer.get("boxes") or []
         known = [b for b in boxes if b]
         items = []
@@ -227,7 +228,6 @@ class BadgeLayer(_Layer):
             x0 = (box[0] - ox) / unit
             x1 = (box[2] - ox) / unit
             y0 = (box[1] - oy) / unit
-            w = max(170.0, x1 - x0)
             cx = (x0 + x1) / 2
             label, color = VERDICT.get(r["verdict"], VERDICT["unknown"])
             if r.get("basis") == "excluded":  # 尊我为王这类：写明原因，免得以为是助手没数据
@@ -254,6 +254,9 @@ class BadgeLayer(_Layer):
                 meta.insert(0, "样本偏少")
             if meta:
                 lines.append(" · ".join(meta))
+            # 标题框只是标题文字那么宽（还没校准时）：字长的（尊我为王那句）按字撑开，不让底框比字窄
+            w = max(170.0, x1 - x0, fm_big.horizontalAdvance(label) + 20,
+                    max((fm_small.horizontalAdvance(ln) for ln in lines), default=0) + 16)
             h = 30 + 18 * len(lines)
             yc = ((box[1] + box[3]) / 2 - oy) / unit
             end = self._ends[i] if below and i < len(self._ends) else None

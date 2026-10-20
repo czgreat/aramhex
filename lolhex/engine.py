@@ -24,7 +24,7 @@ from .data.public import PublicStore
 from .data.store import DataStore
 from .panel import hero_panel
 from .vision import window as win
-from .vision.matcher import NameMatcher
+from .vision.matcher import NameMatcher, normalize
 
 log = logging.getLogger(__name__)
 
@@ -451,6 +451,8 @@ class Engine:
         m = self._hero_matcher()
         found = []
         for ln in OCR.get().detect(_resize(img, scale)):
+            if len(normalize(ln.text)) < 2:  # 整屏什么字都有：单独一个字（聊天、名字里的）不当英雄名，「慎」「劫」靠头像认
+                continue
             key, sc = m.match(ln.text)
             if key:
                 found.append((key.split("#")[0], sc, ln.h))
