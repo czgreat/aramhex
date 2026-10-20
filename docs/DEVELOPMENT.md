@@ -72,7 +72,7 @@ pwsh -NoProfile -File packaging\build.ps1
    - 把增量更新的清单和文件（另有 .gz 压缩版，jsDelivr 不给下 .exe）推到 `updates` 分支，并打 tag `updates-v<版本>`（先于建 Release）；
    - 建 Release，上传安装版、便携版和 `SHA256SUMS.txt`；
    - Release 说明取 `CHANGELOG.md` 里这一版的内容。
-5. 已安装的助手启动时、再次打开时、每 30 分钟查一次 Releases 的 latest，有新版本就提示。
+5. 已安装的助手启动时、再次打开时，以及每隔一段时间（1.1.0 起由云控 `update.check_minutes` 决定，默认 3 小时；1.0.0 是 30 分钟）查一次新版本，有新版本就提示。
 
 只更新统计数据、不改程序时，不用发版：数据仓库更新后，助手会自己下载新数据。
 定期发版只是为了让新下载的用户拿到较新的内置数据。

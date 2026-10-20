@@ -99,20 +99,24 @@ class _Layer(QWidget):
     def _scale(self) -> float:
         return self.devicePixelRatioF() if win.IS_WINDOWS else _dpr()
 
+    def _place_qt(self, rect) -> None:
+        geo = QRect(_logical(rect.left), _logical(rect.top), _logical(rect.width), _logical(rect.height))
+        if self.geometry() != geo:
+            self.setGeometry(geo)
+        self.origin = QPoint(rect.left, rect.top)
+        if not self.isVisible():
+            self.show()
+
     def _place(self, rect, target_hwnd: int = 0) -> None:
         self.target_h = rect.height
         if not win.IS_WINDOWS:
-            geo = QRect(_logical(rect.left), _logical(rect.top), _logical(rect.width), _logical(rect.height))
-            if self.geometry() != geo:
-                self.setGeometry(geo)
-            self.origin = QPoint(rect.left, rect.top)
-            if not self.isVisible():
-                self.show()
-            return
+            return self._place_qt(rect)
         if not self.isVisible():
             self.show()
         hwnd = int(self.winId())
         actual = win.window_rect(hwnd)
+        if actual is None:  # 读不到窗口位置（没有真窗口的无界面测试等）：按 Qt 坐标摆
+            return self._place_qt(rect)
         if actual != rect:
             win.set_window_rect(hwnd, rect)
             actual = win.window_rect(hwnd) or rect
