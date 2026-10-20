@@ -135,3 +135,73 @@ def test_long_label_widens_box():
     from PySide6.QtGui import QFont, QFontMetrics
     need = QFontMetrics(QFont("Microsoft YaHei UI", 12, QFont.Bold), layer).horizontalAdvance(overlay.NODATA_NOTE)
     assert xs and max(xs) - min(xs) >= need and abs((max(xs) + min(xs)) / 2 - 950) <= 2
+
+
+def test_reroll_keeps_bottom_badges(monkeypatch):
+    """放下方时刷新一张卡：另外两张（和刷新的这张）标签照常显示，后台重新量；以前三张会一起消失一两秒。"""
+    import numpy as np
+
+    from lolhex.ui import overlay
+    from lolhex.vision import capture
+    app = _app()
+    frame = np.zeros((1080, 1920, 3), np.uint8)
+    for y in range(490, 560, 20):
+        frame[y:y + 3, 760:940:4] = 255
+    monkeypatch.setattr(capture, "grab", lambda rect: frame)
+    layer = overlay.BadgeLayer()
+    boxes = [[700, 430, 1000, 470], [1100, 430, 1400, 470], None]
+
+    def snap(slots):
+        return {"settings": {"badge_position": "bottom"}, "offer": {"slots": slots, "boxes": boxes},
+                "evaluation": {"slots": [{"index": 0, "verdict": "best", "score": 2.0},
+                                         {"index": 1, "verdict": "ok", "score": 1.0}]}}
+
+    def green_rows():
+        img = QImage(1920, 1080, QImage.Format_ARGB32)
+        img.fill(0)
+        layer.render(img)
+        green = QColor(95, 211, 141).rgb()
+        return [y for y in range(0, 1080, 2) if any(img.pixel(x, y) == green for x in range(760, 940, 3))]
+
+    layer.update_from(snap(["1", "2", None]), Rect(0, 0, 1920, 1080))
+    app.processEvents()
+    _wait(800)
+    before = green_rows()
+    assert before and min(before) > 560
+    for slots in (["1", None, None], ["1", "3", None]):  # 刷新中间那张：先读不出，再读出新的
+        layer.update_from(snap(slots), Rect(0, 0, 1920, 1080))
+        app.processEvents()
+        assert green_rows() == before                 # 一直在原位，没有消失
+    layer.update_from({"settings": {"badge_position": "bottom"}}, Rect(0, 0, 1920, 1080))  # 这组选完了
+    layer.update_from(snap(["4", "5", None]), Rect(0, 0, 1920, 1080))  # 下一组：照旧量完才画
+    app.processEvents()
+    assert green_rows() == []
+
+
+def test_overlapping_measures_restore_capture_once(monkeypatch):
+    """开了「录屏、截图时显示浮窗」：刷新时前后两次量会重叠，等都量完才恢复可截图（不然后一次会截到自己的标签）。"""
+    import numpy as np
+
+    from lolhex.ui import overlay
+    from lolhex.vision import capture
+    app = _app()
+    calls = []
+    monkeypatch.setattr(overlay.win, "capture_allowed", lambda: True)
+    monkeypatch.setattr(overlay.win, "hide_from_capture", lambda h: calls.append("hide"))
+    monkeypatch.setattr(overlay.win, "restore_capture", lambda h: calls.append("restore"))
+    hidden = []
+
+    def grab(rect):
+        hidden.append(calls.count("hide") > calls.count("restore"))  # 截图这一刻标签是不是不会被截到
+        return np.zeros((1080, 1920, 3), np.uint8)
+    monkeypatch.setattr(capture, "grab", grab)
+    layer = overlay.BadgeLayer()
+    boxes = [[700, 430, 1000, 470], [1100, 430, 1400, 470], None]
+    ev = {"slots": [{"index": 0, "verdict": "best", "score": 2.0}]}
+    for slots in (["1", "2", None], ["1", "3", None]):
+        layer.update_from({"settings": {"badge_position": "bottom"}, "offer": {"slots": slots, "boxes": boxes},
+                           "evaluation": ev}, Rect(0, 0, 1920, 1080))
+        app.processEvents()
+    _wait(1200)
+    assert hidden and all(hidden)                    # 每次截图时都不会截到自己的标签
+    assert calls.count("hide") == calls.count("restore") and layer._hiding == 0  # 量完都恢复了

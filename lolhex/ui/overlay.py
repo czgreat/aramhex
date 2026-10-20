@@ -143,9 +143,11 @@ class BadgeLayer(_Layer):
         self.snapshot: dict = {}
         # 放下方时：先看每张卡的描述写到哪（cardspace.desc_end），量出来之前不画
         self._room_key = None
+        self._room_slots = None
         self._ends: list | None = None
         self._first_ends: list | None = None
         self._room_logged = None
+        self._hiding = 0  # 正在量的次数：刷新时前后两次会重叠，都量完才恢复可截图，不然会把自己的标签当成描述
 
     def update_from(self, snap: dict, rect, hwnd: int = 0) -> None:
         self.snapshot = snap
@@ -157,24 +159,32 @@ class BadgeLayer(_Layer):
         self._place(rect, hwnd)
         if snap.get("settings", {}).get("badge_position") == "bottom":
             boxes = [tuple(b) if b else None for b in offer.get("boxes") or []]
-            key = (tuple(offer.get("slots") or []), tuple(boxes), rect)
-            if key != self._room_key:  # 新的一组卡（或刷新了一张、窗口变了）：重新量
-                self._room_key, self._ends, self._first_ends = key, None, None
-                self._measure(key, boxes, rect, first=True)
+            key, slots = (tuple(boxes), rect), tuple(offer.get("slots") or [])
+            if key != self._room_key:  # 新的一组卡（上一组消失后又出来）、窗口变了：重新量，量完才画
+                self._room_key, self._room_slots, self._ends, self._first_ends = key, slots, None, None
+                self._measure(key, slots, boxes, rect, first=True)
+            elif slots != self._room_slots:  # 刷新了一张：照旧画着，重新量完再更新（不然三张标签会一起消失一两秒）
+                self._room_slots = slots
+                self._measure(key, slots, boxes, rect, first=True)
         self.update()
 
-    def _measure(self, key, boxes, rect, first: bool) -> None:
+    def _measure(self, key, slots, boxes, rect, first: bool) -> None:
         """截一张游戏画面看描述写到哪。打开了「录屏、截图时显示浮窗」时，自己画的标签也会被截到，
         先让标签层暂时不被截图（等 0.2 秒生效），量完再恢复。描述可能有淡入动画，0.6 秒后再量一次取最低，
         两次都量完才画（先画了再挪位置会跳一下）。"""
         hwnd = int(self.winId())
         capturable = win.capture_allowed()
         if capturable:
-            win.hide_from_capture(hwnd)
+            self._hiding += 1
+            if self._hiding == 1:
+                win.hide_from_capture(hwnd)
+
+        def stale() -> bool:
+            return key != self._room_key or slots != self._room_slots
 
         def grab():
             try:
-                if key != self._room_key:
+                if stale():
                     return
                 from ..vision import capture, cardspace
                 frame = capture.grab(rect)
@@ -184,12 +194,14 @@ class BadgeLayer(_Layer):
                 ends = [None] * len(boxes)
             finally:
                 if capturable:
-                    win.restore_capture(hwnd)
-            if key != self._room_key:
+                    self._hiding -= 1
+                    if self._hiding == 0:
+                        win.restore_capture(hwnd)
+            if stale():
                 return
             if first:
                 self._first_ends = ends
-                QTimer.singleShot(600, lambda: self._measure(key, boxes, rect, first=False))
+                QTimer.singleShot(600, lambda: self._measure(key, slots, boxes, rect, first=False))
                 return
             prev = self._first_ends or [None] * len(ends)
             self._ends = [None if a is None or b is None else max(a, b) for a, b in zip(prev, ends)]
@@ -265,8 +277,8 @@ class BadgeLayer(_Layer):
         # 有一张描述太长就这一组都放标题上方，不挡海克斯的内容，三张也不会一上一下
         fits = below and bool(items) and all(end is not None and end + BOTTOM_GAP <= BOTTOM_EDGE - max(h, BOTTOM_H)
                                              for *_, h, _y0, _yc, end in items)
-        if below and self._room_logged != (self._room_key, fits):
-            self._room_logged = (self._room_key, fits)
+        if below and self._room_logged != (self._room_key, self._room_slots, fits):
+            self._room_logged = (self._room_key, self._room_slots, fits)
             log.info("三选一标签放下方：描述最低到 %s（1080P 像素，标题中心往下），%s",
                      [None if e is None else round(e) for e in self._ends],
                      "放得下" if fits else "有一张放不下，这组放标题上方")
