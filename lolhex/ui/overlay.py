@@ -72,6 +72,7 @@ def _rect_text(r) -> str:
 # 标签放在卡片下方时，标签底边在标题中心往下多少（1080P 像素）：卡片内框底边约在 248
 BOTTOM_EDGE = 236
 BOTTOM_GAP = 12    # 标签顶边和描述文字最低一行至少隔开这么多，不然这一组放回标题上方
+BOTTOM_H = 30 + 18 * 2  # 放不放得下按两行标签的高度算：数据加载完多出一行时不会从下方跳回上方
 
 
 class _Layer(QWidget):
@@ -138,6 +139,7 @@ class BadgeLayer(_Layer):
         # 放下方时：先看每张卡的描述写到哪（cardspace.desc_end），量出来之前不画
         self._room_key = None
         self._ends: list | None = None
+        self._first_ends: list | None = None
         self._room_logged = None
 
     def update_from(self, snap: dict, rect, hwnd: int = 0) -> None:
@@ -152,13 +154,14 @@ class BadgeLayer(_Layer):
             boxes = [tuple(b) if b else None for b in offer.get("boxes") or []]
             key = (tuple(offer.get("slots") or []), tuple(boxes), rect)
             if key != self._room_key:  # 新的一组卡（或刷新了一张、窗口变了）：重新量
-                self._room_key, self._ends = key, None
+                self._room_key, self._ends, self._first_ends = key, None, None
                 self._measure(key, boxes, rect, first=True)
         self.update()
 
     def _measure(self, key, boxes, rect, first: bool) -> None:
         """截一张游戏画面看描述写到哪。打开了「录屏、截图时显示浮窗」时，自己画的标签也会被截到，
-        先让标签层暂时不被截图（等 0.2 秒生效），量完再恢复。描述可能有淡入动画，0.6 秒后再量一次取最低。"""
+        先让标签层暂时不被截图（等 0.2 秒生效），量完再恢复。描述可能有淡入动画，0.6 秒后再量一次取最低，
+        两次都量完才画（先画了再挪位置会跳一下）。"""
         hwnd = int(self.winId())
         capturable = win.capture_allowed()
         if capturable:
@@ -179,12 +182,13 @@ class BadgeLayer(_Layer):
                     win.restore_capture(hwnd)
             if key != self._room_key:
                 return
-            if self._ends is not None:
-                ends = [None if a is None or b is None else max(a, b) for a, b in zip(self._ends, ends)]
-            self._ends = ends
-            self.update()
             if first:
+                self._first_ends = ends
                 QTimer.singleShot(600, lambda: self._measure(key, boxes, rect, first=False))
+                return
+            prev = self._first_ends or [None] * len(ends)
+            self._ends = [None if a is None or b is None else max(a, b) for a, b in zip(prev, ends)]
+            self.update()
 
         QTimer.singleShot(200 if capturable else 0, grab)
 
@@ -196,7 +200,7 @@ class BadgeLayer(_Layer):
         show_win = snap.get("settings", {}).get("show_winrate", True)
         below = snap.get("settings", {}).get("badge_position") == "bottom"
         if below and self._ends is None:
-            return  # 还没量出描述写到哪：先不画（不到 0.2 秒）
+            return  # 还没量完描述写到哪：先不画（约 0.6 秒）
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
         # 下面都按「1080P 像素」算：标签大小跟着卡片走
@@ -249,7 +253,7 @@ class BadgeLayer(_Layer):
             items.append((r, label, color, lines, cx, w, h, y0, yc, end))
         # 设置里选了放下方：三张都放得下（描述最低一行和标签隔开 BOTTOM_GAP）才放下方，
         # 有一张描述太长就这一组都放标题上方，不挡海克斯的内容，三张也不会一上一下
-        fits = below and bool(items) and all(end is not None and end + BOTTOM_GAP <= BOTTOM_EDGE - h
+        fits = below and bool(items) and all(end is not None and end + BOTTOM_GAP <= BOTTOM_EDGE - max(h, BOTTOM_H)
                                              for *_, h, _y0, _yc, end in items)
         if below and self._room_logged != (self._room_key, fits):
             self._room_logged = (self._room_key, fits)
