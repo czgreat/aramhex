@@ -23,7 +23,12 @@ def test_unit_follows_game_height():
     assert _unit(100) == 0.6 and _unit(9999) == 3.0
 
 
-def _badge_rows(position: str, monkeypatch, desc_to: int = 560) -> list[int]:
+def _wait(ms: int) -> None:
+    from PySide6.QtTest import QTest
+    QTest.qWait(ms)
+
+
+def _badge_rows(position: str, monkeypatch, desc_to: int = 560, wait_ms: int = 800) -> list[int]:
     """1920x1080 游戏、一张卡标题在 y=430..470、描述文字写到 desc_to：画出来的标签（绿边）出现在哪几行。"""
     import numpy as np
 
@@ -39,7 +44,8 @@ def _badge_rows(position: str, monkeypatch, desc_to: int = 560) -> list[int]:
             "offer": {"slots": ["1"], "boxes": [[700, 430, 1000, 470], None, None]},
             "evaluation": {"slots": [{"index": 0, "verdict": "best", "score": 2.0}]}}
     layer.update_from(snap, Rect(0, 0, 1920, 1080))
-    app.processEvents()                              # 量描述位置（下方模式）
+    app.processEvents()
+    _wait(wait_ms)                                   # 下方模式：量两次描述位置（隔 0.6 秒）
     img = QImage(1920, 1080, QImage.Format_ARGB32)
     img.fill(0)
     layer.render(img)
@@ -56,6 +62,18 @@ def test_badge_top_and_bottom(monkeypatch):
 
 def test_badge_back_on_top_when_description_long(monkeypatch):
     rows = _badge_rows("bottom", monkeypatch, desc_to=640)  # 描述写到很下面：放不下，回到标题上方
+    assert rows and max(rows) < 430
+
+
+def test_bottom_waits_for_second_measure(monkeypatch):
+    """下方模式两次都量完才画：先画了再挪到上方会跳一下（玩家实测看到先下后上）。"""
+    assert _badge_rows("bottom", monkeypatch, wait_ms=100) == []
+    assert _badge_rows("top", monkeypatch, wait_ms=0)            # 上方模式不等
+
+
+def test_bottom_room_counts_two_lines(monkeypatch):
+    """标签现在只有一行也按两行算：数据加载完多出一行时，不会从下方跳回上方。"""
+    rows = _badge_rows("bottom", monkeypatch, desc_to=620)  # 一行放得下、两行放不下
     assert rows and max(rows) < 430
 
 
