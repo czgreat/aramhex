@@ -173,6 +173,7 @@ def test_no_popups_in_champ_select_or_stacked(monkeypatch):
                           _popup_open=False)
     win._in_game = lambda: MainWindow._in_game(win)
     win._busy = lambda: MainWindow._busy(win)
+    win._modal_open = lambda: MainWindow._modal_open(win)
     win._apply_cloud = lambda cfg: MainWindow._apply_cloud(win, cfg)
     cfg = {"notice": {"id": "n1", "text": "公告"}}
     MainWindow._apply_cloud(win, cfg)
@@ -183,3 +184,9 @@ def test_no_popups_in_champ_select_or_stacked(monkeypatch):
     win._popup_open = True
     MainWindow._notify_tick(win)
     assert win._deferred_cloud == cfg and not win._asked_offers   # 已有弹窗开着：不叠
+    win._popup_open = False
+    monkeypatch.setattr(mainwindow.QApplication, "activeModalWidget", staticmethod(lambda: object()))
+    MainWindow._notify_tick(win)
+    assert win._deferred_cloud == cfg and not win._asked_offers   # 别的对话框（设置已保存、检查更新…）开着：也不叠
+    monkeypatch.setattr(mainwindow.QApplication, "activeModalWidget", staticmethod(lambda: None))
+    win._popup_open = True

@@ -568,6 +568,10 @@ class MainWindow(QMainWindow):
         snap = self.engine.snapshot()
         return snap.get("phase") == "ingame" or bool(snap.get("champ_select"))
 
+    def _modal_open(self) -> bool:
+        """有弹窗开着（提醒类，或设置已保存、检查更新这类别的对话框）：不再叠一个。"""
+        return self._popup_open or QApplication.activeModalWidget() is not None
+
     def _toast(self, text: str) -> None:
         tray = getattr(self, "tray", None)
         if tray:
@@ -576,7 +580,7 @@ class MainWindow(QMainWindow):
     def _notify_tick(self):
         """游戏外才出：攒下的公告/新版本提示、数据已更新的提示、关了自动更新时的「是否更新」。
         弹窗还要避开选英雄；已经有弹窗开着时不再叠一个（计时器在弹窗打开期间也会跑）。"""
-        if self._in_game() or self._popup_open:
+        if self._in_game() or self._modal_open():
             return
         if self._deferred_cloud is not None and not self._busy():
             cfg, self._deferred_cloud = self._deferred_cloud, None
@@ -591,7 +595,7 @@ class MainWindow(QMainWindow):
             logging.getLogger(__name__).info("右下角提示：%s", note["text"])
             self._toast(note["text"])
         offer = dd.get("data_offer")
-        if offer and offer.get("id") not in self._asked_offers and not self._busy() and not self._popup_open:
+        if offer and offer.get("id") not in self._asked_offers and not self._busy() and not self._modal_open():
             self._asked_offers.add(offer["id"])  # 每份新数据只问一次；点了「稍后」下次启动再问
             self._popup_open = True
             try:
@@ -614,7 +618,7 @@ class MainWindow(QMainWindow):
             self.about_label.setText(about_html())
         if hasattr(self, "btn_comm"):
             self._show_primary()
-        if self._busy() or self._popup_open:  # 公告、版本太旧都是弹窗：打完这局、选完英雄再弹；已有弹窗时也等一等
+        if self._busy() or self._modal_open():  # 公告、版本太旧都是弹窗：打完这局、选完英雄再弹；已有弹窗时也等一等
             if self._deferred_cloud is None:
                 logging.getLogger(__name__).info("对局中或选英雄中，云控公告/版本检查推迟")
             self._deferred_cloud = cfg

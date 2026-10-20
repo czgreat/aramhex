@@ -30,20 +30,25 @@ class NameMatcher:
         self.threshold = threshold
         self._ids: list[str] = []
         self._keys: list[str] = []
+        self._bangs: list[bool] = []
         for i, ns in names.items():
             for n in ([ns] if isinstance(ns, str) else ns):
                 k = normalize(n)
                 if k:
                     self._ids.append(i)
                     self._keys.append(k)
+                    self._bangs.append(_has_bang(n))
 
     def __len__(self) -> int:
         return len(self._keys)
 
     def match(self, text: str) -> tuple[str | None, float]:
         q = normalize(text)
-        if len(q) < 2 or not self._keys:
+        if not q or not self._keys:
             return None, 0.0
+        if len(q) < 2:  # 只剩一个字（「邦！」、英雄「慎」）：只认完全一样的，模糊匹配太容易错
+            pos = next((i for i, k in enumerate(self._keys) if k == q), None)
+            return (None, 0.0) if pos is None else (self._pick(pos, text), 100.0)
         hit = process.extractOne(q, self._keys, scorer=fuzz.ratio)
         if not hit:
             return None, 0.0
@@ -55,4 +60,16 @@ class NameMatcher:
                 key, score, pos = hit2
         if score < self.threshold or (key.isascii() and len(key) <= SHORT_ASCII and score < SHORT_ASCII_MIN):
             return None, float(score)
-        return self._ids[pos], float(score)
+        return self._pick(pos, text), float(score)
+
+    def _pick(self, pos: int, text: str) -> str:
+        """去掉标点后同名的几个海克斯（4.0「罪恶快感！」和老的「罪恶快感」）：按有没有感叹号分。"""
+        same = [i for i, k in enumerate(self._keys) if k == self._keys[pos] and self._ids[i] != self._ids[pos]]
+        if not same:
+            return self._ids[pos]
+        bang = _has_bang(text)
+        return next((self._ids[i] for i in [pos] + same if self._bangs[i] == bang), self._ids[pos])
+
+
+def _has_bang(s: str) -> bool:
+    return "!" in unicodedata.normalize("NFKC", s or "")

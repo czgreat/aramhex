@@ -128,3 +128,21 @@ def test_langpack_download_verifies(tmp_path, monkeypatch):
     with pytest.raises(ValueError):
         langpack.download(pack)
     assert langpack.installed(pack) is None
+
+
+def test_same_name_except_bang():
+    """4.0 的「罪恶快感！」和老的「罪恶快感」去掉标点后同名：按有没有感叹号分。只剩一个字的名字（邦！）也认得。"""
+    m = NameMatcher({"1322": "罪恶快感", "3004": "罪恶快感！", "2111": "邦！", "157": "亚索"})
+    assert m.match("罪恶快感！")[0] == "3004" and m.match("罪恶快感!")[0] == "3004"
+    assert m.match("罪恶快感")[0] == "1322"
+    assert m.match("邦!")[0] == "2111" and m.match("邦")[0] == "2111"
+    assert m.match("索")[0] is None                  # 一个字只认完全一样的
+
+
+def test_old_traditional_setting_loads_as_chinese(tmp_path):
+    from lolhex.config import Settings
+    p = tmp_path / "config.json"
+    p.write_text('{"game_lang": "zh_TW", "install_id": "0123456789abcdef"}', encoding="utf-8")
+    assert Settings.load(p).game_lang == "zh_CN"
+    p.write_text('{"game_lang": "xx", "install_id": "0123456789abcdef"}', encoding="utf-8")
+    assert Settings.load(p).game_lang == "zh_CN"

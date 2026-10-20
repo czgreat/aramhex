@@ -183,10 +183,6 @@ def set_capture_allowed(allowed: bool) -> None:
         _apply_affinity(hwnd)
 
 
-def capture_allowed() -> bool:
-    return _capture_allowed
-
-
 def give_focus(hwnd: int) -> None:
     """把前台（键盘焦点）还给游戏或客户端窗口。只有本进程当前在前台时 Windows 才允许，
     所以要在点了浮窗、浮窗刚被激活之后调用。不发送任何按键或鼠标。"""

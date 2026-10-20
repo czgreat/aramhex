@@ -141,6 +141,8 @@ class Settings:
             s.install_id = ""  # 手改坏了：重新生成（不是字符串时请求头发不出去）
         if not isinstance(s.send_usage, bool):
             s.send_usage = str(s.send_usage).strip().lower() in ("true", "1", "yes", "on")  # 认不出就当关了
+        from .i18n import normalize_lang
+        s.game_lang = normalize_lang(s.game_lang)  # 以前的繁中选项 zh_TW、手改的怪值都当中文
         if broken:
             # 实在读不懂：原文件留个备份，后面照常写新的；用户在里面关没关匿名统计看不出来，这次就当关了，
             # 能从原文里找到 "send_usage": true/false 就照它的

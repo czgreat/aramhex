@@ -537,17 +537,20 @@ class Engine:
             self.state["vision"].update(status="scanning", calibrated=det.confirmed_for(rect.width, rect.height))
             if ran:
                 self.state["vision"]["last_scan"] = time.time()
-                if offer is not None:
-                    misses = 0
-                    if not visible:
-                        self._save_offer_shot(rect)  # 趁浮窗还没画上去
-                    self._on_offer(offer)
-                    visible = True
-                elif visible:
-                    misses += 1
-                    if misses >= 3:
-                        self._on_offer(None)
-                        visible = False
+                try:  # 评估出错（数据有怪值等）只记日志，识别线程照常跑，不能整局停掉
+                    if offer is not None:
+                        misses = 0
+                        if not visible:
+                            self._save_offer_shot(rect)  # 趁浮窗还没画上去
+                        visible = True
+                        self._on_offer(offer)
+                    elif visible:
+                        misses += 1
+                        if misses >= 3:
+                            visible = False
+                            self._on_offer(None)
+                except Exception:
+                    log.exception("三选一评估异常")
             self._stop.wait(0.1)
 
     @staticmethod
