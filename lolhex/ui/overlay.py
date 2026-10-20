@@ -613,7 +613,7 @@ class ControlPanel(QWidget):
             if top:
                 parts.append("推荐海克斯：" + "、".join(f"{a['name']}({a['delta']:+.1f})" for a in top[:5]))
         if snap.get("vision", {}).get("blank"):
-            parts.append("<span style='color:#ff7a6b'>截图全黑，请把游戏改成无边框</span>")
+            parts.append("<span style='color:#ff7a6b'>游戏可能是全屏模式，无法识别。请在游戏内设置-窗口模式中选择无边框/窗口。</span>")
         parts.append(f"<span style='color:#8b93a7'>{data_status_html(snap.get('data', {}))}</span>")
         parts.append("<a href='rescan' style='color:#62a8ff'>重新识别</a>　"
                      "<a href='quit' style='color:#ff7a6b'>退出助手</a>")
@@ -652,7 +652,7 @@ class Overlay:
             self._blank_warned = True  # 每次打开软件最多提醒一次
             notify = getattr(self, "notify", None)
             if notify:
-                notify("截图是黑的：游戏可能是全屏模式。请在游戏设置 → 视频里，把窗口模式改成「无边框」。")
+                notify("游戏可能是全屏模式，无法识别。请在游戏内设置-窗口模式中选择无边框/窗口。")
         game = win.find_game_window()
         grect = win.client_rect(game) if game else None
         self.badges.update_from(snap, grect, game)
@@ -762,7 +762,7 @@ def run(make_engine, minimized: bool = False) -> int:
             engine.settings.seen_welcome = True
             engine.settings.save()
             from PySide6.QtWidgets import QMessageBox
-            QMessageBox.information(main_win, "使用前", "请在游戏设置 → 视频里，把窗口模式改成「无边框」（或「窗口化」）。\n\n"
+            QMessageBox.information(main_win, "使用前", "请在游戏内设置-窗口模式中选择无边框/窗口。\n\n"
                                     "全屏模式下截不到画面，识别不了。")
         QTimer.singleShot(1200, welcome)
     failed = patch.take_failure()

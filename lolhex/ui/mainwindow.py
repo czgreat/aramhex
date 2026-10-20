@@ -933,7 +933,7 @@ class MainWindow(QMainWindow):
         self.status.setText(
             f"<b>状态：</b>{PHASE_CN.get(snap.get('phase'), snap.get('phase'))}<br>"
             f"<b>海克斯识别：</b>{VISION_CN.get(v.get('status'), v.get('status'))}"
-            f"{' · <span style=\"color:#d0533f\">截图全黑，请把游戏改成无边框</span>' if v.get('blank') else ''}<br>"
+            f"{' · <span style=\"color:#d0533f\">游戏可能是全屏模式，无法识别。请在游戏内设置-窗口模式中选择无边框/窗口。</span>' if v.get('blank') else ''}<br>"
             f"<b>数据：</b>{BANDS.get(dd.get('band_effective'), '全体')} · {data_status_html(dd)}")
         if hasattr(self, "about_data"):
             self.about_data.setText("统计数据：" + data_status_html(dd))
