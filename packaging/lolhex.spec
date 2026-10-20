@@ -14,6 +14,7 @@ datas += [("../lolhex/data/hero_aliases.json", "lolhex/data")]  # 英雄别名�
 datas += [("../lolhex/data/bundled", "lolhex/data/bundled")]  # 内置统计数据（scripts/update_data.py）
 datas += [("../lolhex/data/hero_nicknames.json", "lolhex/data")]  # 英雄外号（网上常见叫法）
 datas += [("../lolhex/data/i18n.json", "lolhex/data")]  # 外服名字表（scripts/update_i18n.py）
+datas += [("../lolhex/data/client_icons.json", "lolhex/data")]  # 拳头客户端英雄头像（scripts/update_client_icons.py）
 binaries = collect_dynamic_libs("onnxruntime")
 
 a = Analysis(

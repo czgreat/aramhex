@@ -22,6 +22,7 @@ lolhex/
   ui/                  主窗口、托盘、游戏内浮窗
 scripts/update_data.py 把数据仓库最新的一份放进 lolhex/data/bundled/
 scripts/update_i18n.py 从拳头公开数据生成外服名字表 lolhex/data/i18n.json（海斗加了新海克斯后重跑）
+scripts/update_client_icons.py 生成客户端英雄头像 lolhex/data/client_icons.json（出新英雄、拳头换头像后重跑）
 packaging/             PyInstaller、Inno Setup、打包脚本
 ```
 

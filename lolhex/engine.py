@@ -271,14 +271,14 @@ class Engine:
 
     def _load_icons(self, download: bool = True) -> None:
         from .vision.champselect import Memo
-        from .vision.portraits import IconBank, ensure_icons
+        from .vision.portraits import IconBank, client_icons, ensure_icons
         folder = self.home / "data" / "icons"
         heroes = self.store.heroes
         if not heroes or (not download and not folder.is_dir()):
             return
         new = ensure_icons(folder, heroes) if download else 0
         if new or self._icon_bank is None:
-            bank = IconBank.from_dir(folder, heroes)
+            bank = IconBank.from_dir(folder, heroes, client_icons())
             if len(bank):
                 self._icon_bank = bank
                 self._cs_memo = Memo()  # 头像库变了，缓存的识别结果作废

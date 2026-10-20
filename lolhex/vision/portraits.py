@@ -1,7 +1,9 @@
 """选英雄界面的英雄头像识别：把截图里的头像小块和官方方形头像库比对。
 
 只读屏幕像素。头像库来自腾讯公开 CDN（game.gtimg.cn/.../champion/{alias}.png），
-首次使用时下载到本地缓存。
+首次使用时下载到本地缓存；再加上随程序内置的拳头客户端头像（data/client_icons.json，
+scripts/update_client_icons.py 生成）：一些英雄拳头换了新头像、腾讯 CDN 还是旧的（萨科、阿狸等），
+预选栏显示的是新的，只比腾讯的认不出。每个英雄取两张里更像的那张。
 
 比对方法：取头像中间的圆形区域（避开边框、圆角和选中高亮），缩到 20×20，
 头像库按几种放大倍数各算一份（客户端头像裁得更紧），
@@ -29,6 +31,9 @@ ZOOMS = (0.84, 0.74, 0.66)
 # 空位、刷新动画中的暗头像最高约 0.68，几乎不领先
 MIN_SCORE = 0.75   # 低于它就当作不是头像（空位、问号、锁定图标、别的界面图片）
 MIN_MARGIN = 0.10  # 第一名要比第二名高出这么多才算确定
+# 空位几乎是一块颜色：中间部分灰度标准差实测 1–7；真头像两套里最平的（乌迪尔）也有 19。
+# 空位碰巧和某个头像有 0.76 的相关，加了第二套头像后机会更多，所以先看是不是空的
+MIN_TEXTURE = 10.0
 
 
 def _mask() -> np.ndarray:
@@ -76,6 +81,14 @@ def _variants(img: np.ndarray) -> list[np.ndarray]:
     return out
 
 
+def _flat(crop: np.ndarray) -> bool:
+    if crop.size == 0:
+        return True
+    h, w = crop.shape[:2]
+    g = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)[int(h * 0.15):int(h * 0.85), int(w * 0.15):int(w * 0.85)]
+    return g.size == 0 or float(g.std()) < MIN_TEXTURE
+
+
 @dataclass
 class Match:
     hero_id: str | None
@@ -88,15 +101,22 @@ class Match:
 
 
 class IconBank:
-    def __init__(self, icons: dict[str, np.ndarray]):
-        ids, feats = [], []
-        for hid, img in icons.items():
-            fs = [_feature(img, z) for z in ZOOMS]
-            if all(f is not None for f in fs):
+    def __init__(self, icons: dict[str, np.ndarray | list[np.ndarray]]):
+        """icons: {英雄 id: 头像} 或 {英雄 id: [几张头像]}（腾讯的、拳头客户端的）。"""
+        ids, feats, owner = [], [], []
+        for hid, imgs in icons.items():
+            got = False
+            for img in ([imgs] if isinstance(imgs, np.ndarray) else imgs):
+                fs = [_feature(img, z) for z in ZOOMS]
+                if all(f is not None for f in fs):
+                    feats.extend(fs)
+                    owner.extend([len(ids)] * len(fs))
+                    got = True
+            if got:
                 ids.append(hid)
-                feats.extend(fs)
         self.ids = ids
-        # 每个英雄 len(ZOOMS) 行，按英雄连续排列
+        # 每张头像 len(ZOOMS) 行；owner 记每行属于第几个英雄
+        self.owner = np.array(owner, np.intp)
         self.mat = np.stack(feats) if feats else np.zeros((0, int(MASK.sum()) * 3), np.float32)
 
     def __len__(self) -> int:
@@ -104,28 +124,52 @@ class IconBank:
 
     def classify(self, crop: np.ndarray) -> Match:
         """一个头像小块（BGR，大致方形、头像居中）→ 英雄 id。"""
-        if not self.ids:
+        if not self.ids or _flat(crop):
             return Match(None, 0.0, 0.0)
         vs = _variants(crop)
         if not vs:
             return Match(None, 0.0, 0.0)
-        sims = (np.stack(vs) @ self.mat.T).max(axis=0)  # 每行取最好的截图变体
-        sims = sims.reshape(len(self.ids), len(ZOOMS)).max(axis=1)  # 每个英雄取最好的放大倍数
+        rows = (np.stack(vs) @ self.mat.T).max(axis=0)  # 每行取最好的截图变体
+        sims = np.full(len(self.ids), -1.0)
+        np.maximum.at(sims, self.owner, rows)  # 每个英雄取最像的那张头像、最好的放大倍数
         order = np.argsort(-sims)
         best, second = float(sims[order[0]]), float(sims[order[1]]) if len(order) > 1 else 0.0
         hid = self.ids[order[0]] if best >= MIN_SCORE and best - second >= MIN_MARGIN else None
         return Match(hid, best, second)
 
     @classmethod
-    def from_dir(cls, folder: Path, heroes: dict[str, dict]) -> "IconBank":
-        icons = {}
+    def from_dir(cls, folder: Path, heroes: dict[str, dict], extra: dict[str, np.ndarray] | None = None) -> "IconBank":
+        """folder 里是腾讯头像（{alias}.png）；extra 是拳头客户端头像（client_icons()），只取 heroes 里有的英雄。"""
+        icons: dict[str, list[np.ndarray]] = {}
         for hid, h in heroes.items():
             p = folder / f"{h.get('alias')}.png"
             if p.exists():
                 img = cv2.imdecode(np.fromfile(str(p), np.uint8), cv2.IMREAD_COLOR)
                 if img is not None:
-                    icons[hid] = img
+                    icons.setdefault(hid, []).append(img)
+            if extra and hid in extra:
+                icons.setdefault(hid, []).append(extra[hid])
         return cls(icons)
+
+
+CLIENT_ICONS = Path(__file__).resolve().parent.parent / "data" / "client_icons.json"
+
+
+def client_icons(path: Path = CLIENT_ICONS) -> dict[str, np.ndarray]:
+    """内置的拳头客户端头像 {英雄 id: BGR 图}；文件没有或坏了就返回空（只用腾讯的）。"""
+    import base64
+    import json
+    try:
+        d = json.loads(path.read_text(encoding="utf-8"))
+        out = {}
+        for hid, b in d["icons"].items():
+            img = cv2.imdecode(np.frombuffer(base64.b64decode(b), np.uint8), cv2.IMREAD_COLOR)
+            if img is not None:
+                out[hid] = img
+        return out
+    except (OSError, ValueError, KeyError, TypeError) as e:
+        log.warning("内置客户端头像读不到：%s", e)
+        return {}
 
 
 def ensure_icons(folder: Path, heroes: dict[str, dict]) -> int:

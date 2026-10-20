@@ -73,15 +73,54 @@ def test_champselect_read(monkeypatch):
 
 
 def test_team_uses_name_reader_and_gold_name(monkeypatch):
-    """队友头像是皮肤图认不出时，用称号文字；金色称号那一行是自己。"""
+    """队友头像是皮肤图认不出时，用称号文字；金色称号那一行是自己。名字位置没字的空行不读也不比头像。"""
     bank = IconBank(_icons())
     frame = np.full((1080, 1920, 3), 25, np.uint8)
+    frame[176 + 120:206 + 120, 200:300] = (230, 230, 230)  # 第 2 行称号：白字
     frame[176 + 240:206 + 240, 200:300] = (60, 190, 240)  # 第 3 行称号涂成金色（BGR）
-    reads = iter([None, "5", "9", None, None])
+    reads = iter(["5", "9"])
     got = champselect.read(frame, bank, (0, 0), lambda crop: next(reads))
     assert [(s["slot"], s["hero_id"]) for s in got["team"]] == [(1, "5"), (2, "9")]
     assert got["mine"] == "9"
     assert got["bench"] == []
+
+
+def test_empty_team_row_not_matched_by_icon(monkeypatch):
+    """自定义只有自己时，空行的背景碰巧像某个英雄头像（实测认成弗拉基米尔）：名字位置没字就不比头像。"""
+    icons = _icons()
+    bank = IconBank(icons)
+    frame = np.full((1080, 1920, 3), 25, np.uint8)
+    for i in (1, 4):
+        x0, y0, x1, y1 = champselect.boxes("team", 1920, 1080)[i]
+        frame[y0:y1, x0:x1] = cv2.resize(icons["7"], (x1 - x0, y1 - y0))
+    frame[176 + 120:206 + 120, 200:300] = (230, 230, 230)  # 只有第 2 行有人（有名字）
+    got = champselect.read(frame, bank, (0, 0), lambda crop: None)
+    assert [(s["slot"], s["hero_id"]) for s in got["team"]] == [(1, "7")]
+
+
+def test_second_reference_icon():
+    """拳头换了新头像、腾讯 CDN 还是旧的（萨科等）：每个英雄可以有两张参考图，哪张像都认。"""
+    old, new = _icons(seed=0), _icons(seed=5)
+    crop = cv2.resize(new["3"], (64, 64), interpolation=cv2.INTER_AREA)
+    assert IconBank(old).classify(crop).hero_id is None
+    m = IconBank({hid: [old[hid], new[hid]] for hid in old}).classify(crop)
+    assert m.hero_id == "3" and m.second < m.score - 0.1   # 第二名是别的英雄，不是自己的另一张图
+
+
+def test_flat_slot_not_matched():
+    """空位几乎是一块颜色（带一点噪点）：直接当空的，不拿去和头像比。"""
+    bank = IconBank(_icons())
+    rng = np.random.default_rng(3)
+    slot = np.clip(28 + rng.normal(0, 4, (72, 72, 3)), 0, 255).astype(np.uint8)
+    assert bank.classify(slot).hero_id is None and bank.classify(slot).score == 0.0
+
+
+def test_client_icons_file_loads():
+    """内置的拳头客户端头像能读出来，都是英雄（数字 ID 小于 10000）。"""
+    from lolhex.vision.portraits import client_icons
+    icons = client_icons()
+    assert len(icons) >= 170 and all(int(k) < 10000 for k in icons)
+    assert all(im.shape == (64, 64, 3) for im in icons.values())
 
 
 def test_rank_grade_and_summary():
@@ -126,6 +165,24 @@ def test_read_cards_two_or_three():
     cx = (cards[0]["box"][0] + cards[0]["box"][2]) / 2
     assert abs(cx - (10 + 430 + 204)) <= 1
     assert champselect.read_cards(frame, lambda c: ("", 0.0), lambda c: lines, names.get) == []
+
+
+def test_read_cards_redetects_when_one_span_misread(monkeypatch):
+    """按段认字时一张卡读错（「狂厄蔷薇」读成「狂厄普薇」），另一张认对了：也要整条再认一遍，不能只出一张。"""
+    from lolhex.vision.ocr import TextLine
+    frame = np.zeros((1080, 1920, 3), np.uint8)
+    names = {"暴怒骑士": "240", "狂厄蔷薇": "233"}
+    monkeypatch.setattr(champselect, "text_spans", lambda band: [(100, 200), (500, 620)])
+
+    def recognize(crop):
+        if crop.shape[1] == 100:
+            return "暴怒骑士", 0.99
+        if crop.shape[1] == 120:
+            return "狂厄普薇", 0.91
+        return "选择你的英雄", 0.99
+    lines = [TextLine("暴怒骑士", 1.0, (100, 20, 200, 60)), TextLine("狂厄蔷薇", 0.94, (500, 20, 620, 60))]
+    cards = champselect.read_cards(frame, recognize, lambda c: lines, names.get)
+    assert [c["hero_id"] for c in cards] == ["240", "233"]
 
 
 def test_memo_reuses_until_crop_changes():

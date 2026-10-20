@@ -168,13 +168,16 @@ def read_cards(img, recognize, detect, name_to_hero, origin: tuple[int, int] = (
 
     def lines(band):
         # 先按亮度列投影切出每段称号，只对这几段做文字识别（每段约 10ms）；
-        # 切不出来再退回整条文字检测（约 0.5s）
+        # 有一段没认出来（切得太紧读错字，如「狂厄蔷薇」读成「狂厄普薇」）再整条文字检测一遍（约 0.5s），哪次认出的多用哪次
         out = []
         for x0, x1 in text_spans(band):
             t, c = recognize(band[:, x0:x1])
             out.append((t, c, x0, x1))
-        if not any(name_to_hero(t) for t, *_ in out):
-            out = [(ln.text, ln.score, ln.box[0], ln.box[2]) for ln in detect(band)]
+        hits = sum(1 for t, *_ in out if name_to_hero(t))
+        if not out or hits < len(out):
+            full = [(ln.text, ln.score, ln.box[0], ln.box[2]) for ln in detect(band)]
+            if sum(1 for t, *_ in full if name_to_hero(t)) >= hits:
+                out = full
         return out
 
     cards = []
@@ -200,6 +203,12 @@ def read_cards(img, recognize, detect, name_to_hero, origin: tuple[int, int] = (
         else:
             log.info("选英雄：标题在，英雄卡没认全，文字识别读到 %s", [(t, round(float(sc), 2)) for t, sc, *_ in found])
     return cards
+
+
+def has_name(crop) -> bool:
+    """我方这一行名字的位置有没有字：没人的空行（自定义只有自己时）是暗的背景，
+    头像比对可能把空位的背景认成某个英雄（实测弗拉基米尔 0.76），所以没字就不比头像。"""
+    return crop.size > 0 and float((crop.max(axis=2) >= 160).mean()) >= 0.02
 
 
 def my_slot(img) -> int | None:
@@ -231,10 +240,13 @@ def read(img, bank: IconBank, origin: tuple[int, int] = (0, 0), name_reader=None
         found = []
         for i, (x0, y0, x1, y1) in enumerate(boxes(kind, w, h)):
             hid, score = None, 0.0
-            if kind == "team" and name_reader is not None:
+            if kind == "team":
                 nx0, ny0, nx1, ny1 = names[i]
-                hid = memo(("name", i), img[ny0:ny1, nx0:nx1], name_reader, bool)
-                score = 1.0 if hid else 0.0
+                if not has_name(img[ny0:ny1, nx0:nx1]):
+                    continue  # 空行
+                if name_reader is not None:
+                    hid = memo(("name", i), img[ny0:ny1, nx0:nx1], name_reader, bool)
+                    score = 1.0 if hid else 0.0
             if hid is None:
                 m = memo((kind, i), img[y0:y1, x0:x1], bank.classify)
                 hid, score = m.hero_id, m.score
