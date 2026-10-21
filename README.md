@@ -27,6 +27,7 @@
 ## 数据
 
 - 胜率统计：自采对局，见 [aramhex-data](https://github.com/czgreat/aramhex-data)（CC BY-NC 4.0）。只统计采集到的对局，不是全服数据。
+- 在线查询：[aramhex.com/data](https://aramhex.com/data/) 可以按英雄或按海克斯查看。某个英雄每个海克斯的胜率打开 `https://aramhex.com/data/hero/英雄名/`（如 [亚索](https://aramhex.com/data/hero/%E4%BA%9A%E7%B4%A2/)），某个海克斯在每个英雄上的胜率打开 `https://aramhex.com/data/augment/海克斯名/`（如 [秘术冲拳](https://aramhex.com/data/augment/%E7%A7%98%E6%9C%AF%E5%86%B2%E6%8B%B3/)）。
 - 英雄、海克斯、装备、官方出装和加点：腾讯官方公开数据。
 
 ## 从源码运行
