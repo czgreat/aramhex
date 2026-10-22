@@ -1,0 +1,813 @@
+{
+ "encoding": "gzip",
+ "files": {
+  "AramHex.exe": {
+   "sha256": "cfbe2649cd1c4681e80b76048f7f4d8c6cb02836f5e257fe2e0cab7de436d9f0",
+   "size": 8574027
+  },
+  "_internal/PIL/_imaging.cp313-win_amd64.pyd": {
+   "sha256": "88756e8e0e3f6180e518da25d379597c861e2d20d716ef001894789b515c1777",
+   "size": 2632704
+  },
+  "_internal/PIL/_imagingcms.cp313-win_amd64.pyd": {
+   "sha256": "7ecb50b954d13d72b7a0ff565872332443cdbc83a36e58a56b2b949a56f32549",
+   "size": 272384
+  },
+  "_internal/PIL/_imagingft.cp313-win_amd64.pyd": {
+   "sha256": "e94673a471a0b6fd5e92e8b6cdbdfe16e2e91bcf5689e9e4c9b391ab43788d85",
+   "size": 2174976
+  },
+  "_internal/PIL/_imagingmath.cp313-win_amd64.pyd": {
+   "sha256": "9d5bbea6a877a48ed7995a0640ecb0a5567d9fad544a4a1fbf9f22d507029b57",
+   "size": 21504
+  },
+  "_internal/PIL/_imagingtk.cp313-win_amd64.pyd": {
+   "sha256": "8ccd6128481d5a3a15993c2f8a69585694ff972652a6b06dcaee276fc65633a7",
+   "size": 14848
+  },
+  "_internal/PIL/_webp.cp313-win_amd64.pyd": {
+   "sha256": "9918faf8d90faa86e03e48479c6a62383be71da759254afded18591a406a92fe",
+   "size": 416256
+  },
+  "_internal/PySide6/MSVCP140.dll": {
+   "sha256": "4c667b706893593812cd111b369ba6a77f54d1f1b1ae87cf3bf37692663cfba2",
+   "size": 549176
+  },
+  "_internal/PySide6/MSVCP140_1.dll": {
+   "sha256": "d419d24b0a76366f5c9d908b0e45fe70e9e9154bb8ad5f3de42070f2337f857b",
+   "size": 27448
+  },
+  "_internal/PySide6/MSVCP140_2.dll": {
+   "sha256": "89917964abb6ca16a260cab258e180c3abc239b5af00eed659d0edf0efdd339c",
+   "size": 271672
+  },
+  "_internal/PySide6/Qt6Core.dll": {
+   "sha256": "d6a3c37c5263c5d418fc0e80b722bc9fca7c0859e6f635f9624a2fde00bdc653",
+   "size": 10363704
+  },
+  "_internal/PySide6/Qt6Gui.dll": {
+   "sha256": "ae29b005f51b6850bf57fa06fced0dc8c7039fd6fafc3bfbcfe76e38adc7abf1",
+   "size": 9546552
+  },
+  "_internal/PySide6/Qt6Network.dll": {
+   "sha256": "dd3512d1c5ed062d30c98426cd0a850f13e0cf31437afb5b0b474132b9c52922",
+   "size": 1751352
+  },
+  "_internal/PySide6/Qt6Svg.dll": {
+   "sha256": "1eac8f7415b311a88cb3cb4e25c3098d0e059c24c831fbbb13f43a80f0df06b7",
+   "size": 609080
+  },
+  "_internal/PySide6/Qt6Widgets.dll": {
+   "sha256": "ff0df9e2e6827e035f0731a4cedfc6333f4602bca00775e56346f27032406b74",
+   "size": 6497080
+  },
+  "_internal/PySide6/QtCore.pyd": {
+   "sha256": "74f96322c5e9cea73aefd2ed5870e5275336b31f552fcd32f12fc81d23f1bc6f",
+   "size": 3345720
+  },
+  "_internal/PySide6/QtGui.pyd": {
+   "sha256": "7bef20046045199c037b7cbfedaa1c5464730fa948b2c9ec8afbf718e63774d4",
+   "size": 3901240
+  },
+  "_internal/PySide6/QtNetwork.pyd": {
+   "sha256": "c5038bb71fc9d57330fa2d8eeec65aab69fcf02687cc8f54dbfb5995cfec6a71",
+   "size": 1009464
+  },
+  "_internal/PySide6/QtWidgets.pyd": {
+   "sha256": "f12f4ca641998e5706d5f7b0023147d573f0f2d2361e26dadf31bdbf05fbfd1d",
+   "size": 4857656
+  },
+  "_internal/PySide6/VCRUNTIME140.dll": {
+   "sha256": "f893ae75a1a24eea174d982f94bc80ce2448201eaa919a73c0653a5657685de4",
+   "size": 116024
+  },
+  "_internal/PySide6/VCRUNTIME140_1.dll": {
+   "sha256": "48aa2783793ea18ab3c2c71d420d4fff9814e662a1ff810053c6e5250061a716",
+   "size": 41272
+  },
+  "_internal/PySide6/plugins/generic/qtuiotouchplugin.dll": {
+   "sha256": "aa9080fa8b1c3cf4d3790c1eecf4a1f5c796ce58f31f80910357578f20fd80ac",
+   "size": 101176
+  },
+  "_internal/PySide6/plugins/iconengines/qsvgicon.dll": {
+   "sha256": "5bb97b6f114682ae0b5f42b23b6818aece6499bad88dac80a138efa8a88c12bc",
+   "size": 72504
+  },
+  "_internal/PySide6/plugins/imageformats/qgif.dll": {
+   "sha256": "d301d7e9a68327692e4c76faa6b125517730b22c68f4de7f09fda9d4ac0ddee1",
+   "size": 47928
+  },
+  "_internal/PySide6/plugins/imageformats/qicns.dll": {
+   "sha256": "49db148fea9f01e9953fd0a771d16cfaf364599f07aab3634d4f5c7c25abd78a",
+   "size": 57144
+  },
+  "_internal/PySide6/plugins/imageformats/qico.dll": {
+   "sha256": "1684fd56f1758167f7b3ac011264ae5859b3cf6113e381626ec3dc1d3122fe52",
+   "size": 46904
+  },
+  "_internal/PySide6/plugins/imageformats/qjpeg.dll": {
+   "sha256": "6517345ac19f5c489daeadc029d0018bbdc09d8e1031c60d714557972f22c6d4",
+   "size": 591672
+  },
+  "_internal/PySide6/plugins/imageformats/qsvg.dll": {
+   "sha256": "4b7d65ba39be58cb469b54b5fdee2987871d67e5050cd70724016e09966e54f6",
+   "size": 39736
+  },
+  "_internal/PySide6/plugins/imageformats/qtga.dll": {
+   "sha256": "6b0381150070fcd4224597fe73c68b47055b30b418aa14794c94c5007d14ca5d",
+   "size": 38200
+  },
+  "_internal/PySide6/plugins/imageformats/qtiff.dll": {
+   "sha256": "3d6ea04da215ee2a9459399fb9f6d73cad8787944b9d450399025bcd39d020b5",
+   "size": 445752
+  },
+  "_internal/PySide6/plugins/imageformats/qwbmp.dll": {
+   "sha256": "1a4596509987e9557edda69ed13cdd0d33f4ebda72e464ddc00a566bec05f151",
+   "size": 36664
+  },
+  "_internal/PySide6/plugins/imageformats/qwebp.dll": {
+   "sha256": "6b2c53cc4423140c29a6a1eb6dd908016e09d794b5739a05a3a39c8c49a0df8a",
+   "size": 564536
+  },
+  "_internal/PySide6/plugins/networkinformation/qnetworklistmanager.dll": {
+   "sha256": "e571a4b4e582738cd1bc4889cb2896635c2543baff408442701b6706a1b4a86e",
+   "size": 79160
+  },
+  "_internal/PySide6/plugins/platforms/qminimal.dll": {
+   "sha256": "768a9c6dbb1c86abbefa2ff9d7e98cdfb4fdc9292eb8d64195bb6d23939a5344",
+   "size": 61752
+  },
+  "_internal/PySide6/plugins/platforms/qoffscreen.dll": {
+   "sha256": "e776251668440169ed18a2fe1b236762d514ef5244639cbb559b5a77ddd38954",
+   "size": 110904
+  },
+  "_internal/PySide6/plugins/platforms/qwindows.dll": {
+   "sha256": "bf6dbc3009f386fa22f0ced560bea6bbf3e0e0b4442d2fb855db67cffce49dbf",
+   "size": 991032
+  },
+  "_internal/PySide6/plugins/styles/qmodernwindowsstyle.dll": {
+   "sha256": "a7a6424c23bf371bd28a404a196b210971726f6f2a87b63aac185a5e6e40da71",
+   "size": 240440
+  },
+  "_internal/PySide6/plugins/tls/qcertonlybackend.dll": {
+   "sha256": "67be4d333a0f489d02714169a6ec54eaa80efa649d733fcbeb81881ecb02b4f3",
+   "size": 104760
+  },
+  "_internal/PySide6/plugins/tls/qopensslbackend.dll": {
+   "sha256": "7a0727417b8e21e64d9a7cf0f390bc85b3e337b4eef5ac977f49659d97e6b552",
+   "size": 314168
+  },
+  "_internal/PySide6/plugins/tls/qschannelbackend.dll": {
+   "sha256": "14abc5b245c0f2e03f7bc0b474a8db2ecb441c7300a8a8b16fb865eaf2674619",
+   "size": 247608
+  },
+  "_internal/PySide6/pyside6.abi3.dll": {
+   "sha256": "d0b5c701fb3a8ea839e72b602058f3960935156ebeca084893c54c99e54dd707",
+   "size": 255288
+  },
+  "_internal/Shapely.libs/geos-bf067cd6ff74ee0ad5f3ff52c7ef08c9.dll": {
+   "sha256": "0948bdb5c70b82e5055b55e9419b78d68372b1d0ec877277fa6e79276f6299b9",
+   "size": 2627584
+  },
+  "_internal/Shapely.libs/geos_c-6dd9fd915eef8a7928285416bef1e666.dll": {
+   "sha256": "6e65985b30831761887de3217853a720147626b18cb41668cd2bdc43d1bcded1",
+   "size": 501760
+  },
+  "_internal/Shapely.libs/msvcp140-0fa7eb792d3fbcf2233e4ea47e9144b9.dll": {
+   "sha256": "0fa7eb792d3fbcf2233e4ea47e9144b9b1309ba8ed5d4731a72fffa8f4f556d6",
+   "size": 557416
+  },
+  "_internal/_asyncio.pyd": {
+   "sha256": "6654dfbf4cc92609801f35022acaddd3fc19e6c777b7771b0f0a68f5813889a8",
+   "size": 72928
+  },
+  "_internal/_bz2.pyd": {
+   "sha256": "6da4d453852346299e983b458f3ec2f0db3b5f765998ba3f45c91b4a1549037b",
+   "size": 86752
+  },
+  "_internal/_ctypes.pyd": {
+   "sha256": "5bcddf4c374c4d247e1e4a61f3347159c36c5785fe43bdae11a4e6c9ea2c0166",
+   "size": 134368
+  },
+  "_internal/_decimal.pyd": {
+   "sha256": "eeb278dfbdb305bb5af916ed79e878943e25dc4bd6e99ec17abb7b3fd9f935d5",
+   "size": 286944
+  },
+  "_internal/_elementtree.pyd": {
+   "sha256": "34968e3aebdb3e89cb1472b75b04986ce1bbf27d290f4154d77649cc17c41fab",
+   "size": 136416
+  },
+  "_internal/_hashlib.pyd": {
+   "sha256": "4d3eb9d9492d626c7bb10cfe5ab233a9195ec7b27e92b465b287e7a24fc8266c",
+   "size": 69344
+  },
+  "_internal/_lzma.pyd": {
+   "sha256": "2b4dcb12c0420ffced4b91968ae4eff6cb585f0f07490160c6da47da63064a99",
+   "size": 159456
+  },
+  "_internal/_multiprocessing.pyd": {
+   "sha256": "5017bb9dd0d5ab6d7c0f007763d7906d33464f0b436ac6577f1f4fffd5c98986",
+   "size": 38112
+  },
+  "_internal/_overlapped.pyd": {
+   "sha256": "3f393b2ce1fe5973fc45e49dffcf51405fa875cdb284cf96b2f0d4b93b08765c",
+   "size": 57568
+  },
+  "_internal/_queue.pyd": {
+   "sha256": "79c196a0804b152fc48b4055387f4352838e41c28863a0c946e7a98137e681e1",
+   "size": 35552
+  },
+  "_internal/_socket.pyd": {
+   "sha256": "c5936292083189e0675a96ddd0e38235726f1c58195cec64eb0085b9c479ddce",
+   "size": 86752
+  },
+  "_internal/_ssl.pyd": {
+   "sha256": "30ff82a3ea0c675ddc99e6b14f71ca750f06e77d6653e2da3d7d35b7ef0fc2ed",
+   "size": 190688
+  },
+  "_internal/_wmi.pyd": {
+   "sha256": "f88c322f871aef92de562278bd25c34c6e758642669d5512a22ed972840317b1",
+   "size": 39648
+  },
+  "_internal/base_library.zip": {
+   "sha256": "b234f40319725eec91182ce96c34cba15713656902e8f8ee4a957a4f019aa48c",
+   "size": 1409453
+  },
+  "_internal/certifi/cacert.pem": {
+   "sha256": "9cc2a774b5198dcff14d9be1e66091f538975d867ce029a96bce15a55dfd730f",
+   "size": 240216
+  },
+  "_internal/certifi/py.typed": {
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "size": 0
+  },
+  "_internal/charset_normalizer/cd.cp313-win_amd64.pyd": {
+   "sha256": "9cccc0b9eb9f514f25cf21d9a8f09948506978ffa19d80ccd6be8df9a9890095",
+   "size": 115200
+  },
+  "_internal/charset_normalizer/md.cp313-win_amd64.pyd": {
+   "sha256": "b484d0fc3d09e52a4974f4aebfc8f79cc5e4f38e375d76402b93905f03f803b1",
+   "size": 206336
+  },
+  "_internal/cv2/__init__.py": {
+   "sha256": "674817e87409bc589608ef9f4dd4c1a49f600b5e85ca8b106b3b0a9eab5c46cc",
+   "size": 6811
+  },
+  "_internal/cv2/config-3.py": {
+   "sha256": "de28c7b5213cca148f09469916584611b3d66c1c8c432880259d6a3a92380213",
+   "size": 748
+  },
+  "_internal/cv2/config.py": {
+   "sha256": "6c6367abce55995ae4a8d3c199420ec53afab287cb17dfc2f430378af75dd301",
+   "size": 123
+  },
+  "_internal/cv2/cv2.pyd": {
+   "sha256": "f1e76ab01cf4d33af780adf8ada1a26c5eaeecc55d2cbe8a5e288195e8f9b0dd",
+   "size": 86293504
+  },
+  "_internal/cv2/data/__init__.py": {
+   "sha256": "f4ce16721ed7f623a4dcc443ba600d1856db610cb2c3d53c13a8ca028cc68f6d",
+   "size": 73
+  },
+  "_internal/cv2/load_config_py3.py": {
+   "sha256": "074dfaf20ac94f2ca3815393de3a394944470334c51a85b9521f452e0e17bb85",
+   "size": 253
+  },
+  "_internal/cv2/mat_wrapper/__init__.py": {
+   "sha256": "c44707ea1c76f35518ae572b6c1989d76c2ada7e850432e41805dfe112d4e306",
+   "size": 1164
+  },
+  "_internal/cv2/misc/__init__.py": {
+   "sha256": "495bd79594cce174673e372c85c4dd8f4ffdf2b3a73fd4623955b0d55de0d462",
+   "size": 38
+  },
+  "_internal/cv2/misc/version.py": {
+   "sha256": "c93a418793fcb15b9b4316c0741b8336740e490e94f3b7d1ebe8cd5f6f23815c",
+   "size": 95
+  },
+  "_internal/cv2/typing/__init__.py": {
+   "sha256": "f8a066f22a98b56641a69200f0aaf9c3b5832b2f59f57862e56289cced8d9179",
+   "size": 4465
+  },
+  "_internal/cv2/utils/__init__.py": {
+   "sha256": "2b16990b35b569af1ca7239dc10f7b24ec62f27a46626b1e2f1271d2e1aa3554",
+   "size": 344
+  },
+  "_internal/cv2/version.py": {
+   "sha256": "fc17efee9203c23cac641981068621e80d3b0bbabe459f4133c9b2b4d91957fb",
+   "size": 96
+  },
+  "_internal/libcrypto-3.dll": {
+   "sha256": "75495fe0e079ab00d49be740d3c710a0b94e3f74f9648cb7cc9f768fc7f52319",
+   "size": 6021880
+  },
+  "_internal/libffi-8.dll": {
+   "sha256": "eff52743773eb550fcc6ce3efc37c85724502233b6b002a35496d828bd7b280a",
+   "size": 39696
+  },
+  "_internal/libssl-3.dll": {
+   "sha256": "8957182a9c385bfd9f3f790921de2ddc614cf91f99edbed4e9e5446a46504e32",
+   "size": 1308920
+  },
+  "_internal/lolhex/data/bundled/augments.json": {
+   "sha256": "302740c60e441e11ed24614c6971d535429a9214ea742cd066a8fce7dc2d5d97",
+   "size": 14570
+  },
+  "_internal/lolhex/data/bundled/hero_augments.json": {
+   "sha256": "c2ebc4c428258596d08a09a820ab41b863a089bfa5e12a9bb567215b5661d24e",
+   "size": 2282214
+  },
+  "_internal/lolhex/data/bundled/hero_spells.json": {
+   "sha256": "10420b6c82a139f83a225ea784133987cceebf697ac88c8f440230eaa49257b2",
+   "size": 169379
+  },
+  "_internal/lolhex/data/bundled/heroes.json": {
+   "sha256": "b6331df088a7d327e43ee9400360b9c2f155b5a55c9eebbb6abf06ea7fc7795a",
+   "size": 27714
+  },
+  "_internal/lolhex/data/bundled/latest.json": {
+   "sha256": "fe19face8146bb1852107a0f49deb249cb711385205229dddd52c958301e2331",
+   "size": 1432
+  },
+  "_internal/lolhex/data/bundled/meta.json": {
+   "sha256": "199bb2fc4667ff40896e98e10d9b4d0d2faa80fd2fd80a75360b94bd01d863d2",
+   "size": 7962
+  },
+  "_internal/lolhex/data/cacert.pem": {
+   "sha256": "3fe7299531d4596a76e7af8fea740261562bd45f01030f3d5dce6bd01c593dbf",
+   "size": 234404
+  },
+  "_internal/lolhex/data/client_icons.json": {
+   "sha256": "12b682ead6343f07d78c5111509593f7b50164f3386e13e54bb62cc475135a7a",
+   "size": 647588
+  },
+  "_internal/lolhex/data/hero_aliases.json": {
+   "sha256": "30336d4b8dd786a1fc6ea2ed62db8c6ca99a6e6db13e5ec379c1f554dfda1544",
+   "size": 7038
+  },
+  "_internal/lolhex/data/hero_icons.json": {
+   "sha256": "62496803cc1434b73983167499cb408437c4eaea4bbb325ba1c50d052a966d71",
+   "size": 4378783
+  },
+  "_internal/lolhex/data/hero_nicknames.json": {
+   "sha256": "6be0f8bfc693bb157c7e27b920ef0f9136b9a60ead5036eab93a321cf227d635",
+   "size": 3796
+  },
+  "_internal/lolhex/data/i18n.json": {
+   "sha256": "675c1067f938ad0092794ad5d092fc9cc71fc27c7f3d99ce3c8fbbdf2caa1940",
+   "size": 81153
+  },
+  "_internal/lolhex/ui/icon.png": {
+   "sha256": "e03b6e74ab87ab1801567507cae2fef441c97a4ed1cea72759ec997423519d62",
+   "size": 32251
+  },
+  "_internal/msvcp140.dll": {
+   "sha256": "7c26614e1d733892c2deac7e245ce115504b1d80592dd0a01b08e3e5a55f89ca",
+   "size": 643512
+  },
+  "_internal/numpy-2.5.3.dist-info/DELVEWHEEL": {
+   "sha256": "227ef1899db659002e9441b560a9ad0ff065bf8ee0ba1626060f2fb4f62175b5",
+   "size": 462
+  },
+  "_internal/numpy-2.5.3.dist-info/INSTALLER": {
+   "sha256": "ceebae7b8927a3227e5303cf5e0f1f7b34bb542ad7250ac03fbcde36ec2f1508",
+   "size": 4
+  },
+  "_internal/numpy-2.5.3.dist-info/METADATA": {
+   "sha256": "451a9b8028000588e66b0b415587b6aef0bbc51a96d8e8a0cba0dc23acf64f99",
+   "size": 6635
+  },
+  "_internal/numpy-2.5.3.dist-info/RECORD": {
+   "sha256": "67fd65914b66dc0bf621f29e16444d246fcc5630cded405fbdfccbb3cc066533",
+   "size": 113358
+  },
+  "_internal/numpy-2.5.3.dist-info/REQUESTED": {
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "size": 0
+  },
+  "_internal/numpy-2.5.3.dist-info/WHEEL": {
+   "sha256": "b2eabc011af16e223b88b1f70602bef36bb3c50fb81e6fa6f30d35a02a24aed0",
+   "size": 85
+  },
+  "_internal/numpy-2.5.3.dist-info/entry_points.txt": {
+   "sha256": "ec26fade0c8bdac211a6c1dd003a65eb16885b925395423e93fcaa115af4052c",
+   "size": 220
+  },
+  "_internal/numpy-2.5.3.dist-info/licenses/LICENSE.txt": {
+   "sha256": "a804dff0ead9fadc5293456410bcbfc32bf024be9c4513459663fb7b442d2341",
+   "size": 45831
+  },
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/_core/include/numpy/libdivide/LICENSE.txt": {
+   "sha256": "d544761558b510866c21f7e8a2d5716fca76e0b98117e3b6b86314db7244d150",
+   "size": 1039
+  },
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/_core/src/common/pythoncapi-compat/COPYING": {
+   "sha256": "aea41976c720f91bd19725c16916a1ace40eb1ea42620d340e587a5de4bbcea0",
+   "size": 704
+  },
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/_core/src/highway/LICENSE": {
+   "sha256": "d208152e2777ffd0126eacc1bd21c0320d69e4e6b622d21a2a12a47e8ef73763",
+   "size": 21155
+  },
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/_core/src/multiarray/dragon4_LICENSE.txt": {
+   "sha256": "b0fd592d4ead563148e3977e7b589169d46a5ef2ff133c755a81af880a3fc919",
+   "size": 1441
+  },
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/_core/src/npysort/x86-simd-sort/LICENSE.md": {
+   "sha256": "a732977853530066790c42817087f4829b518dd98d340c916acbfd227e39d3cb",
+   "size": 1542
+  },
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/_core/src/umath/svml/LICENSE": {
+   "sha256": "585483905b13d4b42f800c55ba99e89d6e2e33ccd5f503e201c07531d148ff41",
+   "size": 1573
+  },
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/fft/pocketfft/LICENSE.md": {
+   "sha256": "8db000e158c162e7249787852d8c69764706502ccee725c06641b31c1e95c8af",
+   "size": 1523
+  },
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/linalg/lapack_lite/LICENSE.txt": {
+   "sha256": "19060ef465e1797d682ee0fc3081bd25ab1395e995e43d25c9d13c95d9a3cd6b",
+   "size": 2314
+  },
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/ma/LICENSE": {
+   "sha256": "d78dbb208b80d92b4d333e41a4baae50d12444f46e53199fa7726a91de6e2da7",
+   "size": 1616
+  },
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/random/LICENSE.md": {
+   "sha256": "b4bc2f4fa1c95778f1ed3dd8f14706bece399475b978f9f34b5d3cd72521b48a",
+   "size": 3582
+  },
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/random/src/distributions/LICENSE.md": {
+   "sha256": "cf5619f25b112d5ce7c896efffc8e610bcb345dfadcc19f2c1460aa48fff2c9e",
+   "size": 2805
+  },
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/random/src/mt19937/LICENSE.md": {
+   "sha256": "92c10699884321f1c2947fe2a70ab23b0fbf1507f756d89dd08f38c61fc3d4fa",
+   "size": 2986
+  },
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/random/src/pcg64/LICENSE.md": {
+   "sha256": "41190663b77bee5302386495a07b7eabfbfa571aa0ae2f11da6764162062fc4f",
+   "size": 1176
+  },
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/random/src/philox/LICENSE.md": {
+   "sha256": "322ac46d870c8aeead6c53adcccc839296fb3c8e456eae155081297daf7f8013",
+   "size": 1540
+  },
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/random/src/sfc64/LICENSE.md": {
+   "sha256": "28cad82ce1379dc529df30da78ec012d7d0d1d576b03ddcb93388aee53659f59",
+   "size": 1253
+  },
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/random/src/splitmix64/LICENSE.md": {
+   "sha256": "454ec7350e478e037061850b67395753b425b1cb0a34bbc26290b020bf89d763",
+   "size": 340
+  },
+  "_internal/numpy.libs/libscipy_openblas64_-ed4f167a5330424524f45258e7ca2c8d.dll": {
+   "sha256": "ed4f167a5330424524f45258e7ca2c8d7f03c0cba1f30ee4985553ac1f88ecf8",
+   "size": 20589056
+  },
+  "_internal/numpy.libs/msvcp140-a4c2229bdc2a2a630acdc095b4d86008.dll": {
+   "sha256": "a4c2229bdc2a2a630acdc095b4d86008e5c3e3bc7773174354f3da4f5beb9cde",
+   "size": 575056
+  },
+  "_internal/numpy/_core/_multiarray_tests.cp313-win_amd64.pyd": {
+   "sha256": "f63fc28bf2ba5ad9dcd005fac619f7db755cfd042ba9cfd737580afc144505fc",
+   "size": 65024
+  },
+  "_internal/numpy/_core/_multiarray_umath.cp313-win_amd64.pyd": {
+   "sha256": "db35bf93aeb4bb054c87b525cc83e8dbcbf00c6555ab8599c5cb83f6b0662da9",
+   "size": 3852288
+  },
+  "_internal/numpy/fft/_pocketfft_umath.cp313-win_amd64.pyd": {
+   "sha256": "37f2489f7f77abcccf3b25d6ef8991603b0091f30b588c0f055b62447a5b1f8f",
+   "size": 276480
+  },
+  "_internal/numpy/linalg/_umath_linalg.cp313-win_amd64.pyd": {
+   "sha256": "2e9de32125fbcaeace0c92b03d73b8aa2350145745b1c8becf630b2115e72a1a",
+   "size": 112128
+  },
+  "_internal/numpy/random/_bounded_integers.cp313-win_amd64.pyd": {
+   "sha256": "272f4ccc58c126859f1bf8d68567a5e9af7cac506c2e8ee8af2534ee5f17a594",
+   "size": 208896
+  },
+  "_internal/numpy/random/_common.cp313-win_amd64.pyd": {
+   "sha256": "39ca41cd798b1764cf4b7e5a4da90f0310a7fc0eaf28d6a4c0e8ae82bb737797",
+   "size": 174080
+  },
+  "_internal/numpy/random/_generator.cp313-win_amd64.pyd": {
+   "sha256": "89ea4a8afb7c6f40698a4109f7de0cc724f39df532066addcb22fab5ad4e6036",
+   "size": 623104
+  },
+  "_internal/numpy/random/_mt19937.cp313-win_amd64.pyd": {
+   "sha256": "cbbf3102f191dbde91e92a9f6c92f0bbdc5dcff503ab1bfbdb71a20d58d59f1c",
+   "size": 92160
+  },
+  "_internal/numpy/random/_pcg64.cp313-win_amd64.pyd": {
+   "sha256": "9e52e35228d84ce08892bda073eeda77090b0bdcb03358073d18e85c51b30a44",
+   "size": 103936
+  },
+  "_internal/numpy/random/_philox.cp313-win_amd64.pyd": {
+   "sha256": "ae88e8dd59fb6b10ccc58f532981d064334da2ee95625a9362470a9e1340c15a",
+   "size": 88576
+  },
+  "_internal/numpy/random/_sfc64.cp313-win_amd64.pyd": {
+   "sha256": "0edc859b239f52918535b69b1afd675e2021e04474d08db3b931c69ba35caf98",
+   "size": 62976
+  },
+  "_internal/numpy/random/bit_generator.cp313-win_amd64.pyd": {
+   "sha256": "d42e032016f4066e24f3069534d1827547e47fac5ed09af65e75b43f756bf425",
+   "size": 172032
+  },
+  "_internal/numpy/random/mtrand.cp313-win_amd64.pyd": {
+   "sha256": "7e04661bf0700be326854ff3c29b62e557b771b26c71e92108bc734281eb4187",
+   "size": 521728
+  },
+  "_internal/onnxruntime/capi/onnxruntime.dll": {
+   "sha256": "5e58353170677b13f05d867f93648c8783b11ac9146f330651d281701180c186",
+   "size": 18446136
+  },
+  "_internal/onnxruntime/capi/onnxruntime_providers_shared.dll": {
+   "sha256": "481ad4c0c172ad0be5936b92f2321af4c6550d8a4fdc845a7e60b29db0db6281",
+   "size": 21816
+  },
+  "_internal/onnxruntime/capi/onnxruntime_pybind11_state.pyd": {
+   "sha256": "b9be320ee8dd474fe567c6f1293732db05d82aa4ddf7b1bf2e3b0af80f5aead0",
+   "size": 19111736
+  },
+  "_internal/pyclipper/_pyclipper.cp313-win_amd64.pyd": {
+   "sha256": "e67fa9f1fb855fff05c34bc9ea568956bf3b78b062f5db05f67dc8adff027f50",
+   "size": 222208
+  },
+  "_internal/pyexpat.pyd": {
+   "sha256": "3865fae84ff0f274c049e737731cd8aa184fae208af5b4c0d0cfc42a38f79cea",
+   "size": 200416
+  },
+  "_internal/python3.dll": {
+   "sha256": "a1a32b2475675e784d9b34d33d3a8f3e4afaa563da1feb784b0dd69fc4d8f9dc",
+   "size": 72416
+  },
+  "_internal/python313.dll": {
+   "sha256": "3b29bf9ff39bed8f660f5b935f19657f7ce7f145009851741b11364f6ebcb862",
+   "size": 6142176
+  },
+  "_internal/rapidfuzz/_feature_detector_cpp.cp313-win_amd64.pyd": {
+   "sha256": "98c22cc6270dc07f2ac119d3447b1cd2f1353176702c0f2b06683b6b982d8f7f",
+   "size": 35328
+  },
+  "_internal/rapidfuzz/distance/_initialize_cpp.cp313-win_amd64.pyd": {
+   "sha256": "d2417efa97fe79bb3b5bb448cd6de9fa073f6bccda2e7be3236638b3b5a2dd84",
+   "size": 235008
+  },
+  "_internal/rapidfuzz/distance/metrics_cpp.cp313-win_amd64.pyd": {
+   "sha256": "08406e9ce9c52ad6a556ac20f34135865419e1527889a23de8d678d78cef3164",
+   "size": 1526784
+  },
+  "_internal/rapidfuzz/distance/metrics_cpp_avx2.cp313-win_amd64.pyd": {
+   "sha256": "7dadfb9d25d10b876c813e2b1d8a7f361a8cb94c528f96cf1076f0a6d159b49f",
+   "size": 1537536
+  },
+  "_internal/rapidfuzz/fuzz_cpp.cp313-win_amd64.pyd": {
+   "sha256": "1d8b5528b2e9371ffb0d0e088b98b5969b06393aebf5f894a81ac0f4490985c5",
+   "size": 816640
+  },
+  "_internal/rapidfuzz/fuzz_cpp_avx2.cp313-win_amd64.pyd": {
+   "sha256": "ff2222156d573e1b7f8d947b22e15b6cb6a43cfd0d3e4816d70a64349a38d445",
+   "size": 827904
+  },
+  "_internal/rapidfuzz/process_cpp_impl.cp313-win_amd64.pyd": {
+   "sha256": "35cc85184a2c5f4526221a6a0c175428534911119bd940a8f98e98205b27b02d",
+   "size": 510464
+  },
+  "_internal/rapidfuzz/utils_cpp.cp313-win_amd64.pyd": {
+   "sha256": "f5439d744f62cb6f64213f123f17e212f939f020b7a415dd75aea9a505b4621f",
+   "size": 161280
+  },
+  "_internal/rapidocr/__init__.pyi": {
+   "sha256": "395fe9059dabb8578b15a2b273dc2545f6a9373dc614c24b2d035a6dbe4057a8",
+   "size": 553
+  },
+  "_internal/rapidocr/config.yaml": {
+   "sha256": "06623941e188461a0bc263fe16175cb5e5f6f6b01f4387e546d3a741569fc021",
+   "size": 4225
+  },
+  "_internal/rapidocr/default_models.yaml": {
+   "sha256": "db47df9d6b071721f1633667b41cfef1e40b5d7f09be030aaea8be801ca2f2f5",
+   "size": 71521
+  },
+  "_internal/rapidocr/inference_engine/pytorch/networks/arch_config.yaml": {
+   "sha256": "3bc09a1d74372260039edabd3a17cec3b61e97d7d2458459c05ed05fdccb5308",
+   "size": 10904
+  },
+  "_internal/rapidocr/models/.gitkeep": {
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "size": 0
+  },
+  "_internal/rapidocr/models/PP-OCRv6_det_small.onnx": {
+   "sha256": "090f04abcd9d9a7498bc4ebf677e4cb9bdce1fe4197ddb7e529f1ef44e1ff94f",
+   "size": 9929594
+  },
+  "_internal/rapidocr/models/PP-OCRv6_rec_small.onnx": {
+   "sha256": "6f327246b50388f3c176ae304bd95767ea6dc0c9ae92153ef8cbe210b3c14884",
+   "size": 21234383
+  },
+  "_internal/rapidocr/models/ch_ppocr_mobile_v2.0_cls_mobile.onnx": {
+   "sha256": "e47acedf663230f8863ff1ab0e64dd2d82b838fceb5957146dab185a89d6215c",
+   "size": 585532
+  },
+  "_internal/rapidocr/py.typed": {
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "size": 0
+  },
+  "_internal/select.pyd": {
+   "sha256": "17df388a7aa42e7f066b80aa4f77cbbba9286495e6f3508425806be6766d122b",
+   "size": 32992
+  },
+  "_internal/setuptools/_vendor/jaraco/text/Lorem ipsum.txt": {
+   "sha256": "37fedcffbf73c4eb9f058f47677cb33203a436ff9390e4d38a8e01c9dad28e0b",
+   "size": 1335
+  },
+  "_internal/shapely/_geometry_helpers.cp313-win_amd64.pyd": {
+   "sha256": "e886cea026fab9c73371191422c466b4504b6ebea6d76cf19165ff200d0fee1b",
+   "size": 233472
+  },
+  "_internal/shapely/_geos.cp313-win_amd64.pyd": {
+   "sha256": "f99913f3f3776a5428f1a6d726e1851972dceadbec978e814bbc243062c6a10a",
+   "size": 49664
+  },
+  "_internal/shapely/lib.cp313-win_amd64.pyd": {
+   "sha256": "eefc6adc94e1a38a61ff574f9b1458df7c0c5b7b1809f08d30810373b5ba29ce",
+   "size": 166912
+  },
+  "_internal/shiboken6/MSVCP140.dll": {
+   "sha256": "fd4a8c046fa3fea9ca6132f50cf8a56cf1e783b2d3093ba5c85fa063bc6b3845",
+   "size": 549176
+  },
+  "_internal/shiboken6/MSVCP140_1.dll": {
+   "sha256": "7f556f0a0b944df7b64b916b344a070b7e6f6cf342194475594447ca88c07659",
+   "size": 27448
+  },
+  "_internal/shiboken6/Shiboken.pyd": {
+   "sha256": "2f6f3a694f675b1dafdae26903191613c02866ab48e02591ae34ca1a3b1284f1",
+   "size": 33592
+  },
+  "_internal/shiboken6/VCRUNTIME140.dll": {
+   "sha256": "de617641d82eac15595d2e39394163ac33e49bb032cf2c2ea0044ed39d3675e9",
+   "size": 116024
+  },
+  "_internal/shiboken6/VCRUNTIME140_1.dll": {
+   "sha256": "fa577d54bd10a91e52472da784a619da6cf241af45f0a0c48b27e91fa0fe6104",
+   "size": 41272
+  },
+  "_internal/shiboken6/shiboken6.abi3.dll": {
+   "sha256": "de3c6b2ed5f75c9ac0de4a6844b653b3b9d09263ce68c2b5fc25a96c5c3e8469",
+   "size": 394040
+  },
+  "_internal/tqdm-4.70.1.dist-info/INSTALLER": {
+   "sha256": "ceebae7b8927a3227e5303cf5e0f1f7b34bb542ad7250ac03fbcde36ec2f1508",
+   "size": 4
+  },
+  "_internal/tqdm-4.70.1.dist-info/METADATA": {
+   "sha256": "a5da70b966afea3a759716041bad7187f2ece02c22348cf9e7c0a512bbf15f57",
+   "size": 57366
+  },
+  "_internal/tqdm-4.70.1.dist-info/RECORD": {
+   "sha256": "1711ff3883b8d87ff0d2ade77be36ad72fc0459d998cd3920c9614ba721665ed",
+   "size": 4551
+  },
+  "_internal/tqdm-4.70.1.dist-info/WHEEL": {
+   "sha256": "61532836a2b3111b7ec23519c09df7c41180c27165fb872a6d8913b566b88ad1",
+   "size": 91
+  },
+  "_internal/tqdm-4.70.1.dist-info/entry_points.txt": {
+   "sha256": "45e2421fb522dd9ca1e8cd7a1383a1b19d6853b5ad31709f6eda3206118edbd6",
+   "size": 39
+  },
+  "_internal/tqdm-4.70.1.dist-info/licenses/LICENCE": {
+   "sha256": "fcff87c3a47ce8028a8512aa182d4fcf0ad1c90544ee75cf9b343684cac194de",
+   "size": 1985
+  },
+  "_internal/tqdm-4.70.1.dist-info/top_level.txt": {
+   "sha256": "34b89424d7e673d02dd79b3b254462c2fa8c123522f46e4f30646b98c6333523",
+   "size": 5
+  },
+  "_internal/unicodedata.pyd": {
+   "sha256": "d113047658f92d893bf4ee2da81ffbd624ec5c485733c02e116fac1b9a1b964c",
+   "size": 712416
+  },
+  "_internal/vcruntime140.dll": {
+   "sha256": "d1f4225df2cd877dbf130d5668a021dce3f94118455ff5ec952061c30afc9ce7",
+   "size": 178616
+  },
+  "_internal/vcruntime140_1.dll": {
+   "sha256": "a7146c08f89fe5b04541ab507cdb59ff7b44534d4ba3c668a426c6450a03434e",
+   "size": 50112
+  },
+  "_internal/yaml/_yaml.cp313-win_amd64.pyd": {
+   "sha256": "8a747bb4bb166b3caf53c5ee91931eb1317cc3ad617f18dcd12dd8c181ced226",
+   "size": 253952
+  }
+ },
+ "packed": {
+  "AramHex.exe": 8384990,
+  "_internal/base_library.zip": 423881,
+  "_internal/lolhex/data/bundled/augments.json": 3163,
+  "_internal/lolhex/data/bundled/hero_augments.json": 277920,
+  "_internal/lolhex/data/bundled/hero_spells.json": 15650,
+  "_internal/lolhex/data/bundled/heroes.json": 7040,
+  "_internal/lolhex/data/bundled/latest.json": 855,
+  "_internal/lolhex/data/bundled/meta.json": 2927,
+  "_internal/lolhex/data/cacert.pem": 129179,
+  "_internal/lolhex/data/client_icons.json": 383295,
+  "_internal/lolhex/data/hero_aliases.json": 2525,
+  "_internal/lolhex/data/hero_icons.json": 3301379,
+  "_internal/lolhex/data/hero_nicknames.json": 1322,
+  "_internal/lolhex/data/i18n.json": 29546,
+  "_internal/lolhex/ui/icon.png": 31871,
+  "_internal/msvcp140.dll": 202096,
+  "_internal/numpy-2.5.3.dist-info/DELVEWHEEL": 232,
+  "_internal/numpy-2.5.3.dist-info/INSTALLER": 24,
+  "_internal/numpy-2.5.3.dist-info/METADATA": 2631,
+  "_internal/numpy-2.5.3.dist-info/RECORD": 44160,
+  "_internal/numpy-2.5.3.dist-info/REQUESTED": 20,
+  "_internal/numpy-2.5.3.dist-info/WHEEL": 100,
+  "_internal/numpy-2.5.3.dist-info/entry_points.txt": 152,
+  "_internal/numpy-2.5.3.dist-info/licenses/LICENSE.txt": 15051,
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/_core/include/numpy/libdivide/LICENSE.txt": 557,
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/_core/src/common/pythoncapi-compat/COPYING": 461,
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/_core/src/highway/LICENSE": 7213,
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/_core/src/multiarray/dragon4_LICENSE.txt": 848,
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/_core/src/npysort/x86-simd-sort/LICENSE.md": 825,
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/_core/src/umath/svml/LICENSE": 828,
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/fft/pocketfft/LICENSE.md": 816,
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/linalg/lapack_lite/LICENSE.txt": 1083,
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/ma/LICENSE": 826,
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/random/LICENSE.md": 1508,
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/random/src/distributions/LICENSE.md": 1345,
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/random/src/mt19937/LICENSE.md": 1442,
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/random/src/pcg64/LICENSE.md": 709,
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/random/src/philox/LICENSE.md": 819,
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/random/src/sfc64/LICENSE.md": 781,
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/random/src/splitmix64/LICENSE.md": 258,
+  "_internal/tqdm-4.70.1.dist-info/INSTALLER": 24,
+  "_internal/tqdm-4.70.1.dist-info/METADATA": 18152,
+  "_internal/tqdm-4.70.1.dist-info/RECORD": 2060,
+  "_internal/tqdm-4.70.1.dist-info/WHEEL": 110,
+  "_internal/tqdm-4.70.1.dist-info/entry_points.txt": 56,
+  "_internal/tqdm-4.70.1.dist-info/licenses/LICENCE": 1116,
+  "_internal/tqdm-4.70.1.dist-info/top_level.txt": 25,
+  "_internal/vcruntime140.dll": 85104,
+  "_internal/vcruntime140_1.dll": 26602
+ },
+ "patchable": [
+  "_internal/base_library.zip",
+  "_internal/lolhex/data/bundled/augments.json",
+  "_internal/lolhex/data/bundled/hero_augments.json",
+  "_internal/lolhex/data/bundled/hero_spells.json",
+  "_internal/lolhex/data/bundled/heroes.json",
+  "_internal/lolhex/data/bundled/latest.json",
+  "_internal/lolhex/data/bundled/meta.json",
+  "_internal/lolhex/data/cacert.pem",
+  "_internal/lolhex/data/client_icons.json",
+  "_internal/lolhex/data/hero_aliases.json",
+  "_internal/lolhex/data/hero_icons.json",
+  "_internal/lolhex/data/hero_nicknames.json",
+  "_internal/lolhex/data/i18n.json",
+  "_internal/lolhex/ui/icon.png",
+  "_internal/msvcp140.dll",
+  "_internal/numpy-2.5.3.dist-info/DELVEWHEEL",
+  "_internal/numpy-2.5.3.dist-info/entry_points.txt",
+  "_internal/numpy-2.5.3.dist-info/INSTALLER",
+  "_internal/numpy-2.5.3.dist-info/licenses/LICENSE.txt",
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/_core/include/numpy/libdivide/LICENSE.txt",
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/_core/src/common/pythoncapi-compat/COPYING",
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/_core/src/highway/LICENSE",
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/_core/src/multiarray/dragon4_LICENSE.txt",
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/_core/src/npysort/x86-simd-sort/LICENSE.md",
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/_core/src/umath/svml/LICENSE",
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/fft/pocketfft/LICENSE.md",
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/linalg/lapack_lite/LICENSE.txt",
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/ma/LICENSE",
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/random/LICENSE.md",
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/random/src/distributions/LICENSE.md",
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/random/src/mt19937/LICENSE.md",
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/random/src/pcg64/LICENSE.md",
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/random/src/philox/LICENSE.md",
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/random/src/sfc64/LICENSE.md",
+  "_internal/numpy-2.5.3.dist-info/licenses/numpy/random/src/splitmix64/LICENSE.md",
+  "_internal/numpy-2.5.3.dist-info/METADATA",
+  "_internal/numpy-2.5.3.dist-info/RECORD",
+  "_internal/numpy-2.5.3.dist-info/REQUESTED",
+  "_internal/numpy-2.5.3.dist-info/WHEEL",
+  "_internal/tqdm-4.70.1.dist-info/entry_points.txt",
+  "_internal/tqdm-4.70.1.dist-info/INSTALLER",
+  "_internal/tqdm-4.70.1.dist-info/licenses/LICENCE",
+  "_internal/tqdm-4.70.1.dist-info/METADATA",
+  "_internal/tqdm-4.70.1.dist-info/RECORD",
+  "_internal/tqdm-4.70.1.dist-info/top_level.txt",
+  "_internal/tqdm-4.70.1.dist-info/WHEEL",
+  "_internal/vcruntime140.dll",
+  "_internal/vcruntime140_1.dll",
+  "AramHex.exe"
+ ],
+ "schema_version": 1,
+ "version": "1.1.1"
+}
