@@ -191,3 +191,15 @@ def test_probe_takes_max_with_latest_alias(monkeypatch):
         return R()
     monkeypatch.setattr(update.requests, "get", fake_get)
     assert update.check_mirror("1.0.4", mirrors=["https://x/@latest/lolhex/__init__.py"])["version"] == "1.2.0"
+
+
+def test_release_notes_only_key_part_fits_update_bar():
+    """1.1.1 起：发布说明只取「完整更新内容：」之前的关键几条，软件横条（前 200 字）放得下。"""
+    import importlib.util
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    spec = importlib.util.spec_from_file_location("release_notes", root / "scripts/release_notes.py")
+    m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+    body = m.notes("1.1.1", (root / "CHANGELOG.md").read_text(encoding="utf-8"))
+    assert "完整更新内容" not in body and body.strip().endswith("更多详情见 GitHub") and len(body) <= 200
+    assert m.notes("9.9.9", "## 9.9.9\n\n- a\n") == "- a\n"   # 没有「完整更新内容」的老格式照旧

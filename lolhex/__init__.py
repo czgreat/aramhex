@@ -1,7 +1,16 @@
 """AramHex 海克斯大乱斗助手：屏幕识别 + 自采统计数据 + 腾讯官方资料。"""
 
-__version__ = "1.1.0"
-# 测试版：日志记详细（DEBUG），第一次打开时默认开 2999 接口和自动截图，方便事后查问题。正式版为 False
+import os as _os
+from pathlib import Path as _Path
+
+__version__ = "1.1.1"
+
+# 根证书：用 lolhex/data/cacert.pem（certifi 的去掉 eMudhra，见 scripts/make_cacert.py）。
+# 放在这里，所有入口（界面、增量更新、命令行）联网前都已生效；用户自己设了 REQUESTS_CA_BUNDLE（公司代理等）就不动
+_CA = _Path(__file__).resolve().parent / "data" / "cacert.pem"
+if _CA.is_file():
+    _os.environ.setdefault("REQUESTS_CA_BUNDLE", str(_CA))
+# 测试版：调试模式（详细日志、三选一和选英雄时自动截图），方便事后查问题。正式版为 False
 BETA = False
 
 GITHUB_REPO = "czgreat/aramhex"

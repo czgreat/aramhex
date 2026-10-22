@@ -31,10 +31,15 @@ def set_enabled(on: bool) -> None:
     if sys.platform != "win32":
         return
     import winreg
-    with winreg.OpenKey(winreg.HKEY_CURRENT_USER, KEY, 0, winreg.KEY_SET_VALUE) as k:
-        if on:
+    if on:
+        with winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, KEY, 0, winreg.KEY_SET_VALUE) as k:
             winreg.SetValueEx(k, NAME, 0, winreg.REG_SZ, _command())
-        else:
+    else:
+        try:
+            k = winreg.OpenKey(winreg.HKEY_CURRENT_USER, KEY, 0, winreg.KEY_SET_VALUE)
+        except FileNotFoundError:
+            return  # 全新账号连 Run 键都没有：本来就没开自启，无需创建或报错
+        with k:
             try:
                 winreg.DeleteValue(k, NAME)
             except FileNotFoundError:

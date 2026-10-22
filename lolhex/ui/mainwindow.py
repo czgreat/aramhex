@@ -21,18 +21,21 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QFormLayout, 
                                QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMenu, QMessageBox, QProgressBar, QScrollArea,
                                QPushButton, QSystemTrayIcon, QTabWidget, QVBoxLayout, QWidget)
 
-from .. import DATA_HOMEPAGE, HELP_PAGE, HOMEPAGE, WEBSITE, __version__, cloud, i18n, langpack, patch, rank, recommend, update
+from .. import DATA_HOMEPAGE, HELP_PAGE, HOMEPAGE, WEBSITE, __version__, cloud, cloudsettings, i18n, langpack, logupload, patch, rank, recommend, update
 from ..config import SPEEDS, is_portable
 from ..vision import window as win
-from ..data.public import BANDS
+from ..data.public import BANDS, norm_band
 from . import autostart
 from .badgepos import POSITIONS as BADGE_POSITIONS, BadgePosPreview
-from .autoshot import shots_dir
 from . import buildview
 from .data_status import data_status_html
 from .herosearch import hero_completer
 
 RARITY_CN = {"silver": "白银", "gold": "黄金", "prismatic": "棱彩"}
+# 云控强制设置时提示用的名字
+SETTING_NAMES = {"show_winrate": "显示胜率数字", "overlay": "显示游戏内浮窗", "overlay_corner": "浮窗位置",
+                 "badge_position": "三选一标签", "speed": "识别频率",
+                 "check_data_updates": "自动获取最新海克斯数据", "game_lang": "游戏语言", "data_band": "参考分数段"}
 VERDICT_CN = {"best": ("首选", "#2e9d5b"), "ok": ("可选", "#3b7dd8"), "reroll": ("可考虑刷新", "#d0533f"),
               "unknown": ("未知", "#888"), "nodata": ("无数据", "#888")}
 PHASE_CN = {None: "未检测到英雄联盟", "client": "客户端（选英雄界面会自动识别英雄）", "ingame": "对局中"}
@@ -213,7 +216,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(f"海克斯大乱斗助手 v{__version__}")
         self.setWindowIcon(app_icon())
         self.resize(700, 820)
-        self.setMinimumSize(640, 700)
+        self.setMinimumSize(360, 260)
 
         root = QWidget()
         lay = QVBoxLayout(root)
@@ -360,7 +363,13 @@ class MainWindow(QMainWindow):
 
         self.tabs.addTab(self._settings_tab(), "设置")
         lay.addWidget(self.tabs, 1)
-        self.setCentralWidget(root)
+        # 小屏或高缩放时保留完整内容，允许滚动，不让底部操作落到屏幕外。
+        root.setMinimumSize(640, 700)
+        viewport = QScrollArea()
+        viewport.setWidgetResizable(True)
+        viewport.setFrameShape(QScrollArea.NoFrame)
+        viewport.setWidget(root)
+        self.setCentralWidget(viewport)
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.refresh)
@@ -377,10 +386,6 @@ class MainWindow(QMainWindow):
         f = QFormLayout()
         f.setVerticalSpacing(10)
         outer.addLayout(f)
-        self.set_win = QCheckBox("显示胜率数字")
-        self.set_win.setChecked(s.show_winrate)
-        self.set_live = QCheckBox("对局中读取游戏接口（认英雄更准，会连接游戏客户端）")
-        self.set_live.setChecked(s.use_liveclient)
         self.set_corner = QComboBox()
         self.set_corner.addItems(["右上角", "左上角"])
         self.set_corner.setCurrentIndex(0 if s.overlay_corner == "top-right" else 1)
@@ -392,28 +397,25 @@ class MainWindow(QMainWindow):
         self.badge_preview = BadgePosPreview(s.badge_position)
         self.set_badge.currentIndexChanged.connect(
             lambda i: self.badge_preview.set_position(self.set_badge.itemData(i)))
+        # 示意图比下拉框高：右边放示意图，左边下拉框下面接着放后面几项，不留空白
         badge_row = QHBoxLayout()
-        badge_row.addWidget(self.set_badge, 1, Qt.AlignTop)
-        badge_row.addWidget(self.badge_preview)
-        self.set_overlay = QCheckBox("显示游戏内浮窗")
-        self.set_overlay.setChecked(s.overlay)
+        badge_left = QVBoxLayout()
+        badge_left.setSpacing(10)
+        badge_row.addLayout(badge_left, 1)
+        badge_row.addWidget(self.badge_preview, 0, Qt.AlignTop)
         self.set_speed = QComboBox()
         for key, (label, _) in SPEEDS.items():
             self.set_speed.addItem(label, key)
         self.set_speed.setCurrentIndex(max(0, self.set_speed.findData(s.speed)))
-        self.set_capture = QCheckBox("录屏、截图时显示浮窗")
-        self.set_capture.setChecked(s.allow_capture)
-        self.set_autoshot = QCheckBox("选英雄、三选一时自动截图")
-        self.set_autoshot.setChecked(s.auto_screenshot)
-        btn_shots = QPushButton("打开截图文件夹")
-        btn_shots.clicked.connect(lambda: os.startfile(str(shots_dir())) if hasattr(os, "startfile") else None)
-        shot_row = QHBoxLayout()
-        shot_row.addWidget(self.set_autoshot, 1)
-        shot_row.addWidget(btn_shots)
         self.set_auto = QCheckBox("开机自动启动")
         self.set_auto.setChecked(autostart.is_enabled())
-        self.set_data = QCheckBox("自动更新统计数据")
+        self.set_data = QCheckBox("自动获取最新海克斯数据（建议开启）")
         self.set_data.setChecked(s.check_data_updates)
+        self.set_usage = QCheckBox("帮助改善软件（匿名）")
+        self.set_usage.setChecked(s.send_usage)
+        self.set_usage.setToolTip("开着时：联网时带一个随机编号（和账号、硬件无关），用来统计有多少人在用；\n"
+                                  "排查问题时开发者可能请这台电脑上传运行日志，上传前去掉游戏账号名和电脑用户名。\n"
+                                  "关掉就都不发。")
         # 外服：游戏客户端的语言。韩文要另外下载识别数据（安装包里不带）
         self.set_lang = QComboBox()
         for code, label in i18n.LANGS:
@@ -434,18 +436,16 @@ class MainWindow(QMainWindow):
         f.addRow("游戏语言", self.set_lang)
         f.addRow("", lang_row)
         f.addRow("识别频率", self.set_speed)
-        f.addRow("", self.set_win)
-        f.addRow("", self.set_overlay)
         f.addRow("浮窗位置", self.set_corner)
-        f.addRow("三选一标签", badge_row)
-        f.addRow("", self.set_capture)
-        f.addRow("", shot_row)
-        f.addRow("", self.set_live)
-        f.addRow("", self.set_auto)
-        f.addRow("", self.set_data)
+        badge_left.addWidget(self.set_badge)
+        badge_left.addWidget(self.set_auto)
+        badge_left.addWidget(self.set_data)
+        badge_left.addWidget(self.set_usage)
         save = QPushButton("保存设置")
         save.clicked.connect(self._save_settings)
-        f.addRow("", save)
+        badge_left.addStretch(1)
+        badge_left.addWidget(save)  # 放在示意图左边、和示意图底边对齐，不留空白
+        f.addRow("三选一标签", badge_row)
 
         rk = _card()
         rv = QVBoxLayout(rk)
@@ -524,10 +524,22 @@ class MainWindow(QMainWindow):
     def _rank_done(self, rid: str, res: dict, silent: bool):
         import time
         s = self.engine.settings
+        old = (s.my_rank or {}).get("results") or []
+        old_band = norm_band(old[0]["band"]) if old else ""
         s.riot_id, s.my_rank = rid, {**res, "queried_at": time.time()}
+        pending = getattr(self, "_recheck_pending", None)
+        if silent and pending:  # 查分库更新后的自动重查成功了：这个日期不再查
+            s.extra["rank_rechecked"] = pending
+            self._recheck_pending = None
         s.save()
         self._show_rank(s.my_rank)
-        band = res["results"][0]["band"]
+        band = norm_band(res["results"][0]["band"])
+        if silent and old and band != old_band and band in BANDS:
+            # 查分库更新后自动重查，分段变了：告诉玩家；参考分段原来跟着查分选的，就跟着换
+            self._toast(f"查分数据更新了：你现在是{BANDS[band]}（前 {res['results'][0]['top'] * 100:.1f}%），"
+                        f"原来是{BANDS.get(old_band, old_band)}")
+            if (s.data_band or "") == old_band:
+                silent = False
         if not silent and band in BANDS:
             i = self.band_box.findData(band)
             if i >= 0:
@@ -545,6 +557,23 @@ class MainWindow(QMainWindow):
         s = self.engine.settings
         if s.riot_id and time.time() - float((s.my_rank or {}).get("queried_at") or 0) > 7 * 86400:
             self._query_rank(silent=True)
+
+    def recheck_rank_if_newer(self, cfg: dict) -> bool:
+        """云控 rank.as_of（查分库最新数据日期）比本机上次查到的新：悄悄重查一次。
+        同一个 as_of 查成功一次就不再查（查分库还没换完时不反复查）；查失败、对局中、选英雄中，下次刷新云控再试。"""
+        s = self.engine.settings
+        latest = str(((cfg or {}).get("rank") or {}).get("as_of") or "")
+        mine = str((s.my_rank or {}).get("as_of") or "")
+        if not (s.riot_id and latest and latest > mine and s.extra.get("rank_rechecked") != latest):
+            return False
+        if self._busy():  # 分段变了会弹提示：别在对局、选英雄时弹
+            return False
+        self._recheck_pending = latest
+        if self.rank_input.text().strip() != s.riot_id:
+            self.rank_input.setText(s.riot_id)
+        logging.getLogger(__name__).info("查分库更新到 %s（本机上次 %s），自动重查", latest, mine or "无")
+        self._query_rank(silent=True)
+        return True
 
     # ---------- 云控 ----------
 
@@ -611,7 +640,71 @@ class MainWindow(QMainWindow):
         """定时检查的间隔：云控 update.check_minutes，每台电脑随机错开 ±10%，免得同一时刻一起请求。"""
         return int(cloud.check_minutes() * 60_000 * random.uniform(0.9, 1.1))
 
+    def _upload_logs(self, cfg: dict) -> None:
+        try:
+            logupload.maybe_upload(self.engine.settings, cfg)
+        except Exception:
+            logging.getLogger(__name__).exception("上传日志出错")
+
+    def _apply_cloud_settings(self, cfg: dict) -> None:
+        """云控设置（cloudsettings.py）：改了值的马上生效，设置页跟着变；强制的原因每条规则提示一次。"""
+        s = self.engine.settings
+        res = cloudsettings.apply(s, cfg, __version__)
+        changed = set(res["changed"])
+        if changed:
+            s.save()
+            if "data_band" in changed:
+                self.engine.set_band(s.data_band or None, by_user=False)
+            if "game_lang" in changed:
+                self.engine.set_game_lang(s.game_lang)
+            if "check_data_updates" in changed and hasattr(self.engine.store, "check_updates"):
+                self.engine.store.check_updates = s.check_data_updates
+            if changed & {"overlay", "overlay_corner"} and hasattr(self, "overlay"):
+                self.overlay.set_visible(s.overlay)
+                self.overlay.panel.corner = s.overlay_corner
+                act = getattr(getattr(self, "tray", None), "act_overlay", None)
+                if act is not None:  # 托盘「显示游戏浮窗」的勾跟着变
+                    act.blockSignals(True)
+                    act.setChecked(s.overlay)
+                    act.blockSignals(False)
+            self._sync_settings_form()
+        seen = s.extra.get("seen_force") if isinstance(s.extra.get("seen_force"), list) else []
+        for rid, reason in res["reasons"]:
+            if rid not in seen:
+                seen.append(rid)
+                s.extra["seen_force"] = seen[-20:]
+                s.save()
+                self._toast(reason)
+
+    def _sync_settings_form(self) -> None:
+        """设置页的控件按当前设置重新显示（云控改了值以后），不触发各自的处理函数。"""
+        s = self.engine.settings
+        if not hasattr(self, "set_data"):
+            return
+        pairs = [(self.set_data, lambda w: w.setChecked(s.check_data_updates)),
+                 (self.set_corner, lambda w: w.setCurrentIndex(0 if s.overlay_corner == "top-right" else 1)),
+                 (self.set_badge, lambda w: w.setCurrentIndex(max(0, w.findData(s.badge_position)))),
+                 (self.set_speed, lambda w: w.setCurrentIndex(max(0, w.findData(s.speed)))),
+                 (self.set_lang, lambda w: w.setCurrentIndex(max(0, w.findData(s.game_lang)))),
+                 (self.band_box, lambda w: w.setCurrentIndex(max(0, w.findData(s.data_band or ""))))]
+        for w, fn in pairs:
+            old = w.blockSignals(True)
+            try:
+                fn(w)
+            finally:
+                w.blockSignals(old)
+        self.badge_preview.set_position(s.badge_position)
+
     def _apply_cloud(self, cfg: dict):
+        try:
+            self._apply_cloud_settings(cfg)
+        except Exception:
+            logging.getLogger(__name__).exception("云控设置出错")
+        try:
+            self.recheck_rank_if_newer(cfg)
+            threading.Thread(target=self._upload_logs, args=(cfg,), daemon=True).start()
+        except Exception:
+            logging.getLogger(__name__).exception("自动重查、上传日志出错")
         if hasattr(self, "_update_timer"):
             self._update_timer.setInterval(self._check_interval_ms())
         if hasattr(self, "about_label"):
@@ -657,21 +750,27 @@ class MainWindow(QMainWindow):
 
     def _save_settings(self):
         s = self.engine.settings
+        before = {k: getattr(s, k) for k in cloudsettings.SPEC}
         s.check_data_updates = self.set_data.isChecked()
+        s.send_usage = self.set_usage.isChecked()
+        cloud.set_install_id(s.install_id if s.send_usage else None)
         if hasattr(self.engine.store, "check_updates"):
             self.engine.store.check_updates = s.check_data_updates  # 马上生效，不用重开
         s.speed = self.set_speed.currentData() or "standard"
-        s.allow_capture = self.set_capture.isChecked()
-        s.auto_screenshot = self.set_autoshot.isChecked()
-        win.set_capture_allowed(s.allow_capture)
-        s.show_winrate = self.set_win.isChecked()
-        s.use_liveclient = self.set_live.isChecked()
-        s.overlay = self.set_overlay.isChecked()
         s.overlay_corner = "top-right" if self.set_corner.currentIndex() == 0 else "top-left"
         s.badge_position = self.set_badge.currentData() or "top"
         lang = self.set_lang.currentData() or "zh_CN"
         if lang != s.game_lang:
             self.engine.set_game_lang(lang)
+        mine = [k for k, v in before.items() if getattr(s, k) != v]
+        s.mark_user(*mine)  # 玩家自己改的：以后云控改默认值不碰
+        held = [k for k in mine if k in s.forced]
+        for k in held:  # 云控正在强制的项：记下玩家要的值，云控撤掉后用它
+            s.forced[k] = getattr(s, k)
+        if held:
+            self._apply_cloud_settings(cloud.get())  # 改回强制值，并让语言、数据更新等跟着生效
+            QMessageBox.information(self, "设置", "这几项现在按官方临时设置，撤掉后会改回你选的："
+                                    + "、".join(SETTING_NAMES.get(k, k) for k in held))
         saved = s.save()
         if lang == "ko_KR" and langpack.installed() is None and not (
                 self._langpack_state and "error" not in self._langpack_state):
@@ -962,7 +1061,7 @@ class MainWindow(QMainWindow):
                 f"<span style='font-size:18px'><b>{h['name']}</b></span> {h['nick']}<br>"
                 f"{' · '.join(rating)}")
         else:
-            self.hero_label.setText("<b>未识别到英雄</b>")
+            self.hero_label.setText("<b>未识别到英雄，请手动选择</b>")
         cs = snap.get("champ_select")
         if cs and (cs.get("bench") or cs.get("cards")):
             from .overlay import champ_select_summary
@@ -1001,7 +1100,9 @@ class MainWindow(QMainWindow):
             for lab in self.offer_cards:
                 lab.setText("")
             return
-        self.offer_advice.setText(f"<b style='font-size:15px'>{ev['advice']}</b>")
+        pk = recommend.pentakill_text(ev.get("pentakill"))
+        self.offer_advice.setText(f"<b style='font-size:15px'>{ev['advice']}</b>"
+                                  + (f"<br><span style='color:#c9a0ff'>{escape(pk)}</span>" if pk else ""))
         for lab, r in zip(self.offer_cards, ev["slots"]):
             v, col = VERDICT_CN.get(r["verdict"], VERDICT_CN["unknown"])
             lines = [f"<b style='color:{col}'>{v}</b>", f"<b>{r.get('name') or '未识别'}</b>"]
@@ -1017,8 +1118,8 @@ class MainWindow(QMainWindow):
                 lines.append(f"<span style='color:#777'>{pbe}{recommend.PBE_NOTE}</span>")
             if r.get("score") is not None:
                 s = f"{r['score']:+.1f}"
-                if show_win and r.get("win") is not None:
-                    s += f" · 胜率 {_pct(r['win'])}"
+                if show_win and recommend.win_text(r):
+                    s += " · " + recommend.win_text(r)
                 if r.get("thin"):
                     warn = "⚠ 样本太少" if r["thin"] == "too_few" else "样本偏少"
                     s += f" · <span style='color:#ff7a6b'>{warn}</span>"
@@ -1028,6 +1129,11 @@ class MainWindow(QMainWindow):
     # ---------- 窗口行为 ----------
 
     def show_and_raise(self):
+        screen = self.screen()
+        if screen:
+            available = screen.availableGeometry()
+            self.resize(min(self.width(), max(360, available.width() - 16)),
+                        min(self.height(), max(260, available.height() - 48)))
         self.show()
         self.setWindowState(self.windowState() & ~Qt.WindowMinimized)
         self.raise_()
@@ -1080,9 +1186,15 @@ class Tray(QSystemTrayIcon):
             self.window.show_and_raise()
 
     def _toggle_overlay(self, on: bool):
-        self.engine.settings.overlay = on
-        self.engine.settings.save()
-        self.overlay.set_visible(on)
+        s = self.engine.settings
+        s.set_by_user("overlay", on)  # 云控正在强制时只记下玩家要的值
+        s.save()
+        self.overlay.set_visible(s.overlay)
+        if s.overlay != on:
+            self.act_overlay.blockSignals(True)
+            self.act_overlay.setChecked(s.overlay)
+            self.act_overlay.blockSignals(False)
+            self.showMessage("海克斯大乱斗助手", "浮窗现在按官方临时设置，撤掉后改回你选的", app_icon(), 6000)
 
     def _toggle_auto(self, on: bool):
         try:

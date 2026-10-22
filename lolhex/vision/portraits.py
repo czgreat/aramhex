@@ -1,7 +1,8 @@
 """选英雄界面的英雄头像识别：把截图里的头像小块和官方方形头像库比对。
 
 只读屏幕像素。头像库来自腾讯公开 CDN（game.gtimg.cn/.../champion/{alias}.png），
-首次使用时下载到本地缓存；再加上随程序内置的拳头客户端头像（data/client_icons.json，
+随程序内置一份（data/hero_icons.json，scripts/update_hero_icons.py 生成），首次运行不用等下载；
+本地缓存里有的优先用缓存，内置里没有的新英雄照常下载到缓存。再加上随程序内置的拳头客户端头像（data/client_icons.json，
 scripts/update_client_icons.py 生成）：一些英雄拳头换了新头像、腾讯 CDN 还是旧的（萨科、阿狸等），
 预选栏显示的是新的，只比腾讯的认不出。每个英雄取两张里更像的那张。
 
@@ -139,20 +140,43 @@ class IconBank:
 
     @classmethod
     def from_dir(cls, folder: Path, heroes: dict[str, dict], extra: dict[str, np.ndarray] | None = None) -> "IconBank":
-        """folder 里是腾讯头像（{alias}.png）；extra 是拳头客户端头像（client_icons()），只取 heroes 里有的英雄。"""
+        """folder 里是腾讯头像缓存（{alias}.png），缺的用内置的；extra 是拳头客户端头像（client_icons()），只取 heroes 里有的英雄。"""
         icons: dict[str, list[np.ndarray]] = {}
+        bundled = hero_icons()
         for hid, h in heroes.items():
-            p = folder / f"{h.get('alias')}.png"
-            if p.exists():
-                img = cv2.imdecode(np.fromfile(str(p), np.uint8), cv2.IMREAD_COLOR)
-                if img is not None:
-                    icons.setdefault(hid, []).append(img)
+            alias = h.get("alias")
+            p = folder / f"{alias}.png"
+            img = cv2.imdecode(np.fromfile(str(p), np.uint8), cv2.IMREAD_COLOR) if p.is_file() else None
+            if img is None and alias in bundled:  # 缓存没有（第一次运行、下载失败）：用内置的
+                img = cv2.imdecode(np.frombuffer(bundled[alias], np.uint8), cv2.IMREAD_COLOR)
+            if img is not None:
+                icons.setdefault(hid, []).append(img)
             if extra and hid in extra:
                 icons.setdefault(hid, []).append(extra[hid])
         return cls(icons)
 
 
 CLIENT_ICONS = Path(__file__).resolve().parent.parent / "data" / "client_icons.json"
+HERO_ICONS = Path(__file__).resolve().parent.parent / "data" / "hero_icons.json"
+_hero_icons: dict[str, bytes] | None = None
+
+
+def hero_icons(path: Path = HERO_ICONS) -> dict[str, bytes]:
+    """内置的腾讯头像 {alias: PNG 原始字节}；文件没有或坏了就返回空（全靠下载）。读一次就记住。"""
+    global _hero_icons
+    if _hero_icons is not None and path == HERO_ICONS:
+        return _hero_icons
+    import base64
+    import json
+    try:
+        d = json.loads(path.read_text(encoding="utf-8"))
+        out = {alias: base64.b64decode(b) for alias, b in d["icons"].items()}
+    except (OSError, ValueError, KeyError, TypeError) as e:
+        log.warning("内置英雄头像读不到：%s", e)
+        out = {}
+    if path == HERO_ICONS:
+        _hero_icons = out
+    return out
 
 
 def client_icons(path: Path = CLIENT_ICONS) -> dict[str, np.ndarray]:
@@ -173,13 +197,14 @@ def client_icons(path: Path = CLIENT_ICONS) -> dict[str, np.ndarray]:
 
 
 def ensure_icons(folder: Path, heroes: dict[str, dict]) -> int:
-    """下载缺少的英雄头像，返回新下载的数量。失败的下次再试。"""
+    """下载缺少的英雄头像（内置里已有的不下），返回新下载的数量。失败的下次再试。"""
     from ..data import http
     folder.mkdir(parents=True, exist_ok=True)
+    bundled = hero_icons()
     n = 0
     for h in heroes.values():
         alias, url = h.get("alias"), h.get("icon")
-        if not alias or not url:
+        if not alias or not url or alias in bundled:
             continue
         p = folder / f"{alias}.png"
         if p.exists() and p.stat().st_size > 0:

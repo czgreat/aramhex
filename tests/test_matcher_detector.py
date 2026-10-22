@@ -49,6 +49,8 @@ def test_full_scan_calibrates_and_strip_tracks_reroll(detector, size):
     sr = detector.strip_rect(win)
     frame = synth.render_offer(["泰坦的坚决", "炽燃利息", "虚幻武器"], size, seed=3)
     offer2 = detector.check_strip(frame[sr.top:sr.bottom, sr.left:sr.right], win)
+    assert names(offer2) == names(offer)  # 首个变化读数暂不改变整组推荐。
+    offer2 = detector.check_strip(frame[sr.top:sr.bottom, sr.left:sr.right], win)
     assert names(offer2) == ["泰坦的坚决", "炽燃利息", "虚幻武器"]
 
     empty = synth.render_offer([None, None, None], size, seed=4)

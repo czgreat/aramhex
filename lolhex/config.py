@@ -13,11 +13,15 @@ import os
 import re
 import secrets
 import sys
+import threading
 import time
 from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 
 APP_DIR_NAME = "AramHex"
+# 去掉的设置项：老设置文件里有也不再写回（1.1.1 删了 2999 接口；浮窗不再对截图隐身，录屏开关也删了；
+# 自动截图只是调试用，设置页去掉，只在调试模式（debug.txt）下截）
+REMOVED = {"use_liveclient", "allow_capture", "auto_screenshot"}
 # 识别频率：各种扫描间隔乘以这个倍数。电脑配置低时放慢，省 CPU
 SPEEDS = {
     "standard": ("标准（推荐）", 1.0),
@@ -70,8 +74,6 @@ def _parse_config(raw: bytes) -> dict:
 
 @dataclass
 class Settings:
-    # 读取游戏内 2999 接口（Riot 官方只读、非 LCU）识别英雄与等级。默认关闭。
-    use_liveclient: bool = False
     # 在悬浮层与主界面显示胜率数值。关掉后只显示评级与排名。
     show_winrate: bool = True
     # 腾讯官方资料（英雄、海克斯字典、出装、加点）的刷新间隔（小时）。
@@ -94,14 +96,10 @@ class Settings:
     overlay_corner: str = "top-right"
     # 三选一标签放在卡片哪里：top=标题上方（压在图标下半，默认）/ bottom=描述下面的空白处。
     badge_position: str = "top"
-    # 参考数据的分数段：""=全体（默认），casual/mid/high/top=娱乐/中分/高分/顶尖。
+    # 参考数据的分数段：""=全体（默认），casual/mid/high=娱乐/中分/前 5%（1.1.0 以前的 top 读到当 high）。
     data_band: str = ""
     # 识别频率（见 SPEEDS）：standard / saver / low。
     speed: str = "standard"
-    # 录屏、截图时显示浮窗（直播、做视频用）。默认不显示：画面干净，也不会识别到自己画的字。
-    allow_capture: bool = False
-    # 自动截图：海克斯三选一和选英雄时自动保存整屏截图（含浮窗），存在 <程序数据目录>/screenshots。
-    auto_screenshot: bool = False
     # 查分：自己的「名字#编号」和上次查到的结果（{"as_of", "results", "queried_at"}）
     riot_id: str = ""
     my_rank: dict = field(default_factory=dict)
@@ -113,11 +111,33 @@ class Settings:
     seen_welcome: bool = False
     # 游戏客户端的语言（外服）：zh_CN 中文（国服，繁中台服也认）/ en_US / ja_JP / ko_KR，见 i18n.py。韩文要另外下载识别数据
     game_lang: str = "zh_CN"
-    # 匿名使用统计：第一次打开时随机生成的编号（和硬件、账号无关，重装就是新的），只在查云控时带上。
+    # 匿名使用统计：第一次打开时随机生成的编号（和硬件、账号无关，重装就是新的），发往 aramhex.com 的请求带上（见 cloud.headers）。
     # 界面上不显示；要关就把 config.json 里的 send_usage 改成 false
     install_id: str = ""
     send_usage: bool = True
+    # 玩家自己在设置里改过的项（1.1.1）：云控改默认值时不碰这些（见 cloudsettings.py）
+    user_set: list = field(default_factory=list)
     extra: dict = field(default_factory=dict)
+
+    def __post_init__(self):
+        self.forced: dict = {}  # 云控正在强制的项 → 玩家原来的值；存文件时写原来的值
+        self.debug_mode = False  # 调试模式（debug.txt / --debug / 测试版）：详细日志 + 自动截图；不存进设置文件
+        self._lock = threading.RLock()  # 界面线程和后台线程（上传日志等）都会存设置
+
+    def set_by_user(self, key: str, value) -> None:
+        """玩家自己改了某一项（设置页、托盘、分段下拉框）：记成玩家改的；云控正在强制这一项时，
+        记下玩家要的值（云控撤掉后用它），当前值仍按强制的。"""
+        with self._lock:
+            self.mark_user(key)
+            if key in self.forced:
+                self.forced[key] = value
+            else:
+                setattr(self, key, value)
+
+    def mark_user(self, *keys: str) -> None:
+        for k in keys:
+            if k not in self.user_set:
+                self.user_set.append(k)
 
     @classmethod
     def load(cls, path: Path | None = None) -> "Settings":
@@ -135,7 +155,14 @@ class Settings:
                 log.warning("设置文件读不了：%s", e)
         known = {f.name for f in fields(cls)}
         s = cls(**{k: v for k, v in data.items() if k in known and k != "extra"})
-        s.extra = {k: v for k, v in data.items() if k not in known}
+        s.extra = {k: v for k, v in data.items() if k not in known and k not in REMOVED}
+        if not isinstance(s.user_set, list):
+            s.user_set = []
+        if data and "user_set" not in data:
+            # 1.1.0 以前的设置文件没记谁改过：和默认值不一样的就当玩家自己改的，云控改默认值时不碰
+            dflt = cls()
+            s.user_set = [f.name for f in fields(cls) if f.name in data and f.name not in ("extra", "user_set")
+                          and getattr(s, f.name) != getattr(dflt, f.name)]
         s.fresh_install = not data and not broken  # 没有设置文件：第一次装（用来区分「刚安装」和「刚更新」）
         if not isinstance(s.install_id, str) or not re.fullmatch(r"[0-9a-f]{16}", s.install_id):
             s.install_id = ""  # 手改坏了：重新生成（不是字符串时请求头发不出去）
@@ -143,6 +170,10 @@ class Settings:
             s.send_usage = str(s.send_usage).strip().lower() in ("true", "1", "yes", "on")  # 认不出就当关了
         from .i18n import normalize_lang
         s.game_lang = normalize_lang(s.game_lang)  # 以前的繁中选项 zh_TW、手改的怪值都当中文
+        # 1.1.1：设置页去掉「显示胜率数字」（用这个软件就是要看胜率），以前关掉的也打开
+        s.show_winrate = True
+        if s.data_band == "top":
+            s.data_band = "high"  # 1.1.1 去掉「顶尖」，和「高分」合成「前 5%」
         if broken:
             # 实在读不懂：原文件留个备份，后面照常写新的；用户在里面关没关匿名统计看不出来，这次就当关了，
             # 能从原文里找到 "send_usage": true/false 就照它的
@@ -169,12 +200,18 @@ class Settings:
     def save(self, path: Path | None = None) -> bool:
         """写设置文件；写不进去（只读、权限、磁盘满）只记日志，返回 False，程序照常用。"""
         path = path or app_home() / "config.json"
-        data = asdict(self)
-        extra = data.pop("extra", {}) or {}
-        data.update(extra)
-        try:
-            path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-            return True
-        except OSError as e:
-            logging.getLogger(__name__).warning("设置文件写不进去：%s", e)
-            return False
+        with self._lock:
+            data = asdict(self)
+            data.update(self.forced)  # 云控强制的项存玩家原来的值：云控撤掉就恢复
+            extra = data.pop("extra", {}) or {}
+            data.update(extra)
+            text = json.dumps(data, ensure_ascii=False, indent=2)
+            try:
+                # 先写临时文件再换过去：两个线程同时存、或者写到一半断电，都不会留下写坏的设置文件
+                tmp = path.with_name(path.name + ".tmp")
+                tmp.write_text(text, encoding="utf-8")
+                os.replace(tmp, path)
+                return True
+            except OSError as e:
+                logging.getLogger(__name__).warning("设置文件写不进去：%s", e)
+                return False

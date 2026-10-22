@@ -4,7 +4,6 @@
 - data：启动时及定期刷新数据（腾讯官方资料；自采统计数据有新版本时下载）；
 - observer：只看窗口是否存在——客户端在前台且游戏没开时，截图识别选英雄界面：
   头像比对认出预选栏和我方的英雄（标胜率），OCR 认出自己的英雄名；
-  可选读取游戏内 2999 接口（默认关闭）；
 - vision：游戏窗口在前台时截屏识别海克斯三选一。
 浮窗只读 snapshot()，并通过 set_hero / rescan / reset_calibration 操作。
 """
@@ -40,7 +39,7 @@ def augment_matcher(store, settings) -> NameMatcher:
     else:
         tw = i18n.traditional_augment_names()
         names = {aid: [n, tw[aid]] if tw.get(aid) and tw[aid] != n else n for aid, n in names.items()}
-    return NameMatcher(names, settings.match_threshold)
+    return NameMatcher(names, settings.match_threshold, min_margin=6.0)
 
 
 def pick_my_hero(found: list[tuple[str, float, int]]) -> tuple[str | None, list[str]]:
@@ -82,10 +81,6 @@ class Engine:
         if hasattr(self.store, "set_band"):
             self.store.set_band(settings.data_band or None)
         self._apply_rec_model()
-        self.live = None
-        if settings.use_liveclient:
-            from .game.liveclient import LiveClient
-            self.live = LiveClient()
         self._lock = threading.RLock()
         self._stop = threading.Event()
         self._data_wake = threading.Event()  # 对局结束时叫醒数据线程：对局中推迟的数据更新马上补上
@@ -97,15 +92,16 @@ class Engine:
         from .data.icons import IconCache
         self.icons = IconCache(self.home / "data" / "img")  # 装备、召唤师技能小图标
         self._cs_memo = None    # 选人界面各位置的识别结果缓存（champselect.Memo）
-        self.vision_hold_until = 0.0  # time.monotonic() 在这之前暂停识别（自动截图用）
         self._manual_hero = False
-        self._live_logged = False  # 这局「2999 读不到」只记一次
+        self._cs_last_seen = 0.0  # 上次在选英雄界面里的时刻（time.monotonic）
+        self._cs_gone_since = None  # 扫描确认离开选英雄界面的时刻；客户端不在前台（没扫描）不算离开
         self._last_eval_log = None  # 同一个三选一只记一次评估结果
+        self._evaluation_revision = 0
         self._panel_cache: tuple[str | None, dict | None] = (None, None)
         self.state: dict = {
             "phase": None,  # None / client / ingame
             "hero_id": None, "hero_source": None, "hero_candidates": [],
-            "level": None, "game_window": False, "client_window": False,
+            "game_window": False, "client_window": False,
             "vision": {"status": "idle", "calibrated": False, "last_scan": None, "blank": False},
             "offer": None, "evaluation": None,
             "champ_select": None,  # {"bench": [...], "team": [...]}，每项带胜率和排名
@@ -145,9 +141,14 @@ class Engine:
             threading.Thread(target=self._prefetch_hero, args=(hid,), daemon=True).start()
         self._reevaluate()
 
-    def set_band(self, band: str | None) -> None:
-        """切换参考分数段（None/"" = 全体），记住选择，并按新数据重算面板和三选一推荐。"""
-        self.settings.data_band = band or ""
+    def set_band(self, band: str | None, by_user: bool = True) -> None:
+        """切换参考分数段（None/"" = 全体），记住选择，并按新数据重算面板和三选一推荐。
+        by_user=False：云控改的，不算玩家自己选的。"""
+        if by_user:
+            self.settings.set_by_user("data_band", band or "")  # 云控正在强制时只记下玩家要的值
+        else:
+            self.settings.data_band = band or ""
+        band = self.settings.data_band or None
         self.settings.save()
         if hasattr(self.store, "set_band"):
             self.store.set_band(band or None)
@@ -274,7 +275,7 @@ class Engine:
         from .vision.portraits import IconBank, client_icons, ensure_icons
         folder = self.home / "data" / "icons"
         heroes = self.store.heroes
-        if not heroes or (not download and not folder.is_dir()):
+        if not heroes:
             return
         new = ensure_icons(folder, heroes) if download else 0
         if new or self._icon_bank is None:
@@ -329,17 +330,6 @@ class Engine:
             self._set(champ_select=None)
 
         if phase == "ingame":
-            snap = self.live.snapshot() if self.live else None
-            if self.live and not snap and not self._live_logged:
-                self._live_logged = True
-                log.info("2999 接口暂时读不到（刚进游戏加载时正常）")
-            if snap and not self._manual_hero:
-                self._set(level=snap.get("level"))
-                if not self.state["hero_id"]:
-                    hid = self.store.resolve_hero(snap.get("champion_raw")) or \
-                        self.store.resolve_hero(snap.get("champion_name"))
-                    if hid:
-                        self._set_hero_auto(hid, "liveclient")
             return 2.0
         if phase == "client" and win.is_foreground(client):
             self._champ_select_scan(client)
@@ -358,8 +348,6 @@ class Engine:
     def _champ_select_scan(self, hwnd: int) -> None:
         """截取客户端窗口：头像比对认出预选栏/我方英雄，OCR 认出自己的英雄名。
         只读屏幕像素，不读客户端进程。"""
-        if time.monotonic() < self.vision_hold_until:  # 自动截图中：标注层临时可截，先不识别
-            return
         rect = win.client_rect(hwnd)
         if not rect:
             return
@@ -372,6 +360,28 @@ class Engine:
         dt = time.monotonic() - t0
         if dt > 0.8:
             log.info("选英雄：这次识别用了 %.1f 秒", dt)
+        self._apply_champ_select(cs, img)
+
+    CS_NEW_AFTER = 8.0   # 扫描确认离开选英雄界面超过这么多秒再进来，算新的一把（中途偶尔一次没认出界面不算）
+    CS_NEW_GAP = 90.0    # 这么久完全没看到选英雄界面（切到别的窗口、排队）再看到，也算新的一把：大乱斗选英雄不会这么长
+
+    def _apply_champ_select(self, cs, img=None) -> None:
+        now = time.monotonic()
+        if cs is False:
+            if self._cs_gone_since is None and self._cs_last_seen:
+                self._cs_gone_since = now
+            # 同一画面也可能是选人结束、游戏窗口还没出现；仅凭离开选人不能判定秒退。
+            # 先保留身份，下一次进入选人时再判新局；实际对局结束仍由 _on_game_end 清理。
+        else:
+            left = self._cs_gone_since is not None and now - self._cs_gone_since > self.CS_NEW_AFTER
+            gap = self._cs_last_seen and now - self._cs_last_seen > self.CS_NEW_GAP
+            if (left or gap) and (self.state["hero_id"] or self._manual_hero):
+                # 新的一把：清掉上一把的英雄。只在对局结束时清的话，选英雄阶段有人秒退（没进游戏），
+                # 下一把在认出新英雄之前一直挂着上一把的（GitHub 玩家反馈，10-21）。
+                # 选英雄时切到浏览器、主窗口去手动选英雄，客户端不在前台不扫描，不能当成离开（复核 10-22）
+                log.info("选英雄：新的一把，清掉上一把的英雄")
+                self._clear_selection()
+            self._cs_last_seen, self._cs_gone_since = now, None
         self._set(champ_select=cs or None)
         if cs is False:  # 不在选英雄界面
             return
@@ -380,7 +390,7 @@ class Engine:
         if cs and cs.get("mine"):
             self._set_hero_auto(cs["mine"], "ocr")
             self._set(hero_candidates=[])
-        elif not cs and self._icon_bank is None:
+        elif not cs and self._icon_bank is None and img is not None:
             self._champ_select_ocr(img)  # 头像库还没下载好时，退回整屏文字识别
 
     def analyze_champ_select(self, img, origin: tuple[int, int] = (0, 0)):
@@ -463,11 +473,18 @@ class Engine:
         elif cands:
             self._set(hero_candidates=cands)
 
+    def _clear_selection(self) -> None:
+        with self._lock:
+            self._manual_hero = False
+            self._last_eval_log = None
+            self._evaluation_revision += 1
+            self.state.update(hero_id=None, hero_source=None, hero_candidates=[],
+                              offer=None, evaluation=None)
+
     def _on_game_end(self) -> None:
-        self._manual_hero = False
-        self._set(hero_id=None, hero_source=None, hero_candidates=[], level=None,
-                  offer=None, evaluation=None)
-        self._live_logged = False
+        self._clear_selection()
+        if self._detector is not None:
+            self._detector.clear_tracking()
         log.info("对局结束")
         self._data_wake.set()
 
@@ -487,9 +504,6 @@ class Engine:
         visible = False
         misses = 0  # 刷新动画会短暂缺卡，连续 3 次识别不到才算关闭
         while not self._stop.is_set():
-            if time.monotonic() < self.vision_hold_until:  # 自动截图时浮窗临时可截：这段时间不识别，免得读到自己画的字
-                self._stop.wait(0.1)
-                continue
             if self.state["phase"] != "ingame":
                 if visible:
                     self._on_offer(None)
@@ -507,7 +521,8 @@ class Engine:
                 self._stop.wait(0.5)
                 continue
             if self._detector is None:
-                self._detector = AugmentDetector(self._augment_matcher(), self.home / "calibration.json")
+                self._detector = AugmentDetector(self._augment_matcher(), self.home / "calibration.json",
+                    rarities={aid: a.get("rarity") for aid, a in self.store.augments.items()})
             det = self._detector
             det.ensure_calibration(rect.width, rect.height)
             now = time.monotonic()
@@ -561,9 +576,9 @@ class Engine:
         if c["strip"] or c["full"]:
             def avg(k, n):
                 return c[k] * 1000 / max(1, c[n])
-            log.info("这局认字：标题条 %d 次（平均 %.0f 毫秒，CPU %.0f），整块扫描 %d 次（平均 %.0f 毫秒，CPU %.0f）",
+            log.info("这局认字：标题条 %d 次（平均 %.0f 毫秒，CPU %.0f），整块扫描 %d 次（平均 %.0f 毫秒，CPU %.0f），标题OCR %d 次",
                      c["strip"], avg("strip_s", "strip"), avg("strip_cpu", "strip"),
-                     c["full"], avg("full_s", "full"), avg("full_cpu", "full"))
+                     c["full"], avg("full_s", "full"), avg("full_cpu", "full"), c.get("strip_ocr", 0))
         det.cost = dict.fromkeys(c, 0)
 
     SHOTS_KEEP = 3
@@ -575,7 +590,7 @@ class Engine:
             if folder.is_dir() and len(list(folder.glob("offer_*.jpg"))) >= self.SHOTS_KEEP:
                 return
             from .vision import capture
-            frame = capture.grab(rect)
+            frame = capture.grab(rect, mask=False)  # 核对浮窗位置用：要原样
         except Exception:
             log.exception("截图失败")
             return
@@ -596,27 +611,42 @@ class Engine:
     def _on_offer(self, offer) -> None:
         with self._lock:
             prev = self.state.get("offer")
-        if offer is None:
-            self._set(offer=None, evaluation=None)
-            return
-        slots = list(offer.slots)
-        if prev and prev.get("corrected"):
-            slots = [s or p for s, p in zip(slots, prev["slots"])]
-        if prev and prev["slots"] == slots:
-            return
-        self._set(offer={"slots": slots, "texts": offer.texts, "scores": offer.scores,
-                         "boxes": offer.boxes, "at": offer.at})
+            if offer is None:
+                self.state.update(offer=None, evaluation=None)
+                return
+            if self.state["phase"] != "ingame":
+                return  # 这帧识别完成时已经退出对局，不再发布旧卡片。
+            slots = list(offer.slots)
+            if prev and prev.get("corrected"):
+                slots = [s or p for s, p in zip(slots, prev["slots"])]
+            if prev and prev["slots"] == slots:
+                # 卡片内容不变也可能移动或切换分辨率：保留评分，更新绘制坐标。
+                prev.update(texts=offer.texts, scores=offer.scores, boxes=offer.boxes, at=offer.at,
+                            padded=offer.padded, source=offer.source, observation=offer.observation)
+                return
+            self.state["offer"] = {"slots": slots, "texts": offer.texts, "scores": offer.scores,
+                                   "boxes": offer.boxes, "at": offer.at, "padded": offer.padded,
+                                   "source": offer.source, "observation": offer.observation}
         self._reevaluate()
 
     def _reevaluate(self) -> dict | None:
         with self._lock:
+            self._evaluation_revision += 1
+            revision = self._evaluation_revision
             offer = self.state.get("offer")
             hid = self.state.get("hero_id")
+            slots = list(offer["slots"]) if offer else None
         if not offer:
             return None
-        ev = recommend.evaluate(self.store, hid, offer["slots"], self.settings.smoothing_games)
-        self._set(evaluation=ev)
-        key = (hid, tuple(offer["slots"]))
+        ev = recommend.evaluate(self.store, hid, slots, self.settings.smoothing_games)
+        with self._lock:
+            # 后台重算期间可能已结束对局、换英雄或刷新卡片，不能覆盖新状态。
+            if (revision != self._evaluation_revision
+                    or self.state.get("offer") is not offer or self.state.get("hero_id") != hid
+                    or offer["slots"] != slots):
+                return None
+            self.state["evaluation"] = ev
+        key = (hid, tuple(slots))
         if key != self._last_eval_log:
             self._last_eval_log = key
             log.info("三选一（%s）：%s｜%s", (self.store.heroes.get(str(hid)) or {}).get("name") or "未识别英雄",

@@ -32,7 +32,7 @@ from pathlib import Path
 
 import requests
 
-from . import GITHUB_REPO, MIRROR
+from . import GITHUB_REPO, MIRROR, cloud
 from .config import program_dir
 
 log = logging.getLogger(__name__)
@@ -62,7 +62,6 @@ SOURCES = sources_for("0")  # 只用作默认值的形状；实际按要更新�
 PATCHABLE_PREFIXES = ("AramHex.exe", "_internal/base_library.zip", "_internal/lolhex/")
 STAGING, BACKUP = "_update_new", "_update_old"
 UNINSTALL_KEY = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\{1107079E-6C48-46FD-938D-04B1C3EA9A72}_is1"
-HEADERS = {"User-Agent": "aramhex"}
 
 
 class NeedFullInstall(Exception):
@@ -118,7 +117,7 @@ def fetch_manifest(version: str, sources=SOURCES, timeout: float = 15) -> tuple[
     errors = []
     for base in sources:
         try:
-            r = requests.get(f"{base}/manifest.json", headers=HEADERS, timeout=timeout)
+            r = requests.get(f"{base}/manifest.json", headers=cloud.headers(base + "/"), timeout=timeout)
             r.raise_for_status()
             return check_manifest(r.json(), version), base
         except (requests.RequestException, ValueError, NeedFullInstall) as e:
@@ -173,7 +172,7 @@ def download(manifest: dict, changed: list[str], root: Path, sources=SOURCES, pr
                         got[0] += n
                         report(got[0])
                     try:
-                        raw = http.fetch(f"{base}/files/{rel}{suffix}", headers=HEADERS, timeout=timeout,
+                        raw = http.fetch(f"{base}/files/{rel}{suffix}", headers=cloud.headers(base + "/"), timeout=timeout,
                                          on_bytes=on_bytes)
                         data = gzip.decompress(raw) if suffix else raw
                         if len(data) != want["size"] or hashlib.sha256(data).hexdigest() != want["sha256"]:
@@ -312,7 +311,7 @@ def rank_by_speed(sources: list[str], rel: str, sample: int = 256 * 1024, timeou
         start = time.monotonic()
         got = 0
         try:
-            with requests.get(f"{base}/files/{rel}", headers={**HEADERS, "Range": f"bytes=0-{sample - 1}"},
+            with requests.get(f"{base}/files/{rel}", headers=cloud.headers(base + "/", Range=f"bytes=0-{sample - 1}"),
                               timeout=timeout, stream=True) as r:
                 if r.status_code not in (200, 206):
                     return 0.0

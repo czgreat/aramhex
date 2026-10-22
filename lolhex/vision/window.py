@@ -5,6 +5,8 @@ from __future__ import annotations
 import ctypes
 import os
 import sys
+import threading
+import time
 from ctypes import wintypes
 from dataclasses import dataclass
 
@@ -137,37 +139,28 @@ def is_foreground(hwnd: int) -> bool:
     return fg == hwnd or (fg in _companions and not ctypes.windll.user32.IsIconic(hwnd))
 
 
-_overlay_windows: set[int] = set()
-_capture_allowed = bool(os.environ.get("LOLHEX_DEBUG_CAPTURABLE"))  # 调试截图时让悬浮层可见
+# 本程序浮窗、标注当前画了东西的区域（屏幕物理像素）。识别截图后把这些地方涂掉，免得认到自己画的字。
+# 录屏、直播能录到浮窗。{来源: (区域列表, 过期时刻 或 None)}；浮窗刚隐藏时多留一会儿，屏幕上可能还没消失
+_drawn: dict[str, tuple[list[Rect], float | None]] = {}
+_drawn_lock = threading.Lock()
+DRAWN_LINGER_S = 0.5
 
 
-def exclude_from_capture(hwnd: int) -> None:
-    """让自己的悬浮窗不出现在截图和录屏里（Win10 2004+）：一是避免识别到自己画的字，
-    二是录视频、直播时画面干净。设置里打开"录屏、截图时显示浮窗"就不排除。"""
-    if hwnd:
-        _overlay_windows.add(int(hwnd))
-        _apply_affinity(int(hwnd))
+def set_drawn(key: str, rects: list[Rect]) -> None:
+    """登记某个浮窗现在画在哪（物理像素）；传空列表表示收起了。"""
+    with _drawn_lock:
+        if rects:
+            _drawn[key] = (list(rects), None)
+        elif key in _drawn and _drawn[key][1] is None:
+            _drawn[key] = (_drawn[key][0], time.monotonic() + DRAWN_LINGER_S)
 
 
-def _apply_affinity(hwnd: int) -> None:
-    if IS_WINDOWS and hwnd:
-        try:
-            # 0x11 = WDA_EXCLUDEFROMCAPTURE；0 = 正常（能被截到）
-            ctypes.windll.user32.SetWindowDisplayAffinity(hwnd, 0 if _capture_allowed else 0x11)
-        except Exception:
-            pass
-
-
-def capture_allowed() -> bool:
-    return _capture_allowed
-
-
-def set_capture_allowed(allowed: bool) -> None:
-    """录屏、截图时是否显示浮窗；对已经打开的浮窗立即生效。"""
-    global _capture_allowed
-    _capture_allowed = bool(allowed) or bool(os.environ.get("LOLHEX_DEBUG_CAPTURABLE"))
-    for hwnd in list(_overlay_windows):
-        _apply_affinity(hwnd)
+def drawn_rects() -> list[Rect]:
+    now = time.monotonic()
+    with _drawn_lock:
+        for k in [k for k, (_, exp) in _drawn.items() if exp is not None and exp < now]:
+            del _drawn[k]
+        return [r for rects, _ in _drawn.values() for r in rects]
 
 
 def give_focus(hwnd: int) -> None:

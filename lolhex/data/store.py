@@ -149,8 +149,11 @@ class DataStore:
 
     def mayhem_augments(self) -> dict[str, dict]:
         """用于识别匹配的字典：只要大乱斗（KIWI）海克斯，排除纯斗魂竞技场条目。"""
+        from ..recommend import HIDDEN_AUGMENTS
         out = {}
         for aid, a in self.augments.items():
+            if aid in HIDDEN_AUGMENTS or not a.get("name"):  # 五杀乐队的标记这类没名字的，认不出也不该认
+                continue
             modes = a.get("modes") or []
             if not modes or any(m.startswith("KIWI") for m in modes):
                 out[aid] = a
@@ -170,7 +173,7 @@ class DataStore:
         return out
 
     def resolve_hero(self, key: str | int | None) -> str | None:
-        """按 heroId / 英文 alias / 中文名 / 称号 / 2999 的 rawChampionName 找英雄；
+        """按 heroId / 英文 alias / 中文名 / 称号找英雄；
         再按别名（腾讯关键词、玩家叫法）精确匹配。"""
         if key in (None, "", 0, "0"):
             return None

@@ -25,9 +25,11 @@ SHORT_ASCII_MIN = 90.0
 
 
 class NameMatcher:
-    def __init__(self, names: dict[str, str | list[str]], threshold: float = 72.0):
+    def __init__(self, names: dict[str, str | list[str]], threshold: float = 72.0,
+                 min_margin: float = 0.0):
         """names: {id: 显示名} 或 {id: [几种语言的名字]}。"""
         self.threshold = threshold
+        self.min_margin = min_margin
         self._ids: list[str] = []
         self._keys: list[str] = []
         self._bangs: list[bool] = []
@@ -49,6 +51,10 @@ class NameMatcher:
         if len(q) < 2:  # 只剩一个字（「邦！」、英雄「慎」）：只认完全一样的，模糊匹配太容易错
             pos = next((i for i, k in enumerate(self._keys) if k == q), None)
             return (None, 0.0) if pos is None else (self._pick(pos, text), 100.0)
+        exact = next((i for i, k in enumerate(self._keys) if k == q), None)
+        if exact is not None:
+            return self._pick(exact, text), 100.0
+        scorer = fuzz.ratio
         hit = process.extractOne(q, self._keys, scorer=fuzz.ratio)
         if not hit:
             return None, 0.0
@@ -58,8 +64,18 @@ class NameMatcher:
             hit2 = process.extractOne(q, self._keys, scorer=fuzz.partial_ratio)
             if hit2 and hit2[1] >= 90 and len(hit2[0]) >= 3 and abs(len(hit2[0]) - len(q)) <= 3:
                 key, score, pos = hit2
+                scorer = fuzz.partial_ratio
         if score < self.threshold or (key.isascii() and len(key) <= SHORT_ASCII and score < SHORT_ASCII_MIN):
             return None, float(score)
+        if self.min_margin:
+            for other_key, other_score, other_pos in process.extract(q, self._keys, scorer=scorer, limit=8):
+                if self._ids[other_pos] == self._ids[pos]:
+                    continue  # 同一个海克斯的繁中等别名不构成另一个候选。
+                if scorer is fuzz.partial_ratio and (len(other_key) < 3 or abs(len(other_key)-len(q)) > 3):
+                    continue
+                if score - other_score < self.min_margin:
+                    return None, float(score)
+                break
         return self._pick(pos, text), float(score)
 
     def _pick(self, pos: int, text: str) -> str:

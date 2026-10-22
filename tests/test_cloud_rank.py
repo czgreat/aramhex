@@ -138,3 +138,34 @@ def test_bad_cloud_values_never_crash(monkeypatch, tmp_path):
     cloud._path().parent.mkdir(parents=True, exist_ok=True)
     cloud._path().write_text("[1, 2, 3]", encoding="utf-8")                  # 存下的云控坏了
     assert cloud.check_minutes() == 180
+
+
+def test_headers_version_everywhere_id_only_to_own_site(monkeypatch):
+    # 1.1.1（A6）：下载数据、查新版本都带版本号；匿名编号只发给本站，不发给 GitHub / jsDelivr
+    from lolhex import WEBSITE, __version__
+    monkeypatch.setattr(cloud, "_install_id", "abcd1234abcd1234")
+    own = cloud.headers(f"{WEBSITE}/u/data/latest.json")
+    assert own["User-Agent"] == f"aramhex/{__version__}" and own["X-AramHex-Id"] == "abcd1234abcd1234"
+    for other in ("https://raw.githubusercontent.com/x/latest.json", "https://cdn.jsdelivr.net/gh/x", "",
+                  "https://aramhex.com.evil.example/u/"):
+        h = cloud.headers(other)
+        assert h["User-Agent"] == f"aramhex/{__version__}" and "X-AramHex-Id" not in h
+    assert cloud.headers(f"{WEBSITE}/u/x", Range="bytes=0-9")["Range"] == "bytes=0-9"
+    monkeypatch.setattr(cloud, "_install_id", None)
+    assert "X-AramHex-Id" not in cloud.headers(f"{WEBSITE}/u/data/latest.json")
+
+
+def test_data_sync_sends_version_header(monkeypatch, tmp_path):
+    from lolhex import WEBSITE, __version__
+    from lolhex.data import public
+    seen = []
+    monkeypatch.setattr(cloud, "_install_id", "abcd1234abcd1234")
+    monkeypatch.setattr(public.requests, "get", lambda url, headers=None, **k: seen.append((url, dict(headers or {})))
+                        or (_ for _ in ()).throw(public.requests.ConnectionError("x")))
+    for base in (f"{WEBSITE}/u/data", "https://cdn.jsdelivr.net/gh/czgreat/aramhex-data@main"):
+        try:
+            public.PublicStore._sync_from(None, base)
+        except public.requests.ConnectionError:
+            pass
+    assert all(h["User-Agent"] == f"aramhex/{__version__}" for _, h in seen)
+    assert seen[0][1].get("X-AramHex-Id") and "X-AramHex-Id" not in seen[1][1]

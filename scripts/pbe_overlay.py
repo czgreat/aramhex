@@ -8,6 +8,9 @@
   另外给了 --game-data（CommunityDragon 测试服 kiwi.bin.json）时，以游戏数据为准：标了停用（Enabled=false）的一律删除；
   测试服里还在出现的会打印出来，人工核对（用户 10-19 定：以游戏数据为准，结合官方公告和实际对局）。
   从所有英雄的海克斯表里去掉（英雄详情页不再列出，同稀有度排名的分母也跟着变），记在 meta.json 的 removed_augments。
+- 给了 --official（官方公告名单，JSON {"removed": [编号…], "added": [编号…]}，两项都可省）时以名单为准：
+  removed 就是要删的（上面两条只打印出来对照）；added 限定新海克斯（测试服里有、名单里没有的不补，
+  名单里有、测试服一局没有的打印出来，软件里会显示「新海克斯，还没有数据」）。
 - 新海克斯不和老海克斯一起排名（recommend.py），只显示测试服胜率。
 - 新海克斯（测试服里出现、--base 里没有的）：补进每个英雄的海克斯表，局数、胜场照实写；
   meta.json 的 provisional_augments 记它们在测试服所有英雄上的合计（推荐按这个打底，见 recommend.py）。
@@ -50,13 +53,16 @@ def load_games(raw: Path, build: str) -> list[dict]:
                 g = json.loads(line)["body"]["json"]
                 if g["gameId"] not in seen and valid(g, build):
                     seen.add(g["gameId"])
-                    games.append(g)
+                    # 只留用得到的字段：整局 JSON 带着任务进度等一大堆，2.8 万局全留会占好几 GB 内存
+                    keep = ["championId", "win"] + [f"playerAugment{i}" for i in range(1, 7)]
+                    games.append({"gameCreation": g["gameCreation"],
+                                  "participants": [{k: p.get(k) for k in keep} for p in g["participants"]]})
     return games
 
 
 def _dump(path: Path, obj) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(obj, ensure_ascii=False, indent=1, sort_keys=True), encoding="utf-8")
+    path.write_text(json.dumps(obj, ensure_ascii=False, indent=1, sort_keys=True) + "\n", encoding="utf-8")  # 结尾换行：和数据仓库导出格式一致，官网压缩包解开才对得上（seq 5 少了它，10-22）
 
 
 def _sha(path: Path) -> str:
@@ -71,6 +77,9 @@ def main(argv=None) -> int:
     ap.add_argument("--base", type=Path, default=ROOT / "lolhex" / "data" / "bundled")
     ap.add_argument("--kiwi", type=Path, help="腾讯 kiwi_augments.json（补新海克斯的名字和稀有度）")
     ap.add_argument("--game-data", type=Path, help="CommunityDragon 测试服 kiwi.bin.json（看哪些海克斯停用了）")
+    ap.add_argument("--ignore", default="", help="逗号分隔的海克斯编号，统计时当它不存在（如 3176：五杀乐队的通用标记，"
+                    "后面一格总跟着 Q/W/E/R 具体强化 3170–3173，只算那四个）")
+    ap.add_argument("--official", type=Path, help='官方公告名单 JSON：{"removed": [编号…], "added": [编号…]}，以它为准')
     ap.add_argument("--path", help="发布到数据仓库时的目录（如 patches/16.20-pbe/normal）；不给就沿用底子的（只适合内置）")
     ap.add_argument("--seq", type=int, help="发布到数据仓库时的序号（底子的 seq + 1，对应 tag data-v<seq>）；不给就沿用底子的")
     a = ap.parse_args(argv)
@@ -82,6 +91,7 @@ def main(argv=None) -> int:
     base_ha = json.loads((a.base / "hero_augments.json").read_text(encoding="utf-8"))
     known = {aid for augs in base_ha.values() for aid in augs} | set((meta.get("excluded_augments") or {}))
 
+    ignore = {x.strip() for x in a.ignore.split(",") if x.strip()}
     games = load_games(a.raw, a.build)
     if not games:
         print("没有符合条件的测试服对局", file=sys.stderr)
@@ -95,7 +105,7 @@ def main(argv=None) -> int:
         for p in g["participants"]:
             rows += 1
             w = 1 if p.get("win") else 0
-            augs = {str(p.get(f"playerAugment{i}")) for i in range(1, 7) if p.get(f"playerAugment{i}")}
+            augs = {str(p.get(f"playerAugment{i}")) for i in range(1, 7) if p.get(f"playerAugment{i}")} - ignore
             seen |= augs
             for aid in augs:
                 seen_n[aid] += 1
@@ -126,6 +136,29 @@ def main(argv=None) -> int:
             if seen_n.get(aid):
                 print(f"核对：{aid} 游戏数据标了停用，但测试服里出现 {seen_n[aid]} 次（按停用删除）")
 
+    official = json.loads(a.official.read_text(encoding="utf-8")) if a.official else {}
+    if official.get("removed") is not None:
+        want = {str(x) for x in official["removed"]}
+        auto = dict(removed)
+        for aid in sorted(set(auto) - want, key=int):
+            print(f"对照：{aid} 按测试服/游戏数据会删，官方名单没有（保留）")
+        for aid in sorted(want - set(auto), key=int):
+            print(f"对照：{aid} 官方名单删除，自动判断没删" + (f"（测试服出现 {seen_n[aid]} 次）" if seen_n.get(aid) else ""))
+        for aid in sorted(want - set(base_games), key=int):
+            print(f"对照：{aid} 官方名单删除，{base_manifest.get('patch')} 统计里本来就没有")
+        removed = {aid: base_games[aid] for aid in want if aid in base_games}
+    if official.get("added") is not None:
+        want = {str(x) for x in official["added"]}
+        for aid in sorted(set(total) - want, key=int):
+            print(f"对照：{aid} 测试服出现 {total[aid][0]} 次、不在官方新增名单（不补）")
+            total.pop(aid)
+            for augs in per_hero.values():
+                augs.pop(aid, None)
+        for aid in sorted(want - set(total), key=int):
+            print(f"对照：{aid} 官方新增，" + ("16.20 统计里已有（按老海克斯处理）" if aid in base_games else "测试服一局没有（软件显示「新海克斯，还没有数据」）"))
+        for hid in [h for h, augs in per_hero.items() if not augs]:
+            per_hero.pop(hid)
+
     out = a.out
     if out.exists():
         shutil.rmtree(out)
@@ -154,6 +187,8 @@ def main(argv=None) -> int:
     meta["provisional_augments"] = {aid: {"games": n, "wins": w, "win_rate": round(w / n, 6), "source": source}
                                     for aid, (n, w) in sorted(total.items())}
     def why(aid: str, n: int) -> str:
+        if official.get("removed") is not None:
+            return "官方 4.0 公告删除"
         if aid in disabled:
             return "测试服游戏数据标了停用" + (f"（测试服里还出现 {seen_n[aid]} 次）" if seen_n.get(aid) else "")
         return (f"{source}里一次都没出现（按 {base_manifest.get('patch')} 的出场比例应出现约 "

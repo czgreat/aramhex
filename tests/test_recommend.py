@@ -75,10 +75,10 @@ def test_thin_sample_is_never_first_choice(store):
 
 
 def test_band_changes_hero_baseline_and_augment_win(store):
-    store.set_band("top")
+    store.set_band("high")
     ev = recommend.evaluate(store, "17", ["1029", None, None])
-    assert ev["slots"][0]["games"] == 500 and abs(ev["slots"][0]["win"] - 0.59) < 1e-6
-    assert any("顶尖" in x for x in ev["slots"][0]["reasons"])
+    assert ev["slots"][0]["games"] == 500 and abs(ev["slots"][0]["win"] - 0.56) < 1e-6
+    assert any("前 5%" in x for x in ev["slots"][0]["reasons"])
     store.set_band(None)
     assert recommend.evaluate(store, "17", ["1029", None, None])["slots"][0]["games"] == 40000
 
@@ -188,3 +188,84 @@ def test_pbe_augments_not_ranked_with_live_ones(store):
     store.dataset.meta["provisional_augments"] = {"3086": {"games": 5000, "wins": 2800, "win_rate": 0.56}}
     ev = recommend.evaluate(store, "17", [gold[0], "3086", None])
     assert before and ev["slots"][0].get("rank_total") == before and ev["slots"][1].get("rank") is None
+
+
+def test_band_tiny_sample_does_not_beat_overall(store):
+    # 前 5% 里炽燃利息只有 80 局却 95% 胜率；全体 3 万局比提莫平均还低。以前分段里只往英雄平均收，会被推成首选
+    store.set_band("high")
+    _, band_augs = store.dataset.table("high")
+    band_augs["17"]["2128"] = {"games": 80, "wins": 76, "win_rate": 0.95, "low_sample": True}
+    ev = recommend.evaluate(store, "17", ["2128", "1029", None])
+    assert ev["best_index"] == 1
+    tiny = ev["slots"][0]
+    assert tiny["games"] == 80 and tiny["games_all"] == 30000 and abs(tiny["win"] - 0.95) < 1e-9
+    assert -1.5 < tiny["score"] < 1.0  # 基本按全体（−1pp）算
+    assert any("全体 30000局" in x and "按局数综合" in x for x in tiny["reasons"])
+
+
+def test_band_large_sample_follows_band(store):
+    store.set_band("high")
+    heroes, augs = store.dataset.table(None)
+    augs["17"]["1373"] = {"games": 200000, "wins": 110000, "win_rate": 0.55}  # 全体 +2pp
+    _, band_augs = store.dataset.table("high")
+    band_augs["17"]["1373"] = {"games": 60000, "wins": 32400, "win_rate": 0.54}  # 分段里和英雄平均（54%）一样
+    sc = recommend.evaluate(store, "17", ["1373", None, None])["slots"][0]["score"]
+    assert abs(sc) < 0.3
+    store.set_band(None)
+    assert recommend.evaluate(store, "17", ["1373", None, None])["slots"][0]["score"] > 1.5
+
+
+def test_band_panel_delta_matches_evaluate(store):
+    store.set_band("high")
+    ev = recommend.evaluate(store, "17", ["1029", "2128", "1373"])
+    d = {a["id"]: a["delta"] for a in hero_panel(store, "17")["augments"] if a.get("delta") is not None}
+    for s in ev["slots"]:
+        assert abs(d[s["augment_id"]] - s["score"]) < 0.01
+
+
+def test_band_shrink_estimated_from_data():
+    import random
+    from lolhex.data.public import _band_shrink, SHRINK_DEFAULT
+    rnd = random.Random(1)
+    ha, hb, aa, ab = {}, {}, {}, {}
+    for h in range(50):
+        hid = str(h)
+        ha[hid] = {"win_rate": 0.5}
+        hb[hid] = {"win_rate": 0.5}
+        aa[hid], ab[hid] = {}, {}
+        for a in range(40):
+            adv = rnd.gauss(0, 0.02)
+            aa[hid][str(a)] = {"games": 10**7, "win_rate": 0.5 + adv}
+            ab[hid][str(a)] = {"games": 10**6, "win_rate": 0.5 + adv + rnd.gauss(0, 0.01)}  # 真实差别 1 个点
+    k = _band_shrink((ha, aa), (hb, ab))
+    assert 2000 < k < 3200  # 0.25 / 0.01² = 2500
+    assert _band_shrink(({}, {}), ({}, {})) == SHRINK_DEFAULT
+
+
+def test_pentakill_cards_named_by_skill_and_rates_shown(store):
+    # 1.1.1（A11）：五杀乐队三张卡标题是技能图标，显示成「重型（强化 Q）」；面板给本英雄 Q/W/E/R 的胜率
+    names = {"3170": "重型", "3171": "力量", "3172": "鞭挞", "3173": "厄运"}
+    rows = store.dataset.table(None)[1]["17"]
+    for i, (aid, n) in enumerate(names.items()):
+        store.augments[aid] = {"id": aid, "name": n, "rarity": "gold", "new": True}
+        if aid != "3173":  # R 本英雄没人选过：不显示 R
+            rows[aid] = {"games": 400 + i * 100, "wins": 200 + i * 60, "win_rate": (200 + i * 60) / (400 + i * 100)}
+    store.dataset.meta["provisional_augments"] = {aid: {"games": 9000, "wins": 4600, "win_rate": 0.511}
+                                                  for aid in names}
+    ev = recommend.evaluate(store, "17", ["3170", "3171", "3172"])
+    assert [s["name"] for s in ev["slots"]] == ["重型（强化 Q）", "力量（强化 W）", "鞭挞（强化 E）"]
+    pk = ev["pentakill"]
+    assert pk["hero"] and pk["pbe"] and [r["key"] for r in pk["rows"]] == ["Q", "W", "E"]
+    text = recommend.pentakill_text(pk)
+    assert text.startswith("五杀乐队（本英雄，测试服数据）：Q 50.0%（400 局）") and " R " not in text
+    assert "首选「" in ev["advice"] and "（强化 " in ev["advice"]
+    # 普通三选一没有五杀乐队的卡：不带这一行
+    assert recommend.evaluate(store, "17", ["2128", "1029", "1373"])["pentakill"] is None
+    assert recommend.pentakill_text(None) == ""
+
+
+def test_hidden_pentakill_marker_not_matched(store):
+    store.augments["3176"] = {"id": "3176", "name": "", "rarity": "gold"}
+    store.augments["3999"] = {"id": "3999", "name": "", "rarity": "gold"}
+    m = store.mayhem_augments()
+    assert "3176" not in m and "3999" not in m and "1029" in m

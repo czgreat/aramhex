@@ -47,17 +47,23 @@ def lines(d: dict, icons, show_win: bool, size: int = 24, compact: bool = False)
     b = d.get("builds") or {}
     wr = (lambda x: f" <span style='color:{GRAY}'>{_pct(x)}</span>") if show_win else (lambda x: "")
     out = []
-    sums = (d.get("summoners") or [])[: 2 if compact else 3]
+    sums = d.get("summoners") or []  # panel.sort_summoners 已经筛好（出场 ≥10%、按胜率、最多两组）
     if sums and d.get("summoner_source"):
         out.append("<span style='color:" + GRAY + "'>召唤师技能：" + escape(d["summoner_source"])
                    + " · " + escape(str(d.get("summoner_source_date") or "日期未知")) + "</span>")
-    if sums and compact:
-        out.append("<b>召唤师技能</b>　" + "　　".join(
-            spell_pair(icons, s, size) + f" <span style='color:{GRAY}'>{_pct(s.get('pick'))}</span>" for s in sums))
+    def stat(s):  # 胜率在前（按胜率排的），排得下就带上出场；关了显示胜率只写出场
+        return (f"胜率 {_pct(s.get('win'))} · " if show_win else "") + f"出场 {_pct(s.get('pick'))}"
+    if sums and compact:  # 浮窗：一组一行，第一行带标题，第二行对齐
+        for i, s in enumerate(sums):
+            head = "<b>召唤师技能</b>　" if i == 0 else "<span style='color:transparent'><b>召唤师技能</b></span>　"
+            out.append(head + spell_pair(icons, s, size) + f" <span style='color:{GRAY}'>{stat(s)}</span>")
     elif sums:
         out.append("<b>召唤师技能</b>")
-        out.extend(f"　{spell_pair(icons, s, size)} <span style='color:{GRAY}'>出场 {_pct(s.get('pick'))}"
-                   + (f" · 胜率 {_pct(s.get('win'))}" if show_win else "") + "</span>" for s in sums)
+        out.extend(f"　{spell_pair(icons, s, size)} <span style='color:{GRAY}'>{stat(s)}</span>" for s in sums)
+
+    its = (d.get("item_stats") or [])[: 4 if compact else 6]
+    if its:  # 自采统计的装备（数据里有 hero_items.json 才有）
+        out.append("<b>常出装备</b>　" + "　".join(item(icons, x["item"], size) + wr(x.get("win")) for x in its))
 
     def core(c):
         return " → ".join(item(icons, x, size) for x in c.get("items") or []) + wr(c.get("win"))

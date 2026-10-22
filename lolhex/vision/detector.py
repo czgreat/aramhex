@@ -16,7 +16,7 @@ from __future__ import annotations
 import json
 import logging
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 import numpy as np
@@ -62,6 +62,9 @@ class Offer:
     scores: list[float]
     boxes: list[tuple[int, int, int, int] | None]  # 屏幕坐标下的标题框
     at: float = field(default_factory=time.time)
+    padded: bool = False  # boxes 是否为带上下留白的校准框；原始 OCR 字框不含留白
+    source: str = "full"
+    observation: int = 0  # 真实 OCR 批次；指纹缓存返回不增加。
 
     def key(self) -> tuple:
         return tuple(self.slots)
@@ -94,16 +97,24 @@ def fp_changed(a: np.ndarray | None, b: np.ndarray) -> bool:
 
 
 class AugmentDetector:
-    def __init__(self, matcher: NameMatcher, calib_path: Path | None = None, ocr: OCR | None = None):
+    def __init__(self, matcher: NameMatcher, calib_path: Path | None = None, ocr: OCR | None = None,
+                 rarities: dict[str, str] | None = None):
         self.matcher = matcher
         self.calib_path = calib_path
         self._ocr = ocr
+        self.rarities = rarities or {}
         self.calibration: Calibration | None = None
         self._last_fp: np.ndarray | None = None
         self._last_result: Offer | None = None
+        self._last_window: Rect | None = None
+        self._cells: list[dict | None] = [None] * 3
+        self._stable: Offer | None = None
+        self._pending: list[dict | None] = [None] * 3
+        self._observation = 0
         # 这局花在认字上的次数和时间（秒），对局结束写进日志，玩家说卡的时候看
         # *_cpu 是本线程实际算了多久（单线程推理在调用线程上跑）；比 *_s（墙钟）小很多说明线程在排队等 CPU
-        self.cost = {"strip": 0, "strip_s": 0.0, "strip_cpu": 0.0, "full": 0, "full_s": 0.0, "full_cpu": 0.0}
+        self.cost = {"strip": 0, "strip_s": 0.0, "strip_cpu": 0.0, "strip_ocr": 0,
+                     "full": 0, "full_s": 0.0, "full_cpu": 0.0}
         if calib_path and calib_path.exists():
             try:
                 d = json.loads(calib_path.read_text(encoding="utf-8"))
@@ -117,9 +128,17 @@ class AugmentDetector:
             self._ocr = OCR.get()
         return self._ocr
 
+    def clear_tracking(self) -> None:
+        """离开对局时保留定位校准，丢弃上一局标题与待确认读数。"""
+        self._last_fp = self._last_result = self._last_window = None
+        self._cells = [None]*3
+        self._stable = None
+        self._pending = [None]*3
+
     def set_matcher(self, matcher: NameMatcher) -> None:
         self.matcher = matcher
         self._last_fp = None
+        self._cells = [None] * 3
 
     def calibrated_for(self, w: int, h: int) -> bool:
         return self.calibration is not None and tuple(self.calibration.size) == (w, h)
@@ -132,10 +151,16 @@ class AugmentDetector:
         if not self.calibrated_for(w, h):
             self.calibration = Calibration.default(w, h)
             self._last_fp = None
+            self._cells = [None] * 3
+            self._stable = None
+            self._pending = [None] * 3
 
     def reset_calibration(self) -> None:
         self.calibration = None
         self._last_fp = None
+        self._cells = [None] * 3
+        self._stable = None
+        self._pending = [None] * 3
         if self.calib_path and self.calib_path.exists():
             self.calib_path.unlink()
 
@@ -158,6 +183,9 @@ class AugmentDetector:
 
     def _scan_full(self, frame: np.ndarray, origin: tuple[int, int]) -> Offer | None:
         H, W = frame.shape[:2]
+        if not self.calibrated_for(W, H):
+            self._stable = None
+            self._pending = [None]*3
         x0, y0, x1, y1 = int(BAND[0] * W), int(BAND[1] * H), int(BAND[2] * W), int(BAND[3] * H)
         band = frame[y0:y1, x0:x1]
         scale = min(1.0, DETECT_MAX_W / max(1, band.shape[1]))
@@ -175,9 +203,16 @@ class AugmentDetector:
         slots, texts, scores, boxes = self._assign_columns(group, W)
         if len(group) == 3:
             self._calibrate(group, W, H)
+            boxes = self.calibration.pixel_boxes(W, H)
         ox, oy = origin
         sboxes = [None if b is None else (b[0] + ox, b[1] + oy, b[2] + ox, b[3] + oy) for b in boxes]
-        return Offer(slots, texts, scores, sboxes)
+        self._observation += 1
+        offer = Offer(slots, texts, scores, sboxes, padded=len(group) == 3,
+                      source="full", observation=self._observation)
+        offer = self._stabilize(offer, [True]*3)
+        log.debug("海克斯OCR source=full observation=%d raw=%r matches=%r scores=%r",
+                  offer.observation, texts, slots, scores)
+        return offer
 
     @staticmethod
     def _pick_row(hits, H):
@@ -227,6 +262,9 @@ class AugmentDetector:
         half_h = 0.9 * th
         boxes = [((c - half_w) / W, (cy - half_h) / H, (c + half_w) / W, (cy + half_h) / H) for c in centers]
         self.calibration = Calibration(boxes, (W, H))
+        # 定位框变更后不能用旧条带的近似指纹命中旧坐标。
+        self._last_fp = self._last_result = self._last_window = None
+        self._cells = [None] * 3
         self._save_calibration()
         log.info("已校准三选一标题位置：%s @ %dx%d", boxes, W, H)
 
@@ -239,14 +277,31 @@ class AugmentDetector:
         pb = self.calibration.pixel_boxes(win.width, win.height)
         x0, y0 = min(b[0] for b in pb), min(b[1] for b in pb)
         x1, y1 = max(b[2] for b in pb), max(b[3] for b in pb)
+        if self.rarities:
+            from .cardframe import frame_strip_bounds
+            bounds = frame_strip_bounds(pb, win.height)
+            if bounds:
+                x0, y0, x1, y1 = bounds
+                x0, x1 = max(0, x0), min(win.width, x1)
         return Rect(win.left + x0, win.top + y0, x1 - x0, y1 - y0)
+
+    RECHECK_SECONDS = 5.0
+    PENDING_SECONDS = 0.9
 
     def check_strip(self, strip: np.ndarray, win: Rect) -> Offer | None:
         """strip 为 strip_rect 截图。画面没变化时直接复用上次结果。"""
         fp = fingerprint(strip)
-        if not fp_changed(self._last_fp, fp):
-            return self._last_result
+        now = time.monotonic()
+        active = self._last_result is not None
+        due = any(c is None for c in self._cells) or (active and any(
+            now-c["at"] >= self.RECHECK_SECONDS for c in self._cells))
+        if self._last_window == win and not fp_changed(self._last_fp, fp) and not due and not any(self._pending):
+            log.debug("海克斯OCR source=cache observation=%d", self._observation)
+            return replace(self._last_result, source="cache") if self._last_result else None
+        if self._last_window != win:
+            self._cells = [None] * 3
         self._last_fp = fp
+        self._last_window = win
         t0, c0 = time.perf_counter(), time.thread_time()
         try:
             return self._read_strip(strip, win)
@@ -257,24 +312,79 @@ class AugmentDetector:
 
     def _read_strip(self, strip: np.ndarray, win: Rect) -> Offer | None:
         pb = self.calibration.pixel_boxes(win.width, win.height)
-        sx, sy = min(b[0] for b in pb), min(b[1] for b in pb)
+        region = self.strip_rect(win)
+        sx, sy = region.left-win.left, region.top-win.top
+        rarities = [None]*3
+        if self.rarities:
+            from .cardframe import classify_card_frames
+            rarities = classify_card_frames(strip, pb, strip_origin=(sx, sy), window_height=win.height)
         slots: list[str | None] = []
-        texts, scores, boxes = [], [], []
-        for (x0, y0, x1, y1) in pb:
+        texts, scores, boxes, fresh = [], [], [], []
+        now = time.monotonic()
+        for i, (x0, y0, x1, y1) in enumerate(pb):
             crop = strip[y0 - sy:y1 - sy, x0 - sx:x1 - sx]
-            scale = REC_HEIGHT / max(1, crop.shape[0])
-            txt, conf = self.ocr.recognize(_resize(crop, scale))
-            aid, sc = self.matcher.match(txt)
+            fp = fingerprint(crop)
+            old = self._cells[i]
+            read = (old is None or fp_changed(old["fp"], fp) or self._pending[i] is not None
+                    or (self._last_result is not None and now-old["at"] >= self.RECHECK_SECONDS))
+            if read:
+                scale = REC_HEIGHT / max(1, crop.shape[0])
+                txt, conf = self.ocr.recognize(_resize(crop, scale))
+                aid, sc = self.matcher.match(txt)
+                if aid and rarities[i] and self.rarities.get(aid) != rarities[i]:
+                    log.debug("海克斯颜色冲突 column=%d observed=%s match=%s", i, rarities[i], aid)
+                    aid = None
+                self._cells[i] = {"fp": fp, "at": now, "text": txt, "conf": conf, "aid": aid, "score": sc}
+                self.cost["strip_ocr"] += 1
+                log.debug("海克斯OCR source=strip column=%d raw=%r confidence=%.3f match=%r score=%.1f",
+                          i, txt, conf, aid, sc)
+            else:
+                txt, aid, sc = old["text"], old["aid"], old["score"]
+            fresh.append(read)
             slots.append(aid)
             texts.append(txt)
             scores.append(sc)
             boxes.append((win.left + x0, win.top + y0, win.left + x1, win.top + y1))
-        offer = Offer(slots, texts, scores, boxes)
+        if any(fresh):
+            self._observation += 1
+        offer = Offer(slots, texts, scores, boxes, padded=True, source="strip", observation=self._observation)
         if self.calibration.guess and offer.matched() == 3:
             self.calibration.guess = False  # 默认位置在本机对上了，存下来
             self._save_calibration()
-        self._last_result = offer if offer.matched() >= 2 else None
+        self._last_result = self._stabilize(offer, fresh) if offer.matched() >= 2 else None
+        if self._last_result is None:
+            self._stable = None
+            self._pending = [None] * 3
         return self._last_result
+
+    def _stabilize(self, offer: Offer, fresh: list[bool]) -> Offer:
+        """单列只采纳连续的新 OCR 观察，短暂读空不重排整组；不无限保留旧卡。"""
+        if self._stable is None:
+            self._stable = offer
+            return offer
+        accepted = list(self._stable.slots)
+        now = time.monotonic()
+        for i, aid in enumerate(offer.slots):
+            if not fresh[i]:
+                continue
+            if aid == accepted[i]:
+                self._pending[i] = None
+                continue
+            prior = self._pending[i]
+            first = prior["first"] if prior else now
+            count = prior["count"]+1 if prior and prior["aid"] == aid else 1
+            if count >= 2:
+                accepted[i] = aid
+                self._pending[i] = None
+            else:
+                self._pending[i] = {"aid": aid, "count": count, "first": first}
+                if now-first >= self.PENDING_SECONDS:
+                    accepted[i] = None
+        stable = replace(offer, slots=accepted)
+        log.debug("海克斯确认 observation=%d raw_matches=%r published=%r pending=%r",
+                  offer.observation, offer.slots, accepted, [p is not None for p in self._pending])
+        self._stable = stable
+        return stable
 
     def column_of(self, x: int, y: int, win: Rect) -> int | None:
         """屏幕坐标 (x, y) 落在哪张卡的竖列上；用于记录玩家点了哪张。"""

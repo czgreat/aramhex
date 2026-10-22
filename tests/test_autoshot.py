@@ -1,4 +1,4 @@
-"""自动截图：每次三选一、每次选英雄各截一张；截图那一下浮窗临时可截，截完恢复，期间暂停识别。"""
+"""自动截图：每次三选一、每次选英雄各截一张；存的是不涂掉浮窗的原样截图。"""
 import time
 from types import SimpleNamespace
 
@@ -8,7 +8,7 @@ import pytest
 pytest.importorskip("PySide6")
 
 from lolhex.ui import autoshot  # noqa: E402
-from lolhex.vision import capture, window  # noqa: E402
+from lolhex.vision import capture  # noqa: E402
 
 
 @pytest.fixture
@@ -18,13 +18,11 @@ def env(tmp_path, monkeypatch):
     monkeypatch.setattr(autoshot.QTimer, "singleShot", lambda ms, fn: later.append(fn))
     shots = []
 
-    def grab(rect):
-        shots.append(window.capture_allowed())  # 截的那一刻浮窗是否可截
+    def grab(rect, mask=True):
+        shots.append(mask)  # 自动截图要看浮窗摆得对不对：不涂
         return np.full((40, 60, 3), 128, np.uint8) + np.arange(60, dtype=np.uint8)[None, :, None]
     monkeypatch.setattr(capture, "grab", grab)
-    monkeypatch.setattr(window, "_overlay_windows", set())
-    window.set_capture_allowed(False)
-    engine = SimpleNamespace(settings=SimpleNamespace(auto_screenshot=True, allow_capture=False), vision_hold_until=0.0)
+    engine = SimpleNamespace(settings=SimpleNamespace(debug_mode=True))
     return autoshot.AutoShot(engine), later, shots, engine
 
 
@@ -33,13 +31,12 @@ def run(later):
         later.pop(0)()
 
 
-def test_one_shot_per_offer_and_restores_capture(env):
+def test_one_shot_per_offer_unmasked(env):
     shot, later, shots, engine = env
     snap = {"evaluation": {"x": 1}, "offer": {"slots": ["1", "2", "3"]}}
     shot.tick(snap, "rect", None)
     run(later)
-    assert shots == [True] and not window.capture_allowed()  # 截时可截，截完恢复
-    assert engine.vision_hold_until > time.monotonic() - 1  # 截图期间暂停过识别
+    assert shots == [False]
     shot.tick(snap, "rect", None)  # 同一次三选一不重复截
     run(later)
     assert len(shots) == 1
@@ -72,6 +69,6 @@ def test_champ_select_waits_until_labels_settle(env, monkeypatch):
 
 def test_off_by_default_does_nothing(env):
     shot, later, shots, engine = env
-    engine.settings.auto_screenshot = False
+    engine.settings.debug_mode = False  # 只在调试模式（debug.txt）下截
     shot.tick({"evaluation": {"x": 1}, "offer": {"slots": ["1", "2", "3"]}}, "rect", None)
     assert not later and not shots

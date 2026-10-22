@@ -16,7 +16,7 @@ import os
 import sys
 from logging.handlers import RotatingFileHandler
 
-from .config import Settings, app_home
+from .config import Settings, app_home, program_dir
 
 
 def _fix_stdio() -> None:
@@ -90,13 +90,18 @@ def main(argv=None) -> int:
 
     _fix_stdio()
     from . import BETA, __version__, cloud
-    _setup_logging(args.debug or BETA)
+    # 调试模式：命令行 --debug、测试版，或者程序文件夹 / 数据文件夹里放一个 debug.txt（正式版同一个程序，
+    # 方便复现问题时打开；删掉文件就恢复）。调试模式写详细日志，三选一和选英雄时自动截图
+    debug_file = any((d / "debug.txt").is_file() for d in (program_dir(), app_home()))
+    _setup_logging(args.debug or BETA or debug_file)
+    if debug_file:
+        logging.getLogger("lolhex").info("发现 debug.txt：调试模式（详细日志、自动截图）")
     settings = Settings.load()
-    if BETA and not settings.extra.get("beta_defaults"):  # 测试版第一次打开：默认开 2999 和自动截图（之后可以在设置里关）
-        settings.use_liveclient = settings.auto_screenshot = True
-        settings.extra["beta_defaults"] = 1
-        settings.save()
+    settings.debug_mode = bool(args.debug or BETA or debug_file)
     cloud.set_install_id(settings.install_id if settings.send_usage else None)
+    from . import cloudsettings
+    if cloudsettings.apply(settings, cloud.get(), __version__)["changed"]:  # 上次存下的云控：断网也照样生效
+        settings.save()
     logging.getLogger("lolhex").info("海克斯大乱斗助手 %s 启动；目录：%s；参数：%s", __version__,
                                      app_home(), " ".join(sys.argv[1:]) or "（无）")
 

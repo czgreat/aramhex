@@ -25,13 +25,12 @@ from pathlib import Path
 
 import requests
 
-from . import GITHUB_REPO, MIRROR, RELEASES_PAGE, WEBSITE
+from . import GITHUB_REPO, MIRROR, RELEASES_PAGE, WEBSITE, cloud
 
 log = logging.getLogger(__name__)
 API = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 FILE_RE = re.compile(r"^AramHex-Setup-[0-9][0-9A-Za-z.\-]*\.exe$")
 SUMS = "SHA256SUMS.txt"
-HEADERS = {"Accept": "application/vnd.github+json", "User-Agent": "aramhex"}
 VERSION_MIRRORS = [f"https://{host}/gh/{GITHUB_REPO}@latest/lolhex/__init__.py"
                    for host in ("fastly.jsdelivr.net", "gcore.jsdelivr.net", "cdn.jsdelivr.net")]
 _VERSION = re.compile(r'^__version__\s*=\s*"([0-9][0-9A-Za-z.\-]*)"', re.M)
@@ -57,7 +56,7 @@ def pan_links(timeout: float = 6) -> dict:
 
 def check_site(current: str, timeout: float = 6, url: str = SITE_LATEST) -> dict | None:
     """官网镜像上的最新版本（DMIT 从 GitHub Release 同步：版本、说明、安装包名、SHA-256、GitHub 下载地址）。"""
-    r = requests.get(url, headers={"User-Agent": HEADERS["User-Agent"]}, timeout=timeout)
+    r = requests.get(url, headers=cloud.headers(url), timeout=timeout)
     r.raise_for_status()
     j = r.json()
     version = str(j["version"]).lstrip("vV")
@@ -88,7 +87,7 @@ def probe_newer(current: str, timeout: float = 8, hosts=PROBE_HOSTS, steps: int 
             for host in hosts:
                 try:
                     r = requests.get(f"https://{host}/gh/{GITHUB_REPO}@{tag_for(nxt)}/manifest.json",
-                                     headers={"User-Agent": HEADERS["User-Agent"]}, timeout=timeout)
+                                     headers=cloud.headers(), timeout=timeout)
                 except requests.RequestException:
                     continue
                 reached = True
@@ -114,7 +113,7 @@ def check_mirror(current: str, timeout: float = 8, mirrors=VERSION_MIRRORS, prob
     from concurrent.futures import ThreadPoolExecutor
 
     def alias(url):
-        r = requests.get(url, headers={"User-Agent": HEADERS["User-Agent"]}, timeout=timeout)
+        r = requests.get(url, headers=cloud.headers(url), timeout=timeout)
         r.raise_for_status()
         m = _VERSION.search(r.text)
         if not m:
@@ -158,7 +157,7 @@ def _sha_from_sums(assets: list[dict], name: str, timeout: float) -> str | None:
     sums = next((a for a in assets if a.get("name") == SUMS), None)
     if not sums:
         return None
-    r = requests.get(sums["browser_download_url"], headers={"User-Agent": HEADERS["User-Agent"]}, timeout=timeout)
+    r = requests.get(sums["browser_download_url"], headers=cloud.headers(sums["browser_download_url"]), timeout=timeout)
     r.raise_for_status()
     for line in r.text.splitlines():
         parts = line.strip().split()
@@ -177,7 +176,7 @@ def check(current: str, timeout: float = 8, strict: bool = False, api: str = API
         except (requests.RequestException, ValueError, KeyError, TypeError) as e:
             log.info("官网查更新失败，改查 GitHub：%s", e)
     try:
-        r = requests.get(api, headers=HEADERS, timeout=timeout)
+        r = requests.get(api, headers=cloud.headers(api, Accept="application/vnd.github+json"), timeout=timeout)
         if r.status_code == 404:
             return None  # 还没有发布过
         r.raise_for_status()
@@ -223,7 +222,7 @@ def download(info: dict, progress=None, folder: Path | None = None, slow_bps: fl
     h = hashlib.sha256()
     done = 0
     start = time.monotonic()
-    with requests.get(info["url"], stream=True, timeout=(15, 30), headers={"User-Agent": HEADERS["User-Agent"]}) as r:
+    with requests.get(info["url"], stream=True, timeout=(15, 30), headers=cloud.headers(info["url"])) as r:
         r.raise_for_status()
         total = int(r.headers.get("Content-Length") or info.get("size") or 0)
         with open(dest, "wb") as f:

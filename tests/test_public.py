@@ -48,7 +48,9 @@ def test_band_switch_and_fallback(store):
     assert store.win_data("17")["band_label"] == "娱乐"
     store.set_band("high")
     assert store.effective_band() == "high" and store.ranks["heroes"]["17"]["games"] == 2000
-    assert store.win_data("17")["band_label"] == "高分"
+    assert store.win_data("17")["band_label"] == "前 5%"
+    store.set_band("top")  # 1.1.0 以前的「顶尖」：当前 5%（high）
+    assert store.effective_band() == "high"
     store.set_band("bogus")
     assert store.effective_band() is None and store.ranks["heroes"]["17"]["games"] == 400000
 
@@ -56,8 +58,8 @@ def test_band_switch_and_fallback(store):
 def test_dataset_without_bands_falls_back_to_all(tmp_path):
     make_dataset(tmp_path / "b", bands=False)
     s = PublicStore(tmp_path / "data", bundled=tmp_path / "b", check_updates=False)
-    s.set_band("top")
-    assert s.band == "top" and s.effective_band() is None and not s.bands_available()
+    s.set_band("high")
+    assert s.band == "high" and s.effective_band() is None and not s.bands_available()
 
 
 def test_tampered_file_is_rejected(tmp_path):
@@ -145,12 +147,12 @@ def test_sync_waits_until_game_ends(tmp_path, server):
 
 
 def test_real_bundled_data_is_valid():
-    """仓库里随程序发布的内置数据：清单、校验、分段都完整。"""
+    """仓库里随程序发布的内置数据：清单、校验完整；分段有没有和清单声明一致（4.0 首版只有全体，bands=false）。"""
     if not (public.BUNDLED_DIR / "latest.json").exists():
         pytest.skip("还没有放内置数据（scripts/update_data.py）")
     ds = Dataset(public.BUNDLED_DIR, "bundled")
     heroes, augs = ds.table(None)
-    assert len(heroes) > 150 and ds.bands_available()
+    assert len(heroes) > 150 and ds.bands_available() == bool(ds.manifest.get("bands"))
     assert all(0 < h["win_rate"] < 1 for h in heroes.values())
 
 
@@ -284,3 +286,70 @@ def test_event_mode_uses_event_dataset(tmp_path, server):
     event[0] = None  # 活动结束：回到常规
     s.sync_data(force=True)
     assert s.dataset.mode == "normal" and not s.status()["event_fallback"]
+
+
+def test_old_top_band_setting_becomes_high(tmp_path):
+    # 1.1.1 去掉「顶尖」：老设置文件 data_band=top 读成 high
+    import json
+    from lolhex.config import Settings
+    p = tmp_path / "config.json"
+    p.write_text(json.dumps({"data_band": "top", "install_id": "0123456789abcdef"}), encoding="utf-8")
+    assert Settings.load(p).data_band == "high"
+
+
+def _add_file(folder, name, obj):
+    import hashlib
+    import json as _json
+    p = folder / name
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(_json.dumps(obj, ensure_ascii=False), encoding="utf-8")
+    m = _json.loads((folder / "latest.json").read_text(encoding="utf-8"))
+    m["files"][name] = {"sha256": hashlib.sha256(p.read_bytes()).hexdigest(), "size": p.stat().st_size}
+    (folder / "latest.json").write_text(_json.dumps(m), encoding="utf-8")
+
+
+def test_optional_spells_and_items_files(store):
+    # 1.1.1（A12）：数据里有 hero_spells.json / hero_items.json 就显示，没有就跳过
+    from lolhex.data.public import Dataset
+    from lolhex.panel import hero_panel
+    assert store.hero_spells("17") == ([], store.label()) and hero_panel(store, "17")["summoners"] == []
+    folder = store.dataset.folder
+    _add_file(folder, "hero_spells.json", {"17": {"4+32": {"games": 900, "wins": 480}, "4+7": {"games": 100, "wins": 40},
+                                                  "坏": {"games": "x"}, "4+14": {"games": 10, "wins": 11}}})
+    _add_file(folder, "hero_items.json", {"17": {"3115": {"games": 500, "wins": 270}}})
+    store.dataset = Dataset(folder, store.dataset.origin)
+    rows, label = store.hero_spells("17")
+    assert [r["spells"] for r in rows] == [["4", "32"], ["4", "7"]] and abs(rows[0]["pick"] - 0.9) < 1e-9
+    d = hero_panel(store, "17")
+    assert len(d["summoners"]) == 2 and d["summoner_source"] and d["summoners"][0]["spells"][0]["id"] == "4"
+    assert d["item_stats"][0]["item"]["id"] == "3115" and abs(d["item_stats"][0]["win"] - 0.54) < 1e-9
+    from lolhex.ui import buildview
+    html = "<br>".join(buildview.lines(d, None, True))
+    assert "召唤师技能" in html and "常出装备" in html
+
+
+def test_summoners_pick_over_10pct_sorted_by_win_top2():
+    """召唤师技能：只放出场 ≥10% 的，按胜率排，最多两组；都不够 10% 时放出场最多的一组（用户 10-22）。"""
+    from lolhex.panel import sort_summoners
+    rows = [{"spells": ["4", "32"], "games": 5530, "win": 0.456, "pick": 0.553},
+            {"spells": ["4", "21"], "games": 3480, "win": 0.433, "pick": 0.348},
+            {"spells": ["4", "6"], "games": 1200, "win": 0.47, "pick": 0.12},
+            {"spells": ["4", "7"], "games": 440, "win": 0.60, "pick": 0.044}]
+    assert [r["spells"][1] for r in sort_summoners(rows)] == ["6", "32"]
+    few = [{"spells": ["4", "x"], "games": 90, "win": 0.5, "pick": 0.09}, {"spells": ["4", "y"], "games": 80, "win": 0.7, "pick": 0.08}]
+    assert [r["spells"][1] for r in sort_summoners(few)] == ["x"]
+
+
+def test_overlay_summoners_show_win_rate():
+    """浮窗和主界面：胜率在前、带出场，一组一行；关了「显示胜率」只写出场。"""
+    from lolhex.ui import buildview
+    d = {"summoners": [{"spells": [{"id": "4", "name": "闪现"}, {"id": "32", "name": "雪球"}], "games": 900, "win": 0.534, "pick": 0.9},
+                       {"spells": [{"id": "4", "name": "闪现"}, {"id": "6", "name": "疾跑"}], "games": 100, "win": 0.51, "pick": 0.1}],
+         "summoner_source": "自采统计"}
+    compact = buildview.lines(d, None, True, compact=True)
+    rows = [x for x in compact if "闪现" in x]
+    assert len(rows) == 2 and "胜率 53.4% · 出场 90.0%" in rows[0] and "胜率 51.0% · 出场 10.0%" in rows[1]
+    off = "".join(buildview.lines(d, None, False, compact=True))
+    assert "胜率" not in off and "出场 90.0%" in off
+    full = "".join(buildview.lines(d, None, True))
+    assert "胜率 53.4% · 出场 90.0%" in full

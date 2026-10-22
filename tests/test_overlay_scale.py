@@ -55,7 +55,7 @@ def _badge_rows(position: str, monkeypatch, desc_to: int = 560, wait_ms: int = 8
 
 def test_badge_top_and_bottom(monkeypatch):
     top, bottom = _badge_rows("top", monkeypatch), _badge_rows("bottom", monkeypatch)
-    assert top and max(top) < 430                    # 标题上方
+    assert top and max(top) < 438                    # 标题框上侧空白内，真实标题文字上方
     assert bottom and min(bottom) > 560               # 描述下面，不压字
     assert max(bottom) <= 450 + 236
 

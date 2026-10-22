@@ -12,12 +12,14 @@ from __future__ import annotations
 
 import logging
 import time
+from html import escape
 
 from PySide6.QtCore import QEvent, QPoint, QRect, QSize, Qt, QTimer
-from PySide6.QtGui import QColor, QCursor, QFont, QFontMetrics, QGuiApplication, QPainter, QPen
+from PySide6.QtGui import QColor, QCursor, QFont, QFontMetrics, QGuiApplication, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (QApplication, QHBoxLayout, QLabel, QLineEdit, QPushButton,
                                QVBoxLayout, QWidget)
 
+from .. import cloud, recommend
 from ..recommend import NODATA_NOTE
 from ..vision import window as win
 from .. import patch
@@ -90,9 +92,17 @@ class _Layer(QWidget):
         self.target_h = 1080
         self._diag = None
 
-    def showEvent(self, e):
-        win.exclude_from_capture(int(self.winId()))
-        super().showEvent(e)
+    def hideEvent(self, e):
+        win.set_drawn(type(self).__name__, [])
+        super().hideEvent(e)
+
+    def _publish(self, rects, k: float) -> None:
+        """登记这次画在哪：rects 是画布坐标（QRect），乘 k 再加窗口左上角就是屏幕物理像素。
+        识别截图会把这些地方涂掉（浮窗不再对截图隐身）。"""
+        ox, oy, pad = self.origin.x(), self.origin.y(), 2
+        win.set_drawn(type(self).__name__, [
+            win.Rect(int(ox + r.x() * k) - pad, int(oy + r.y() * k) - pad,
+                     int(r.width() * k) + 2 * pad, int(r.height() * k) + 2 * pad) for r in rects])
 
     def _scale(self) -> float:
         return self.devicePixelRatioF() if win.IS_WINDOWS else _dpr()
@@ -139,6 +149,7 @@ class BadgeLayer(_Layer):
     def __init__(self):
         super().__init__()
         self.snapshot: dict = {}
+        self.icons = None
 
     def update_from(self, snap: dict, rect, hwnd: int = 0) -> None:
         self.snapshot = snap
@@ -153,6 +164,7 @@ class BadgeLayer(_Layer):
         snap = self.snapshot
         ev, offer = snap.get("evaluation"), snap.get("offer")
         if not ev or not offer:
+            win.set_drawn(type(self).__name__, [])
             return
         show_win = snap.get("settings", {}).get("show_winrate", True)
         # 选了放下方就一直放下方：以前先截图量描述写到哪、放不下整组回标题上方，卡片淡入时半透明，
@@ -189,8 +201,8 @@ class BadgeLayer(_Layer):
             lines = []
             if r.get("score") is not None:
                 s = f"{r['score']:+.1f}"
-                if show_win and r.get("win") is not None:
-                    s += f" · 胜率{_pct(r['win'])}"
+                if show_win and recommend.win_text(r):
+                    s += " · " + recommend.win_text(r)
                 lines.append(s)
             meta = []
             if r.get("rarity") and r.get("rank"):
@@ -212,11 +224,17 @@ class BadgeLayer(_Layer):
             h = 30 + 18 * len(lines)
             yc = ((box[1] + box[3]) / 2 - oy) / unit
             items.append((r, label, color, lines, cx, w, h, y0, yc))
+        drawn = []
         for r, label, color, lines, cx, w, h, y0, yc in items:
             if below:  # 描述文字下面、卡片底边上面那块空白
                 rect = QRect(int(cx - w / 2), int(yc + BOTTOM_EDGE - h), int(w), int(h))
             else:  # 默认放在标题正上方（压在海克斯图标下半部分）：不挡名字、描述和下方的刷新按钮
-                rect = QRect(int(cx - w / 2), int(y0 - 4 - h), int(w), int(h))
+                # 标题校准框上下各留了约 2/9 框高的空白；利用上侧空白下移，露出图标下方的技能键。
+                # 保留 4 个基准像素的文字间距，小标题框不强行下移到文字里。
+                title_pad = (boxes[r["index"]][3] - boxes[r["index"]][1]) / unit * 2 / 9
+                shift = min(12.0, max(0.0, title_pad)) if offer.get("padded") else 0.0
+                rect = QRect(int(cx - w / 2), int(y0 - 4 + shift - h), int(w), int(h))
+            drawn.append(rect)
             p.setPen(Qt.NoPen)
             p.setBrush(QColor(10, 12, 16, 215))
             p.drawRoundedRect(rect, 6, 6)
@@ -230,7 +248,43 @@ class BadgeLayer(_Layer):
             p.setPen(QColor(225, 228, 235))
             for k, ln in enumerate(lines):
                 p.drawText(QRect(rect.x() + 4, rect.y() + 28 + 18 * k, rect.width() - 8, 18), Qt.AlignHCenter, ln)
+            hint = r.get("item_hint")
+            if hint:
+                hr = self._paint_item_hint(p, hint, cx, y0, yc, not below, fm_small, show_win)
+                drawn.append(hr)
         p.end()
+        self._publish(drawn, unit)
+
+    def _paint_item_hint(self, p, hint, cx, y0, yc, below, fm, show_win):
+        rows = hint["items"][:3]
+        source = {"stats": "统计参考", "community": "社区推荐", "manual": "人工推荐"}[hint["source"]]
+        texts = []
+        for row in rows:
+            text = row["name"]
+            if show_win and row.get("win") is not None:
+                text += f"  {_pct(row['win'])}（{row['games']}局）"
+            texts.append(text)
+        width = min(340, max(240, max((fm.horizontalAdvance(t) + 46 for t in texts), default=240)))
+        height = 42 + 28 * len(rows)
+        rect = QRect(int(cx - width / 2), int(yc + BOTTOM_EDGE - height if below else y0 - 4 - height), width, height)
+        p.setPen(Qt.NoPen)
+        p.setBrush(QColor(10, 12, 16, 230))
+        p.drawRoundedRect(rect, 6, 6)
+        p.setPen(QColor(231, 195, 90))
+        p.drawText(QRect(rect.x() + 8, rect.y() + 3, width - 16, 18), Qt.AlignLeft, "首件传说装备 · " + source)
+        p.setPen(QColor(225, 228, 235))
+        for i, (row, text) in enumerate(zip(rows, texts)):
+            y = rect.y() + 23 + i * 28
+            path = self.icons.local("item", row["item"], row.get("icon")) if self.icons else None
+            image = QPixmap(path) if path else QPixmap()
+            if not image.isNull():
+                p.drawPixmap(QRect(rect.x() + 8, y, 24, 24), image)
+            p.drawText(QRect(rect.x() + 38, y, width - 46, 24), Qt.AlignVCenter,
+                       fm.elidedText(text, Qt.ElideRight, width - 46))
+        p.setPen(QColor(170, 176, 190))
+        p.drawText(QRect(rect.x() + 8, rect.bottom() - 17, width - 16, 16), Qt.AlignLeft,
+                   "还没出首件传说装备的话，可以考虑")
+        return rect
 
 
 GRADE_COLOR = {"S": QColor(240, 200, 90), "A": QColor(95, 211, 141), "B": QColor(98, 168, 255),
@@ -300,7 +354,9 @@ class ChampSelectLayer(_Layer):
     def paintEvent(self, _):
         cs = self.cs
         if not cs:
+            win.set_drawn(type(self).__name__, [])
             return
+        drawn = []
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
         p.setRenderHint(QPainter.TextAntialiasing)
@@ -341,12 +397,17 @@ class ChampSelectLayer(_Layer):
                 p.setPen(Qt.NoPen)
                 p.setBrush(QColor(10, 12, 16, 225))
                 p.drawRoundedRect(r, 4, 4)
+                drawn.append(r)
                 if s is best or s is best_card:
                     gold = QPen(QColor(240, 200, 90), 2)
                     p.setPen(gold)
                     p.setBrush(Qt.NoBrush)
                     p.drawRoundedRect(r.adjusted(1, 1, -1, -1), 4, 4)
-                    p.drawRect(QRect(int(x0) - 2, int(y0) - 2, int(pw) + 4, int(y1 - y0) + 4))
+                    frame = QRect(int(x0) - 2, int(y0) - 2, int(pw) + 4, int(y1 - y0) + 4)
+                    p.drawRect(frame)
+                    # 金框只登记四条边（中间是头像，识别要看）
+                    drawn += [QRect(frame.x(), frame.y(), frame.width(), 2), QRect(frame.x(), frame.bottom() - 1, frame.width(), 2),
+                              QRect(frame.x(), frame.y(), 2, frame.height()), QRect(frame.right() - 1, frame.y(), 2, frame.height())]
                 line = QRect(r.x(), r.y() + (int(px * 0.15) if kind != "bench" else 0), r.width(), int(px * 1.45))
                 # 第一行：评级字母（按评级着色）+ 胜率
                 fm_w = QFontMetrics(big)
@@ -377,16 +438,39 @@ class ChampSelectLayer(_Layer):
                     p.drawText(QRect(r.x(), line.bottom(), r.width(), r.bottom() - line.bottom()),
                                Qt.AlignHCenter | Qt.AlignTop, "★ 推荐" if s is best_card else sub)
         p.end()
+        self._publish(drawn, dpr)
+
+
+def client_badge(rect) -> tuple[int, int, int]:
+    """客户端窗口（物理像素）→ 大厅图标的中心 x、y 和直径（物理像素）。
+    客户端界面按窗口大小整体缩放，所以用 1280×720 下量的位置乘以「窗口高度 / 720」。"""
+    ui = cloud.get().get("ui") or {}
+
+    def num(key, default, lo, hi):
+        v = ui.get(key, default)
+        return v if isinstance(v, (int, float)) and lo <= v <= hi else default
+    s = rect.height / 720
+    right = num("client_badge_right", 60, 10, 400)
+    top = num("client_badge_top", 53, 10, 300)
+    size = num("client_badge_size", 26, 16, 60)
+    return round(rect.right - right * s), round(rect.top + top * s), round(size * s)
 
 
 class ControlPanel(QWidget):
-    """右上角的小按钮 + 可展开详情。选英雄阶段跟随客户端窗口，进游戏后跟随游戏窗口。"""
+    """右上角的小按钮 + 可展开详情。选英雄阶段跟随客户端窗口，进游戏后跟随游戏窗口。
+
+    图标和详情是两个窗口（1.1.1）：以前放在一个窗口里，展开/收起时窗口在图标大小和 360 宽之间变，
+    Qt 先按左边不动撑大、再摆回右对齐，中间约 30 毫秒图标跳到别处（231 逐帧采样实测），玩家看到图标闪一下。
+    现在图标窗口大小、位置都不因展开收起而变，详情窗口贴在图标下面单独显示、隐藏。"""
 
     STYLE_BODY = ("QWidget#body{background:#101318ee;border:1px solid #2c3240;border-radius:8px}"
                   "QLabel{color:#e6e8ee;font:12px 'Microsoft YaHei UI'}"
                   "QLineEdit{background:#0c0e12;color:#e6e8ee;border:1px solid #2c3240;border-radius:4px;padding:3px 6px}"
                   "QPushButton{background:#1b2130;color:#e6e8ee;border:1px solid #2c3240;border-radius:4px;padding:2px 8px}"
                   "QPushButton:hover{border-color:#62a8ff}")
+
+    BTN_STYLE = ("QPushButton{background:#171a21ee;color:#e7c35a;border:1px solid #3a4150;border-radius:%dpx}"
+                 "QPushButton:hover{border-color:#62a8ff}")
 
     def __init__(self, engine, corner: str = "top-right"):
         super().__init__()
@@ -402,6 +486,7 @@ class ControlPanel(QWidget):
         self._hovered = False     # 这次展开后鼠标是否进过浮窗
         self._auto_opened = False
         self._auto_opened_for = None
+        self._missing_hero_notified = False
         self._names = {}
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
@@ -413,11 +498,15 @@ class ControlPanel(QWidget):
         self.btn.setToolTip("海克斯大乱斗助手：点击展开/收起")
         self.btn.setFixedSize(40, 40)
         self.btn.setCursor(Qt.PointingHandCursor)
-        self.btn.setStyleSheet("QPushButton{background:#171a21ee;color:#e7c35a;border:1px solid #3a4150;"
-                               "border-radius:20px}"
-                               "QPushButton:hover{border-color:#62a8ff}")
+        self.btn.setStyleSheet(self.BTN_STYLE % 20)
         self.btn.clicked.connect(self._click_toggle)
 
+        # 详情：单独的窗口（属于图标窗口，跟着它一起关），贴在图标下面
+        self.body_win = QWidget(self, Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        self.body_win.setAttribute(Qt.WA_TranslucentBackground)
+        self.body_win.setAttribute(Qt.WA_ShowWithoutActivating)
+        bw_lay = QVBoxLayout(self.body_win)
+        bw_lay.setContentsMargins(0, 0, 0, 0)
         self.body = QWidget()
         self.body.setObjectName("body")
         self.body.setAttribute(Qt.WA_StyledBackground)
@@ -437,6 +526,15 @@ class ControlPanel(QWidget):
         self._completer_ready = False
         self.search.returnPressed.connect(self._search_pick)
         self.search.installEventFilter(self)
+        self.confirm_hero = QPushButton("确认")
+        self.confirm_hero.clicked.connect(self._search_pick)
+        search_row = QHBoxLayout()
+        search_row.addWidget(self.search, 1)
+        search_row.addWidget(self.confirm_hero)
+        self.search_feedback = QLabel("未找到英雄，请输入英雄名或从候选项选择")
+        self.search_feedback.setWordWrap(True)
+        self.search_feedback.setStyleSheet("color:#e7c35a")
+        self.search_feedback.hide()
         self.info = QLabel()
         self.info.setTextFormat(Qt.RichText)
         self.info.setWordWrap(True)
@@ -444,23 +542,80 @@ class ControlPanel(QWidget):
         self.info.linkActivated.connect(self._link)
         bl.addWidget(self.hero_label)
         bl.addLayout(self.cands)
-        bl.addWidget(self.search)
+        bl.addLayout(search_row)
+        bl.addWidget(self.search_feedback)
         bl.addWidget(self.info)
-        self.body.hide()
-        lay.addWidget(self.btn, 0, Qt.AlignRight)
-        lay.addWidget(self.body)
+        bw_lay.addWidget(self.body)
+        lay.addWidget(self.btn)
         self._cand_ids = []
 
     def showEvent(self, e):
-        win.exclude_from_capture(int(self.winId()))
         win.add_companion(int(self.winId()))  # 点浮窗不算离开客户端，标注照常显示
         super().showEvent(e)
+        self._publish()
+
+    def hideEvent(self, e):
+        self.body_win.hide()
+        win.set_drawn("ControlPanel", [])
+        super().hideEvent(e)
+
+    def moveEvent(self, e):
+        super().moveEvent(e)
+        self._publish()
+
+    def resizeEvent(self, e):
+        super().resizeEvent(e)
+        self._publish()
+
+    def _publish(self) -> None:
+        """图标和展开的详情登记成「自己画的」，识别截图时涂掉（详情里有英雄名、海克斯名）。"""
+        if not self.isVisible():
+            return
+        k = self.devicePixelRatioF() or 1.0
+        rects = []
+        for w in [self] + ([self.body_win] if self.body_win.isVisible() else []):
+            r = win.window_rect(int(w.winId())) if win.IS_WINDOWS else None
+            if r is None:
+                g = w.geometry()
+                r = win.Rect(round(g.x() * k), round(g.y() * k), round(g.width() * k), round(g.height() * k))
+            rects.append(win.Rect(r.left - 2, r.top - 2, r.width + 4, r.height + 4))
+        win.set_drawn("ControlPanel", rects)
+
+    def _place_body(self) -> None:
+        """详情窗口贴在图标下面：浮窗在右上角时右边和图标对齐，在左上角时左边对齐。"""
+        bw = self.body_win
+        if not self.expanded or not self.isVisible():
+            if bw.isVisible():
+                bw.hide()
+                self._publish()
+            return
+        bw.adjustSize()
+        k = self.devicePixelRatioF() or 1.0
+        icon = win.window_rect(int(self.winId())) if win.IS_WINDOWS else None
+        if icon:
+            hb = int(bw.winId())
+            w, h = round(bw.width() * k), round(bw.height() * k)
+            x = icon.left + icon.width - w if self.corner == "top-right" else icon.left
+            target = win.Rect(x, icon.top + icon.height + round(4 * k), w, h)
+            if win.window_rect(hb) != target:
+                win.set_window_rect(hb, target)  # 还没显示时先摆好再显示，不会在别处闪一下
+            if not bw.isVisible():
+                win.add_companion(hb)  # 点详情不算离开客户端
+                bw.show()
+                if win.window_rect(hb) != target:  # Qt 显示时按它记的位置又挪了：摆回来
+                    log.debug("浮窗详情：显示后位置 %s，应为 %s", _rect_text(win.window_rect(hb)), _rect_text(target))
+                    win.set_window_rect(hb, target)
+        else:
+            x = self.x() + self.width() - bw.width() if self.corner == "top-right" else self.x()
+            bw.move(x, self.y() + self.height() + 4)
+            bw.show()
+        self._publish()
 
     def toggle(self):
         self.expanded = not self.expanded
-        self.body.setVisible(self.expanded)
         self._away_since, self._hovered, self._auto_opened = None, False, False
-        self.adjustSize()
+        log.debug("浮窗%s", "展开" if self.expanded else "收起")
+        self._place_body()
 
     def _click_toggle(self):
         self.toggle()
@@ -478,22 +633,26 @@ class ControlPanel(QWidget):
         return super().eventFilter(obj, ev)
 
     def _typing(self) -> bool:
-        return self.search.hasFocus() and self.isActiveWindow()
+        return self.search.hasFocus() and self.body_win.isActiveWindow()
 
-    def auto_hide(self, phase) -> None:
-        """展开后鼠标离开一段时间就收起。选英雄阶段自动展开的，鼠标进来过或进了游戏才开始计时。"""
+    def auto_hide(self, phase, in_champ_select: bool = True) -> None:
+        """展开后鼠标离开一段时间就收起。选英雄阶段自动展开的不收（进了游戏才开始计时）。"""
         if not self.expanded or not self.isVisible():
             return
-        if self.frameGeometry().contains(QCursor.pos()):
+        pos = QCursor.pos()
+        if self.frameGeometry().contains(pos) or (self.body_win.isVisible() and self.body_win.frameGeometry().contains(pos)):
             self._hovered, self._away_since = True, None
             return
-        if self._typing() or (self._auto_opened and not self._hovered and phase == "client"):
+        # 选英雄阶段自动展开的：一直开着，换英雄时内容跟着换；只有手动点图标收起，进游戏后再按时收起
+        # 选英雄阶段秒退回大厅（还是 client 但不在选英雄界面）：照常计时收起，不一直盖在客户端右上角
+        if self._typing() or (self._auto_opened and phase == "client" and in_champ_select):
             self._away_since = None
             return
         now = time.monotonic()
         if self._away_since is None:
             self._away_since = now
         elif now - self._away_since >= AUTO_HIDE_SECONDS:
+            log.debug("浮窗：鼠标离开 %d 秒，自动收起（%s）", AUTO_HIDE_SECONDS, phase)
             self.toggle()
 
     def _ensure_completer(self):
@@ -510,13 +669,18 @@ class ControlPanel(QWidget):
         if hid:
             self.engine.set_hero(hid)
             self.search.clear()
+            self.search_feedback.hide()
             self.give_back_focus()
 
     def _search_pick(self):
         t = self.search.text().strip()
-        if t:
-            self.engine.set_hero(self._names.get(t, t))
-            self.search.clear()
+        hid = self.engine.store.resolve_hero(self._names.get(t, t)) if t else None
+        if not hid:
+            self.search_feedback.show()
+            return
+        self.engine.set_hero(hid)
+        self.search.clear()
+        self.search_feedback.hide()
         self.give_back_focus()
 
     def _link(self, href):
@@ -527,19 +691,47 @@ class ControlPanel(QWidget):
             from .mainwindow import quit_app
             quit_app(self.engine)
 
-    def place(self, rect) -> None:
+    def _set_btn_size(self, d: int) -> None:
+        """图标按钮直径（逻辑像素）。"""
+        if self.btn.width() != d:
+            self.btn.setFixedSize(d, d)
+            self.btn.setIconSize(QSize(round(d * 0.75), round(d * 0.75)))
+            self.btn.setStyleSheet(self.BTN_STYLE % (d // 2))
+
+    def place(self, rect, in_client: bool = False) -> None:
+        """rect：游戏或客户端窗口（物理像素）。在客户端（大厅、选英雄）且浮窗在右上角时，
+        图标放在头像右边「在线」那一行、铃铛左边，大小跟着客户端窗口走；进游戏后和以前一样贴在右上角。"""
+        badge = client_badge(rect) if in_client and rect is not None and self.corner == "top-right" else None
+        k = self.devicePixelRatioF() or 1.0
+        self._set_btn_size(max(20, round(badge[2] / k)) if badge else 40)
         self.adjustSize()
         if rect is not None and win.IS_WINDOWS and self.isVisible():
-            # 和标注层一样按物理像素摆：贴在游戏/客户端窗口的角上
+            # 和标注层一样按物理像素摆
             hwnd = int(self.winId())
             cur = win.window_rect(hwnd)
             if cur:
-                k = self.devicePixelRatioF()
-                x = rect.right - cur.width - round(12 * k) if self.corner == "top-right" else rect.left + round(12 * k)
-                y = rect.top + round(90 * k)
+                if badge:  # 图标（浮窗最上面靠右）的中心对准算好的位置
+                    bw = round(self.btn.width() * k)
+                    x, y = badge[0] + bw // 2 - cur.width, badge[1] - bw // 2
+                else:
+                    x = rect.right - cur.width - round(12 * k) if self.corner == "top-right" else rect.left + round(12 * k)
+                    y = rect.top + round(90 * k)
+                key = (_rect_text(rect), in_client, x, y, cur.width, cur.height)
+                if key != getattr(self, "_place_logged", None):
+                    self._place_logged = key
+                    log.debug("浮窗摆放：%s 窗口 %s，图标 %s，浮窗现在 %s → 摆到 %d,%d（%s，缩放 %g）",
+                              "客户端" if in_client else "游戏", _rect_text(rect), badge, _rect_text(cur), x, y,
+                              "展开" if self.expanded else "收起", k)
                 if (cur.left, cur.top) != (x, y):
                     win.set_window_rect(hwnd, win.Rect(x, y, cur.width, cur.height))
+                    self._publish()  # SetWindowPos 不一定触发 Qt 的 moveEvent
+                self._place_body()
                 return
+        if badge:
+            bw = self.btn.width()
+            self.move(_logical(badge[0]) + bw // 2 - self.width(), _logical(badge[1]) - bw // 2)
+            self._place_body()
+            return
         if rect is not None:
             left, top, right = _logical(rect.left), _logical(rect.top), _logical(rect.right)
         else:
@@ -547,6 +739,7 @@ class ControlPanel(QWidget):
             left, top, right = g.left(), g.top(), g.right()
         x = right - self.width() - 12 if self.corner == "top-right" else left + 12
         self.move(x, top + 90)
+        self._place_body()
 
     def _set_candidates(self, cands):
         ids = [c.get("id") for c in cands]
@@ -566,9 +759,19 @@ class ControlPanel(QWidget):
     def update_from(self, snap: dict) -> None:
         # 选英雄阶段识别到新英雄时自动展开一次，方便看胜率、出装、加点
         hid = snap.get("hero_id")
+        if snap.get("phase") != "ingame":
+            self._missing_hero_notified = False
+        elif not hid and not self._missing_hero_notified:
+            self._missing_hero_notified = True
+            if not self.expanded:
+                self.toggle()
+            log.info("未识别到英雄，请手动选择")
+        if not hid:
+            self._auto_opened_for = None  # 英雄清掉了（新的一把）：下一把同一个英雄也再自动展开
         if hid and snap.get("phase") == "client" and self._auto_opened_for != hid:
             self._auto_opened_for = hid
             if not self.expanded:
+                log.debug("选英雄：认出英雄 %s，浮窗自动展开", hid)
                 self.toggle()
                 self._auto_opened = True
         if not self.expanded:
@@ -591,7 +794,7 @@ class ControlPanel(QWidget):
                 rating.append(f"出场 {_pct(r['pick'])}")
             hero_html = f"<b style='color:#e7c35a;font-size:14px'>{h['name']}</b> {h['nick']}<br>{' · '.join(rating)}"
         else:
-            hero_html = "<span style='color:#8b93a7'>未识别英雄</span>"
+            hero_html = "<span style='color:#e7c35a'>未识别到英雄，请手动选择</span>"
         if self.hero_label.text() != hero_html:
             self.hero_label.setText(hero_html)
         self._set_candidates(snap.get("candidates") or [])
@@ -603,6 +806,9 @@ class ControlPanel(QWidget):
         ev = snap.get("evaluation")
         if ev:
             parts.append(f"<b>{ev['advice']}</b>")
+            pk = recommend.pentakill_text(ev.get("pentakill"))
+            if pk:
+                parts.append(f"<span style='color:#c9a0ff'>{escape(pk)}</span>")
         if d:
             parts.extend(buildview.lines(d, self.engine.icons, show_win, size=22, compact=True))
             sk = buildview.skills_line(d, show_win)
@@ -620,13 +826,14 @@ class ControlPanel(QWidget):
         html = "<br>".join(parts)
         if self.info.text() != html:
             self.info.setText(html)
-            self.adjustSize()
+            self._place_body()  # 详情变高：往下长，位置不变
 
 
 class Overlay:
     def __init__(self, engine):
         self.engine = engine
         self.badges = BadgeLayer()
+        self.badges.icons = engine.icons
         self.champ = ChampSelectLayer()
         self.panel = ControlPanel(engine, engine.settings.overlay_corner)
         self.panel.show()
@@ -663,15 +870,18 @@ class Overlay:
         self.autoshot.tick(snap, grect, crect if crect and win.is_foreground(client) else None)
         self.panel.target_hwnd = game or client or 0
         self.panel.update_from(snap)
-        self.panel.auto_hide(snap.get("phase"))
+        self.panel.auto_hide(snap.get("phase"), bool(snap.get("champ_select")))
         # 选英雄阶段跟随客户端窗口，进游戏后跟随游戏窗口；两者都不在时不显示浮窗（用托盘和主界面）
         rect = grect or crect
         if rect is None:
+            if self.panel.isVisible():
+                log.debug("浮窗：游戏和客户端窗口都找不到，隐藏")
             self.panel.hide()
             return
         if not self.panel.isVisible():
+            log.debug("浮窗：显示（%s）", "游戏" if grect else "客户端")
             self.panel.show()
-        self.panel.place(rect)
+        self.panel.place(rect, in_client=grect is None)
 
 
 SINGLE_INSTANCE = "aramhex-single-instance"
@@ -736,7 +946,6 @@ def run(make_engine, minimized: bool = False) -> int:
     server.listen(name)
 
     engine = make_engine()
-    win.set_capture_allowed(engine.settings.allow_capture)  # 录屏、截图时是否显示浮窗
     engine.start()
     ov = Overlay(engine)
     ov.set_visible(engine.settings.overlay)

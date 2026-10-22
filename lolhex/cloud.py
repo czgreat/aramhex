@@ -38,12 +38,19 @@ DEFAULT = {
     "community": [],
     "notice": {},
     "min_version": "",
-    "rank": {"enabled": True, "api": f"{WEBSITE}/api/rank", "message": ""},
+    # as_of：查分库最新数据的日期（1.1.1）；比本机上次查到的新，就自动重查一次
+    "rank": {"enabled": True, "api": f"{WEBSITE}/api/rank", "message": "", "as_of": ""},
     "event": {"mode": "", "label": "", "start": "", "end": ""},
     "mirrors": {"update": [], "data": []},
     "features": {},
     "update": {"check_minutes": 180, "data_minutes": 360, "rollout_version": "", "rollout_percent": 100,
                "paused": False},
+    # 大厅里助手图标的位置（客户端 1280×720 下的像素，按窗口高度等比例）：图标中心离右边、离上边，直径。
+    # 默认在头像右边「在线」那一行、铃铛左边；客户端改版挪了位置时云控改这三个数就行
+    "ui": {"client_badge_right": 60, "client_badge_top": 53, "client_badge_size": 26},
+    "settings": [],  # 云控设置规则，见 cloudsettings.py
+    # 开发者点名上传日志（见 logupload.py）：request 里是匿名编号（可带「:单号」）
+    "logs": {"url": f"{WEBSITE}/api/logs", "request": []},
 }
 _lock = threading.Lock()
 _cache: dict | None = None
@@ -53,6 +60,15 @@ _install_id: str | None = None  # 匿名使用统计的编号；关掉时为 Non
 def set_install_id(value: str | None) -> None:
     global _install_id
     _install_id = value or None
+
+
+def headers(url: str = "", **extra) -> dict:
+    """软件自己发的请求统一带上版本号；发往本站（aramhex.com）的再带匿名编号（关了使用统计就不带）。
+    GitHub、jsDelivr 等别人的服务器只带版本号。"""
+    h = {"User-Agent": f"aramhex/{__version__}", **extra}
+    if _install_id and url.startswith(WEBSITE + "/"):
+        h["X-AramHex-Id"] = _install_id  # 只用来数「同一台电脑是不是一直在用」
+    return h
 
 
 def _path():
@@ -99,6 +115,14 @@ def _merge(raw: dict) -> dict:
                               "url": url if url.startswith(("https://", "http://")) else "",
                               "qr": qr if qr.startswith("https://") else "", "primary": bool(it.get("primary"))})
             out[k] = items
+        elif k == "settings" and isinstance(v, (dict, list)):
+            # 云控设置规则（见 cloudsettings.py）：原样留着，用的时候逐项检查
+            out[k] = [r for r in (v if isinstance(v, list) else [v]) if isinstance(r, dict)][:20]
+        elif k == "logs" and isinstance(v, dict):
+            if isinstance(v.get("url"), str) and v["url"].startswith(WEBSITE + "/"):
+                out[k]["url"] = v["url"]
+            if isinstance(v.get("request"), list):
+                out[k]["request"] = [str(x)[:64] for x in v["request"] if isinstance(x, str)][:200]
         elif k == "mirrors" and isinstance(v, dict):
             for kk in ("update", "data"):
                 urls = v.get(kk)
@@ -117,7 +141,7 @@ def _merge(raw: dict) -> dict:
                         out[k][kk] = vv
                 else:
                     out[k][kk] = vv
-        elif k in out and not isinstance(out[k], dict) and isinstance(v, (str, int, float)):
+        elif k in out and not isinstance(out[k], (dict, list)) and isinstance(v, (str, int, float)):
             out[k] = str(v)
     return out
 
@@ -209,10 +233,7 @@ def refresh(timeout: float = 6, url: str = URL) -> dict:
     """联网取最新配置并存下来；失败就返回上次的。"""
     global _cache
     try:
-        headers = {"User-Agent": f"aramhex/{__version__}"}
-        if _install_id:
-            headers["X-AramHex-Id"] = _install_id  # 只用来数「同一台电脑是不是一直在用」
-        r = requests.get(url, headers=headers, timeout=timeout)
+        r = requests.get(url, headers=headers(url), timeout=timeout)
         r.raise_for_status()
         raw = r.json()
         if not isinstance(raw, dict):

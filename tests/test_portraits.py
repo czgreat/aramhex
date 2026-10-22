@@ -305,3 +305,57 @@ def test_read_cards_not_stuck_after_fade_in():
     assert champselect.read_cards(frame, title, lambda c: faded, names.get, memo=memo) == []
     cards = champselect.read_cards(frame, title, lambda c: shown, names.get, memo=memo)
     assert [c["hero_id"] for c in cards] == ["268", "1"]
+
+
+def test_hero_icons_file_loads():
+    """内置的腾讯头像能读出来：每个都是能解码的方形图。"""
+    from lolhex.vision.portraits import hero_icons
+    icons = hero_icons()
+    assert len(icons) >= 170
+    for b in icons.values():
+        im = cv2.imdecode(np.frombuffer(b, np.uint8), cv2.IMREAD_COLOR)
+        assert im is not None and min(im.shape[:2]) >= 64 and abs(im.shape[0] - im.shape[1]) <= 2  # 腾讯有一张 120×119
+
+
+def test_first_run_bank_ready_without_download(tmp_path, monkeypatch):
+    """第一次运行（没有缓存、不联网）：头像库直接用内置的建好，内置的英雄不再下载（用户新电脑选人认不出，10-22）。"""
+    from lolhex.data import http
+    from lolhex.vision import portraits
+    monkeypatch.setattr(http, "get", lambda *a, **k: pytest.fail("内置里有的头像不应下载"))
+    aliases = sorted(portraits.hero_icons())
+    heroes = {str(i): {"alias": a, "icon": f"https://example.invalid/{a}.png"} for i, a in enumerate(aliases)}
+    folder = tmp_path / "icons"
+    assert portraits.ensure_icons(folder, heroes) == 0
+    bank = portraits.IconBank.from_dir(folder, heroes)
+    assert len(bank) == len(heroes)
+    # 拿内置头像缩成预选栏大小，认回原来的英雄
+    for hid in ("0", str(len(aliases) // 2), str(len(aliases) - 1)):
+        im = cv2.imdecode(np.frombuffer(portraits.hero_icons()[heroes[hid]["alias"]], np.uint8), cv2.IMREAD_COLOR)
+        assert bank.classify(cv2.resize(im, (64, 64), interpolation=cv2.INTER_AREA)).hero_id == hid
+
+
+def test_new_hero_not_bundled_still_downloads(tmp_path, monkeypatch):
+    """内置里没有的新英雄照常下载到缓存，缓存的优先于内置。"""
+    from lolhex.data import http
+    from lolhex.vision import portraits
+    alias = sorted(portraits.hero_icons())[0]
+    body = portraits.hero_icons()[alias]
+    got = []
+
+    class R:
+        content = body
+    monkeypatch.setattr(http, "get", lambda url, **k: got.append(url) or R())
+    heroes = {"1": {"alias": alias, "icon": "u1"}, "999": {"alias": "BrandNewHero", "icon": "u999"}}
+    assert portraits.ensure_icons(tmp_path, heroes) == 1 and got == ["u999"]
+    assert (tmp_path / "BrandNewHero.png").read_bytes() == body
+    assert len(portraits.IconBank.from_dir(tmp_path, heroes)) == 2
+
+
+def test_engine_warm_up_builds_bank_on_first_run(store, tmp_path):
+    """启动预热（不下载）时缓存目录还不存在，也要用内置头像把头像库建好。"""
+    from lolhex.config import Settings
+    from lolhex.engine import Engine
+    eng = Engine(Settings(), home=tmp_path / "home", store=store)
+    assert not (tmp_path / "home" / "data" / "icons").exists()
+    eng._load_icons(download=False)
+    assert eng._icon_bank is not None and len(eng._icon_bank) == len(store.heroes)

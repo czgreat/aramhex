@@ -26,13 +26,19 @@ from pathlib import Path
 
 import requests
 
-from .. import DATA_REPO, MIRROR
+from .. import DATA_REPO, MIRROR, cloud
 from . import http
 from .store import DataStore, _read
 
 log = logging.getLogger(__name__)
 
-BANDS = {"casual": "娱乐", "mid": "中分", "high": "高分", "top": "顶尖"}
+# 1.1.1 起只分三档（数据里 high、top 早就合成了「前 5%」，bands/top 和 bands/high 内容相同）
+BANDS = {"casual": "娱乐", "mid": "中分", "high": "前 5%"}
+BAND_ALIASES = {"top": "high"}  # 老设置文件、查分服务里的 top 当 high
+
+
+def norm_band(band):
+    return BAND_ALIASES.get(band, band) if band else band
 BUNDLED_DIR = Path(__file__).with_name("bundled")
 RAW_BASE = f"https://raw.githubusercontent.com/{DATA_REPO}/main"
 # 先走官网镜像（DMIT 定时从 GitHub 同步），不通再试 GitHub 和 jsDelivr。每个文件都按清单校验 SHA-256。
@@ -95,9 +101,27 @@ class Dataset:
         ident = json.dumps([self.patch, self.snapshot_at, self.manifest["files"]], sort_keys=True)
         self.revision = hashlib.sha256(ident.encode("utf-8")).hexdigest()[:12]
         self._tables: dict[str, tuple[dict, dict]] = {}
+        self._shrink: dict[str, int] = {}
 
     def bands_available(self) -> bool:
         return all(f"bands/{b}/heroes.json" in self.manifest["files"] for b in BANDS)
+
+    def band_shrink(self, band: str) -> int:
+        if band not in self._shrink:
+            self._shrink[band] = _band_shrink(self.table(None), self.table(band))
+        return self._shrink[band]
+
+    def optional_table(self, name: str, band: str | None = None) -> dict:
+        """可选的数据文件（hero_spells.json、hero_items.json，1.1.1 起读）：清单里有就读，没有返回 {}。
+        选了分段且有分段文件时读分段的。老版本客户端不认这些文件，忽略。"""
+        for prefix in ((f"bands/{band}/",) if band else ()) + ("",):
+            if prefix + name in self.manifest["files"]:
+                key = "opt:" + prefix + name
+                if key not in self._tables:
+                    data = _read(self.folder / (prefix + name))
+                    self._tables[key] = data if isinstance(data, dict) else {}
+                return self._tables[key]
+        return {}
 
     def table(self, band: str | None) -> tuple[dict, dict]:
         """(heroes, hero_augments)；band=None 为全体。"""
@@ -107,6 +131,38 @@ class Dataset:
             self._tables[key] = (_read(self.folder / f"{prefix}heroes.json") or {},
                                  _read(self.folder / f"{prefix}hero_augments.json") or {})
         return self._tables[key]
+
+
+SHRINK_DEFAULT, SHRINK_MIN, SHRINK_MAX = 3000, 1000, 30000
+
+
+def _band_shrink(tables_all: tuple[dict, dict], tables_band: tuple[dict, dict]) -> int:
+    """分段和全体综合时的 K（局数）：分段里有 K 局时，「这个海克斯比英雄平均高多少」分段和全体各信一半（Gitea #7）。
+    按这份数据自己估：同英雄同海克斯，分段的优势减全体的优势，方差扣掉随机误差就是真实差别 τ²，K = 0.25 / τ²。
+    16.20 估出来：娱乐、中分约 1.1 万，前 5% 约 3400。格子太少（新版本刚开始）用默认值。"""
+    heroes_all, augs_all = tables_all
+    heroes_b, augs_b = tables_band
+    sq = noise = 0.0
+    n = 0
+    for hid, augs in augs_b.items():
+        hb, ha = heroes_b.get(hid), heroes_all.get(hid)
+        if not hb or not ha:
+            continue
+        for aid, x in augs.items():
+            y = (augs_all.get(hid) or {}).get(aid)
+            if not y or x.get("games", 0) < 1000 or not y.get("games"):
+                continue
+            d = (x["win_rate"] - hb["win_rate"]) - (y["win_rate"] - ha["win_rate"])
+            p = x["win_rate"]
+            sq += d * d
+            noise += p * (1 - p) * max(1 / x["games"] - 1 / y["games"], 1 / y["games"])
+            n += 1
+    if n < 200:
+        return SHRINK_DEFAULT
+    tau2 = sq / n - noise / n
+    if tau2 <= 0:
+        return SHRINK_MAX
+    return int(min(SHRINK_MAX, max(SHRINK_MIN, 0.25 / tau2)))
 
 
 def load_best(folders: list[tuple[Path, str]]) -> Dataset | None:
@@ -181,7 +237,7 @@ def download(base_url: str, manifest: dict, dest: Path, timeout: float = 30, pro
             progress(done[0], total)
     files = None
     try:
-        files = unpack(http.fetch(f"{base_url}/{path}.pack.xz", timeout=timeout,
+        files = unpack(http.fetch(f"{base_url}/{path}.pack.xz", timeout=timeout, headers=cloud.headers(base_url + "/"),
                                   on_bytes=lambda n: progress and progress(0, 0)))
         log.info("统计数据用压缩包下载：%s", base_url)
     except Exception as e:
@@ -193,7 +249,8 @@ def download(base_url: str, manifest: dict, dest: Path, timeout: float = 30, pro
                 if files:
                     log.info("压缩包里的 %s 对不上，改为逐个文件下载", name)
                     files = None
-                body = http.fetch(f"{base_url}/{path}/{name}", timeout=timeout, on_bytes=on_bytes)
+                body = http.fetch(f"{base_url}/{path}/{name}", timeout=timeout, headers=cloud.headers(base_url + "/"),
+                                  on_bytes=on_bytes)
             if hashlib.sha256(body).hexdigest() != f["sha256"] or ("size" in f and len(body) != f["size"]):
                 raise DatasetError(f"{name} 校验不对（下载不完整或文件被改过）")
             out = tmp / name
@@ -330,7 +387,7 @@ class PublicStore(DataStore):
             for _ in range(steps):
                 base = self.tag_fmt.format(host=host, seq=k)
                 try:
-                    r = requests.get(f"{base}/latest.json", timeout=15)
+                    r = requests.get(f"{base}/latest.json", headers=cloud.headers(base + "/"), timeout=15)
                 except requests.RequestException:
                     break
                 answered = True
@@ -365,7 +422,7 @@ class PublicStore(DataStore):
         """关了自动更新时：只读清单，看看有没有更新的数据（不下载）。连不上就算了，下次再看。"""
         for base in self.base_urls:
             try:
-                r = requests.get(f"{base}/latest.json", timeout=15)
+                r = requests.get(f"{base}/latest.json", headers=cloud.headers(base + "/"), timeout=15)
                 r.raise_for_status()
                 remote = check_manifest(r.json())
             except Exception as e:
@@ -378,7 +435,7 @@ class PublicStore(DataStore):
             return
 
     def _sync_from(self, base: str) -> bool:
-        r = requests.get(f"{base}/latest.json", timeout=15)
+        r = requests.get(f"{base}/latest.json", headers=cloud.headers(base + "/"), timeout=15)
         r.raise_for_status()
         remote = check_manifest(r.json())
         if not self._newer(remote):
@@ -399,7 +456,7 @@ class PublicStore(DataStore):
 
     def _sync_event(self, base: str) -> bool:
         """活动期间：从数据仓库的 index.json 找同一规则最新的一份，下载到 public-event/。"""
-        r = requests.get(f"{base}/index.json", timeout=15)
+        r = requests.get(f"{base}/index.json", headers=cloud.headers(base + "/"), timeout=15)
         r.raise_for_status()
         idx = r.json()
         cands = [dict(d, schema_version=d.get("schema_version", idx.get("schema_version")))
@@ -423,6 +480,7 @@ class PublicStore(DataStore):
 
     def set_band(self, band: str | None) -> None:
         with self._lock:
+            band = norm_band(band)
             self.band = band if band in BANDS else None
             self._apply_ranks()
 
@@ -472,11 +530,20 @@ class PublicStore(DataStore):
 
     # ---------- 查询（panel / recommend 用） ----------
 
-    def win_data(self, hero_id: str, allow_network: bool = True) -> dict | None:
-        """单英雄 × 海克斯胜率（当前分段）。"""
+    def band_shrink(self) -> int | None:
+        """当前分段和全体综合用的 K（见 _band_shrink）；没选分段为 None。"""
+        band = self.effective_band()
+        return self.dataset.band_shrink(band) if band and self.dataset else None
+
+    def win_data_all(self, hero_id: str) -> dict | None:
+        """单英雄 × 海克斯胜率（全体，不管选了哪个分段）。"""
+        return self.win_data(hero_id, band=None)
+
+    def win_data(self, hero_id: str, allow_network: bool = True, band: str | None = "") -> dict | None:
+        """单英雄 × 海克斯胜率（当前分段；band=None 为全体）。"""
         if not self.dataset:
             return None
-        band = self.effective_band()
+        band = self.effective_band() if band == "" else band
         heroes, hero_augs = self.dataset.table(band)
         h = heroes.get(str(hero_id))
         if not h:
@@ -487,6 +554,70 @@ class PublicStore(DataStore):
                                    "low_sample": a.get("low_sample", False)}
                              for aid, a in (hero_augs.get(str(hero_id)) or {}).items()},
                 "band": band, "band_label": BANDS.get(band)}
+
+    def _hero_rows(self, name: str, hero_id: str) -> tuple[list[dict], str]:
+        """hero_spells / hero_items 里这个英雄的各行：[{key, games, wins, win}]，按局数从多到少。"""
+        if not self.dataset:
+            return [], ""
+        band = self.effective_band()
+        table = self.dataset.optional_table(name, band)
+        rows = []
+        for key, x in (table.get(str(hero_id)) or {}).items():
+            if not isinstance(x, dict):
+                continue
+            g, w = x.get("games"), x.get("wins")
+            if isinstance(g, int) and g > 0 and isinstance(w, int) and 0 <= w <= g:
+                rows.append({"key": str(key), "games": g, "wins": w, "win": w / g})
+        rows.sort(key=lambda r: -r["games"])
+        return rows, self.label()
+
+    def hero_spells(self, hero_id: str) -> tuple[list[dict], str]:
+        """自采统计的召唤师技能组合（hero_spells.json：英雄 → "4+32" → 局数/胜场）。没有这个文件返回 []。
+        返回 ([{spells: [ID, ID], games, win, pick}], 来源说明)。"""
+        rows, label = self._hero_rows("hero_spells.json", hero_id)
+        total = sum(r["games"] for r in rows) or 1
+        out = [{"spells": [x for x in r["key"].split("+") if x], "games": r["games"], "win": r["win"],
+                "pick": r["games"] / total} for r in rows]
+        return [r for r in out if len(r["spells"]) == 2], label
+
+    def hero_items(self, hero_id: str) -> tuple[list[dict], str]:
+        """自采统计的装备（hero_items.json：英雄 → 装备 ID → 局数/胜场）。没有这个文件返回 []。"""
+        rows, label = self._hero_rows("hero_items.json", hero_id)
+        return [{"item": r["key"], "games": r["games"], "win": r["win"]} for r in rows], label
+
+    def augment_items(self, hero_id: str, augment_id: str) -> dict | None:
+        """按英雄、海克斯配置的装备建议；独立于普通出装统计，保持数据提供的顺序。"""
+        if not self.dataset:
+            return None
+        table = self.dataset.optional_table("hero_augment_items.json")
+        hero = table.get(str(hero_id))
+        cfg = hero.get(str(augment_id)) if isinstance(hero, dict) else None
+        if not isinstance(cfg, dict) or cfg.get("source") not in ("stats", "community", "manual"):
+            return None
+        raw = cfg.get("items")
+        if not isinstance(raw, list):
+            return None
+        rows, seen = [], set()
+        for x in raw:
+            if not isinstance(x, dict):
+                continue
+            iid = str(x.get("item") or "")
+            if not iid.isascii() or not iid.isdigit() or len(iid) > 6 or iid in seen:
+                continue
+            meta = self.items.get(iid) or {}
+            name = meta.get("name") or x.get("name")
+            if not isinstance(name, str) or not name.strip():
+                continue
+            g, w = x.get("games"), x.get("wins")
+            if (g is not None or w is not None) and not (type(g) is int and g > 0 and type(w) is int and 0 <= w <= g):
+                continue
+            show = cfg.get("show_winrate", True) is True and x.get("show_winrate", True) is True
+            rows.append({"item": iid, "name": name[:24], "icon": meta.get("icon"),
+                         "games": g, "win": w / g if show and g else None})
+            seen.add(iid)
+            if len(rows) == 3:  # 卡片另一侧的空位只放三行；人工推荐的先后顺序不重排
+                break
+        return {"source": cfg["source"], "items": rows} if rows else None
 
     def hero(self, hero_id: str, allow_network: bool = True) -> dict | None:
         """官方出装、加点 + 海克斯列表（有统计的在前，带出场占比；官方层级一并保留）。"""

@@ -15,6 +15,8 @@ ROOT = Path(__file__).resolve().parent.parent
 def notes(version: str, changelog: str) -> str:
     m = re.search(rf"(?ms)^## {re.escape(version)}\s*$(.*?)(?=^## |\Z)", changelog)
     body = m.group(1).strip() if m else f"AramHex {version}"
+    # 软件里「有新版本」横条只显示前 200 字：发布说明只放关键几条，「完整更新内容：」以下留在 CHANGELOG.md
+    body = body.split("完整更新内容：")[0].strip()
     return body + "\n"  # 只写这次更新了什么；下载文件发布页下面自己列着
 
 

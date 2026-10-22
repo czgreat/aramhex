@@ -1,7 +1,6 @@
 """自动截图：海克斯三选一和选英雄时，自动保存一张整屏截图（含助手画的浮窗和标注）。
 
-浮窗平时不会被截进去（见 vision/window.py）。截图那一下临时放开，截完马上恢复；
-这段时间识别暂停（engine.vision_hold_until），免得把自己画的字当成游戏内容。
+1.1.1 起浮窗本来就能被截到；识别用的截图会把浮窗涂掉，这里存的是不涂的原样（看浮窗摆得对不对）。
 """
 
 from __future__ import annotations
@@ -14,13 +13,11 @@ from pathlib import Path
 from PySide6.QtCore import QTimer
 
 from ..config import app_home
-from ..vision import window as win
 
 log = logging.getLogger(__name__)
 KEEP = 300                # 最多留这么多张，多了删最早的
 SETTLE_MS = {"三选一": 900, "选英雄": 300}  # 推荐和标注画出来以后再截
 CS_STABLE_S = 4.0         # 选英雄：标出来的英雄数这么久没再增加才截（队友陆续选好、识别完）
-HOLD_S = 0.8              # 截图前后暂停识别的时间
 
 
 def shots_dir() -> Path:
@@ -39,7 +36,7 @@ class AutoShot:
 
     def tick(self, snap: dict, game_rect, client_rect) -> None:
         """浮窗每次刷新时调用：出现新的三选一推荐、或进入选英雄界面，就安排截一张。"""
-        if not self.engine.settings.auto_screenshot:
+        if not getattr(self.engine.settings, "debug_mode", False):  # 只在调试模式（debug.txt）下截
             return
         ev, offer = snap.get("evaluation"), snap.get("offer")
         if game_rect and ev and offer:
@@ -68,17 +65,14 @@ class AutoShot:
         QTimer.singleShot(SETTLE_MS[kind], lambda: self._open(rect, kind))
 
     def _open(self, rect, kind: str) -> None:
-        self.engine.vision_hold_until = time.monotonic() + HOLD_S
-        self._restore = win.capture_allowed()
-        win.set_capture_allowed(True)
-        QTimer.singleShot(200, lambda: self._grab(rect, kind))  # 等窗口属性生效
+        self._grab(rect, kind)
 
     def _grab(self, rect, kind: str) -> None:
         try:
             import cv2
 
             from ..vision import capture
-            img = capture.grab(rect)
+            img = capture.grab(rect, mask=False)
             if not capture.is_blank(img):
                 ok, buf = cv2.imencode(".png", img)
                 if ok:
@@ -94,7 +88,6 @@ class AutoShot:
         except Exception:
             log.exception("自动截图失败")
         finally:
-            win.set_capture_allowed(self._restore or self.engine.settings.allow_capture)
             self._busy = False
 
     @staticmethod
