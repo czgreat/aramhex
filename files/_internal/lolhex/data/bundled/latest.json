@@ -1,0 +1,45 @@
+{
+ "bands": false,
+ "files": {
+  "augments.json": {
+   "sha256": "69b7bf4f2f3e87598ad664d31d582009df357dde1432678bfd7aa3ecbbafa48b",
+   "size": 14391
+  },
+  "hero_augments.json": {
+   "sha256": "993f242b5b6899354c3cc71e35bf08930940645b885a72588b2fc0d8c6ce0f3f",
+   "size": 2303167
+  },
+  "hero_spells.json": {
+   "sha256": "03f7431d61c038dccedb8090fa7211fa0911721816f3de069e41bf29d897dc62",
+   "size": 205807
+  },
+  "heroes.json": {
+   "sha256": "b2ceeb922925c0dc837657c414d6a081f11f315fa165cf753bed187df134c981",
+   "size": 27976
+  },
+  "meta.json": {
+   "sha256": "f381215402b2d8e02120f436d80ec5274197d6b89b07a2a98792a6699ac88569",
+   "size": 6777
+  }
+ },
+ "matches": 5376732,
+ "matches_detail": {
+  "collected": 5534493,
+  "excluded": 157761,
+  "valid": 5376732,
+  "validity_rule": "对局时长不少于 4 分钟（240 秒）、10 名玩家齐全且正好 5 胜 5 负、正常结束（GameComplete）；重开、提前解散、数据不全的对局不计"
+ },
+ "mode": "normal",
+ "mode_label": "常规",
+ "patch": "16.21",
+ "path": "patches/16.21/normal",
+ "schema_version": 1,
+ "seq": 9,
+ "snapshot_at": "2026-10-26T11:41:58+08:00",
+ "window": {
+  "end_exclusive": "2026-10-26T11:07:00+08:00",
+  "periods": null,
+  "start": "2026-10-25T00:00:00+08:00",
+  "time_field": "对局创建时间（北京时间）"
+ }
+}
