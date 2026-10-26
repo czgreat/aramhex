@@ -132,11 +132,51 @@ def lower_thread_priority() -> None:
         pass  # 降不了就按原样跑
 
 
+# 最近一次在前台的、不是自己悬浮小窗的窗口。点浮窗之前在前台的是客户端/游戏，才按它仍在前台算；
+# 之前在前台的是别的程序（客户端被它盖着），标注不能画到那个程序上面（10-25 172 选英雄截图）
+_last_other = 0
+_fg_hook = None
+
+
+def _on_foreground(hwnd) -> None:
+    global _last_other
+    if hwnd and int(hwnd) not in _companions:
+        _last_other = int(hwnd)
+
+
+def watch_foreground() -> None:
+    """订阅前台切换事件，每次切换都记下来：两次查询之间切到别的程序再点浮窗也不会漏。
+    要在有消息循环的线程（界面线程）调用；装不上就只靠 is_foreground 查询时记。"""
+    global _fg_hook
+    if not IS_WINDOWS or _fg_hook is not None:
+        return
+    try:
+        u = ctypes.windll.user32
+        proc = ctypes.WINFUNCTYPE(None, wintypes.HANDLE, wintypes.DWORD, wintypes.HWND,
+                                  wintypes.LONG, wintypes.LONG, wintypes.DWORD, wintypes.DWORD)
+        cb = proc(lambda _h, _ev, hwnd, *_: _on_foreground(hwnd))
+        u.SetWinEventHook.restype = wintypes.HANDLE
+        # EVENT_SYSTEM_FOREGROUND=3，WINEVENT_OUTOFCONTEXT=0：只收通知，不往别的进程里注入
+        h = u.SetWinEventHook(3, 3, None, cb, 0, 0, 0)
+        if h:
+            _fg_hook = (h, cb)  # 回调要一直留着引用
+        _on_foreground(u.GetForegroundWindow())
+    except (OSError, AttributeError):
+        pass
+
+
 def is_foreground(hwnd: int) -> bool:
     if not IS_WINDOWS or not hwnd:
         return False
     fg = ctypes.windll.user32.GetForegroundWindow()
-    return fg == hwnd or (fg in _companions and not ctypes.windll.user32.IsIconic(hwnd))
+    if fg not in _companions:
+        _on_foreground(fg)
+        return fg == hwnd
+    if ctypes.windll.user32.IsIconic(hwnd):
+        return False
+    from .. import cloud
+    # 不知道点浮窗之前是哪个窗口时先不画（宁可少画一会儿，不画到别的程序上）
+    return _last_other == hwnd or not cloud.feature("companion_last_fg")
 
 
 # 本程序浮窗、标注当前画了东西的区域（屏幕物理像素）。识别截图后把这些地方涂掉，免得认到自己画的字。

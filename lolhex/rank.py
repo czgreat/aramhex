@@ -5,25 +5,37 @@
 
 from __future__ import annotations
 
+import re
+
 import requests
 
 from . import __version__, cloud
+
+# 从游戏客户端复制的名字前后带看不见的方向控制符（⁦名字⁩#⁦编号⁩），不去掉永远查不到（10-23 日志里 5 个人反复查不到）
+_INVISIBLE = re.compile("[​-‏‪-‮⁠-⁩﻿]")
 
 
 class RankError(Exception):
     """查不了：消息直接给用户看。"""
 
 
+def normalize(riot_id: str) -> str:
+    """去掉看不见的字符；全角＃换成 #，# 两边的空格去掉（和官网查分页一样）。"""
+    s = _INVISIBLE.sub("", riot_id or "").replace("＃", "#")
+    return re.sub(r"\s*#\s*", "#", s).strip()
+
+
 def lookup(riot_id: str, timeout: float = 10) -> dict:
     """返回 {"as_of", "results": [...]}；查不到或失败抛 RankError。"""
-    name, sep, tag = (riot_id or "").strip().rpartition("#")
+    riot_id = normalize(riot_id)
+    name, sep, tag = riot_id.rpartition("#")
     if not sep or not name.strip() or not tag.strip():
         raise RankError("请填「名字#编号」，比如：提莫#12345")
     cfg = cloud.get().get("rank") or {}
     if not cfg.get("enabled", True):
         raise RankError(cfg.get("message") or "查询暂时关闭，请稍后再试")
     try:
-        r = requests.get(cfg.get("api") or cloud.DEFAULT["rank"]["api"], params={"id": riot_id.strip()},
+        r = requests.get(cfg.get("api") or cloud.DEFAULT["rank"]["api"], params={"id": riot_id},
                          headers={"X-AramHex": __version__, "User-Agent": f"aramhex/{__version__}"}, timeout=timeout)
     except requests.RequestException:
         raise RankError("连不上查询服务，请稍后再试")

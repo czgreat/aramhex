@@ -102,8 +102,12 @@ def main(argv=None) -> int:
     from . import cloudsettings
     if cloudsettings.apply(settings, cloud.get(), __version__)["changed"]:  # 上次存下的云控：断网也照样生效
         settings.save()
+    from .logupload import apply_verbose
+    apply_verbose(settings, cloud.get())  # 云控点名的临时详细日志（不截图）
     logging.getLogger("lolhex").info("海克斯大乱斗助手 %s 启动；目录：%s；参数：%s", __version__,
                                      app_home(), " ".join(sys.argv[1:]) or "（无）")
+    from .diagnostics import runtime_context
+    runtime_context(settings)
 
     from .engine import Engine
 

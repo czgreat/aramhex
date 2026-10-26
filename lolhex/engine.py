@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import copy
+from contextlib import nullcontext, contextmanager
 import logging
 import random
 import threading
@@ -69,6 +70,13 @@ def rank_grade(rank, total) -> str | None:
     return next(g for lim, g in GRADES if q <= lim)
 
 
+def _unread(offer: dict, i: int) -> str:
+    """日志里没认出的卡：带上 OCR 读到的原文（截短），方便查是哪个海克斯名对不上。"""
+    texts = offer.get("texts") or []
+    text = " ".join(str(texts[i]).split())[:16] if i < len(texts) and texts[i] else ""
+    return f"未识别「{text}」" if text else "未识别"
+
+
 class Engine:
     def __init__(self, settings: Settings, home: Path | None = None, store: DataStore | None = None):
         self.settings = settings
@@ -77,20 +85,29 @@ class Engine:
             self.store = store
         else:
             self.store = PublicStore(self.home / "data", settings.refresh_hours,
-                                     check_updates=settings.check_data_updates)
+                                     check_updates=settings.check_data_updates, managed_official=True)
         if hasattr(self.store, "set_band"):
             self.store.set_band(settings.data_band or None)
         self._apply_rec_model()
         self._lock = threading.RLock()
+        if getattr(self.store, "official", None) is not None:
+            @contextmanager
+            def activation_guard():
+                # 与阶段切换共用锁；不能在检查 hold 后、写入完成前进入游戏。
+                with self._lock, self.store._lock:
+                    yield
+            self.store.official.activation_guard = activation_guard
+            self.store.activation_guard = activation_guard
         self._stop = threading.Event()
         self._data_wake = threading.Event()  # 对局结束时叫醒数据线程：对局中推迟的数据更新马上补上
         if hasattr(self.store, "hold"):
-            self.store.hold = lambda: self.state["phase"] == "ingame"
+            self.store.hold = lambda: (self.state["phase"] == "ingame"
+                                       or bool(self.state.get("champ_select")))
         self._rescan = threading.Event()
         self._detector = None  # 延迟创建，避免没进游戏就加载 OCR 模型
         self._icon_bank = None  # 英雄头像库，头像下载好后创建
         from .data.icons import IconCache
-        self.icons = IconCache(self.home / "data" / "img")  # 装备、召唤师技能小图标
+        self.icons = IconCache(self.home / "data" / "img", allow_network=False)
         self._cs_memo = None    # 选人界面各位置的识别结果缓存（champselect.Memo）
         self._manual_hero = False
         self._cs_last_seen = 0.0  # 上次在选英雄界面里的时刻（time.monotonic）
@@ -116,6 +133,10 @@ class Engine:
 
     def stop(self) -> None:
         self._stop.set()
+        self._data_wake.set()
+
+    def cloud_changed(self) -> None:
+        """收到云控后让后台重算资料到期时间，不能继续等待旧的长间隔。"""
         self._data_wake.set()
 
     def snapshot(self) -> dict:
@@ -168,6 +189,8 @@ class Engine:
         self._reevaluate()
 
     def rescan(self) -> None:
+        with self._lock:
+            self._scan_epoch = getattr(self, "_scan_epoch", 0) + 1
         if self._detector:
             self._detector._last_fp = None
         self._rescan.set()
@@ -193,17 +216,27 @@ class Engine:
         OCR.use_rec_model(path)
 
     def reset_calibration(self) -> None:
+        with self._lock:
+            self._scan_epoch = getattr(self, "_scan_epoch", 0) + 1
         if self._detector:
             self._detector.reset_calibration()
         self.state["vision"]["calibrated"] = False
         self._rescan.set()
 
     def hero_panel(self, hero_key) -> dict | None:
-        hid = self.store.resolve_hero(hero_key)
-        if self._panel_cache[0] == hid and self._panel_cache[1]:
-            return self._panel_cache[1]
-        p = hero_panel(self.store, hid, self.settings.smoothing_games) if hid else None
-        self._panel_cache = (hid, p)
+        # Qt 定时刷新调用这里：资料缺失/过期也只读缓存和内置数据。
+        # 玩家模式只用已验证快照；资料联网更新统一由数据线程完成。
+        with getattr(self.store, "_lock", nullcontext()):
+            hid = self.store.resolve_hero(hero_key)
+            official = getattr(self.store, "official", None)
+            snapshot = official.snapshot if official is not None else None
+            if (self._panel_cache[0] == hid and self._panel_cache[1]
+                    and getattr(self, "_panel_snapshot", None) is snapshot):
+                return self._panel_cache[1]
+            p = hero_panel(self.store, hid, self.settings.smoothing_games,
+                           allow_network=False) if hid else None
+            self._panel_cache = (hid, p)
+            self._panel_snapshot = snapshot
         return p
 
     # ---------- 数据 ----------
@@ -211,6 +244,7 @@ class Engine:
     def _data_loop(self) -> None:
         self._warm_up()
         while not self._stop.is_set():
+            self._data_wake.clear()
             try:
                 self.store.refresh()
                 self._load_icons()
@@ -227,8 +261,13 @@ class Engine:
                 every = 6 * 3600.0
             if hasattr(self.store, "sync_every_s"):
                 self.store.sync_every_s = every
-            self._data_wake.wait(max(600.0, min(self.settings.refresh_hours * 3600 / 4, every / 2)))
-            self._data_wake.clear()
+            wait_s = max(600.0, min(self.settings.refresh_hours * 3600 / 4, every / 2))
+            official = getattr(self.store, "official", None)
+            if official is not None:
+                due = official.seconds_until_check()
+                if due is not None:
+                    wait_s = max(1.0, min(wait_s, due))
+            self._data_wake.wait(wait_s)
 
     def _warm_up(self) -> None:
         """启动时先用本地缓存加载头像库、预热 OCR，第一次进选人界面不用等网络和模型加载。"""
@@ -277,7 +316,8 @@ class Engine:
         heroes = self.store.heroes
         if not heroes:
             return
-        new = ensure_icons(folder, heroes) if download else 0
+        managed = getattr(self.store, "official", None) is not None
+        new = ensure_icons(folder, heroes) if download and not managed else 0
         if new or self._icon_bank is None:
             bank = IconBank.from_dir(folder, heroes, client_icons())
             if len(bank):
@@ -305,6 +345,7 @@ class Engine:
     def _prefetch_hero(self, hid: str) -> None:
         self.store.hero(hid)
         self._panel_cache = (None, None)
+        self._reevaluate()
 
     # ---------- 窗口状态与英雄识别 ----------
 
@@ -410,6 +451,7 @@ class Engine:
         # 否则要等点完卡、回到正常选人界面才有标注
         cards = self._try_texts(i18n.ui_texts("pick", lang), lambda t: champselect.read_cards(
             img, ocr.recognize, ocr.detect, self._hero_by_name, origin, memo, t))
+        self._drop_gone_cards(cards)
         got = None
         if not in_cs and not cards and lang != "zh_CN" and self._icon_bank is not None:
             # 外服的字放在哪还没有实机截图核对过：读不到时看预选栏，认出 3 个以上英雄头像也算在选英雄界面
@@ -427,6 +469,17 @@ class Engine:
             cs = cs or {"bench": [], "team": [], "mine": None}
             cs["cards"] = [{**c, **self.hero_brief(c["hero_id"])} for c in cards]
         return cs
+
+    def _drop_gone_cards(self, cards) -> None:
+        """选完英雄卡、卡片没了：先把卡下面的胜率撤掉。后面还要认预选栏和我方 5 个英雄，
+        画面刚变缓存全失效，要 1–2 秒；以前等这一轮认完才更新，剩下那张卡的胜率就多挂这么久。
+        选英雄状态本身留着（只去掉 cards），主浮窗不会因此收起。"""
+        if cards or not cloud.feature("cards_drop_early"):
+            return
+        with self._lock:
+            cs = self.state.get("champ_select")
+            if cs and cs.get("cards"):
+                self.state["champ_select"] = {k: v for k, v in cs.items() if k != "cards"}
 
     def _try_texts(self, texts: list[str], fn):
         """界面上的字有几种写法时（中文：简体、繁中）挨个试。上次认到的那种先试，简体每次都试；
@@ -475,6 +528,7 @@ class Engine:
 
     def _clear_selection(self) -> None:
         with self._lock:
+            self._scan_epoch = getattr(self, "_scan_epoch", 0) + 1
             self._manual_hero = False
             self._last_eval_log = None
             self._evaluation_revision += 1
@@ -486,9 +540,22 @@ class Engine:
         if self._detector is not None:
             self._detector.clear_tracking()
         log.info("对局结束")
+        from .diagnostics import resource_summary
+        log.info("运行资源：%s", resource_summary())
         self._data_wake.set()
 
     # ---------- 海克斯识别 ----------
+
+    ACTIVE_HOLD_S = 5.0  # 三选一关掉后还快扫几秒：刷新、连着两次三选一时不用等慢扫
+
+    def _strip_step(self, visible: bool, since_hit: float) -> float:
+        """已校准时多久查一次标题条（秒）：没在选海克斯时按 idle_scan_ms（默认和快扫一样，云控可调大），
+        三选一开着、关掉后几秒内按 scan_interval_ms 快扫。对局里画面一直在动，标题条几乎每次都要认字
+        （10-24 日志一局约 2500 次、每次约 35 毫秒 CPU）。"""
+        ms = self.settings.scan_interval_ms
+        if not visible and since_hit > self.ACTIVE_HOLD_S:
+            ms = max(ms, self.settings.idle_scan_ms)
+        return ms / 1000 * self.settings.speed_factor
 
     def _vision_loop(self) -> None:
         from .vision import capture
@@ -501,6 +568,7 @@ class Engine:
         except Exception:
             pass
         last_full = last_strip = 0.0
+        last_hit = float("-inf")  # 上次认出三选一的时间：之后 ACTIVE_HOLD_S 秒内照常快扫
         visible = False
         misses = 0  # 刷新动画会短暂缺卡，连续 3 次识别不到才算关闭
         while not self._stop.is_set():
@@ -529,34 +597,40 @@ class Engine:
             forced = self._rescan.is_set()
             self._rescan.clear()
             offer, ran = None, False
+            self._scan_discarded = False
             try:
                 if det.calibrated_for(rect.width, rect.height) and not forced:
-                    if now - last_strip >= self.settings.scan_interval_ms / 1000 * self.settings.speed_factor:
+                    if now - last_strip >= self._strip_step(visible, now - last_hit):
                         last_strip = now
-                        offer = det.check_strip(capture.grab(det.strip_rect(rect)), rect)
+                        offer = self._observed_scan(det, rect, full=False, reason="titles", hwnd=hwnd)
                         ran = True
                         # 一直识别不到：整块扫描一次，防止卡片位置变了；
                         # 还在用默认位置时照常按 bootstrap 间隔扫，本机校准过就 30 秒一次
                         confirmed = det.confirmed_for(rect.width, rect.height)
                         every = 30 if confirmed else self.settings.bootstrap_interval_s * self.settings.speed_factor
-                        if offer is None and not visible and now - last_full > every:
+                        if offer is None and not self._scan_discarded and not visible and now - last_full > every:
                             last_full = now
-                            offer = det.scan_full(capture.grab(rect), (rect.left, rect.top))
+                            offer = self._observed_scan(det, rect, full=True, reason="fallback", hwnd=hwnd)
                 elif forced or now - last_full >= self.settings.bootstrap_interval_s * self.settings.speed_factor:
                     last_full = now
-                    frame = capture.grab(rect)
-                    blank = capture.is_blank(frame)
-                    self.state["vision"]["blank"] = blank
-                    offer = None if blank else det.scan_full(frame, (rect.left, rect.top))
+                    offer = self._observed_scan(det, rect, full=True,
+                        reason="manual" if forced else "bootstrap", check_blank=True, hwnd=hwnd)
                     ran = True
             except Exception:
                 log.exception("识别异常")
             self.state["vision"].update(status="scanning", calibrated=det.confirmed_for(rect.width, rect.height))
+            if ran and getattr(self, "_scan_discarded", False):
+                # 不把“旧画面被丢弃”累计成三次读空，也不再用旧客户区触发整块兜底。
+                visible, misses = False, 0
+                last_full = last_strip = 0.0
+                self._stop.wait(0.1)
+                continue
             if ran:
                 self.state["vision"]["last_scan"] = time.time()
                 try:  # 评估出错（数据有怪值等）只记日志，识别线程照常跑，不能整局停掉
                     if offer is not None:
                         misses = 0
+                        last_hit = now
                         if not visible:
                             self._save_offer_shot(rect)  # 趁浮窗还没画上去
                         visible = True
@@ -570,6 +644,95 @@ class Engine:
                     log.exception("三选一评估异常")
             self._stop.wait(0.1)
 
+    def _scan_invalid_reason(self, context) -> str | None:
+        """Win32 几何读取很轻；不用新截图/OCR 判断一张在途画面是否仍属于当前窗口。"""
+        epoch, hwnd, rect = context
+        if self.state.get("phase") != "ingame" or epoch != getattr(self, "_scan_epoch", 0):
+            return "session"
+        if win.find_game_window() != hwnd:
+            return "window"
+        current = win.client_rect(hwnd)
+        # 同一窗口仅切后台/最小化时保留有效校准；浮层已有独立的前后台隐藏逻辑。
+        if current is None and not win.is_foreground(hwnd):
+            return None
+        return "geometry" if current != rect else None
+
+    def _discard_scan(self, det, context, reason: str) -> None:
+        self._scan_discarded = True
+        # 在途全扫描可能已写入定位；只失效内存，保留磁盘原件供排查，不反复删文件。
+        det.clear_tracking()
+        det.calibration = None
+        with self._lock:
+            current = self.state.get("offer")
+            if context[0] == getattr(self, "_scan_epoch", 0) or (current or {}).get("_scan_context") == context:
+                self.state.update(offer=None, evaluation=None)
+        now = time.monotonic()
+        if now - getattr(self, "_scan_discard_logged_at", float("-inf")) >= 60:
+            self._scan_discard_logged_at = now
+            log.info("丢弃过时识别画面：reason=%s，下一轮重新定位", reason)
+
+    def _observed_scan(self, det, rect, *, full: bool, reason: str, check_blank: bool = False, hwnd: int = 0):
+        """记录现有扫描耗时，并拒绝期间已换会话/窗口/客户区的结果。"""
+        from dataclasses import replace
+        from .vision import capture
+        self._scan_sequence = getattr(self, "_scan_sequence", 0) + 1
+        sequence = self._scan_sequence
+        started = time.perf_counter()
+        captured = None
+        finished = None
+        offer = None
+        outcome = "error"
+        self._scan_discarded = False
+        context = (getattr(self, "_scan_epoch", 0), hwnd, rect) if hwnd else None
+        try:
+            if context and (invalid := self._scan_invalid_reason(context)):
+                self._discard_scan(det, context, invalid)
+                outcome = "stale"
+                return None
+            frame = capture.grab(rect if full else det.strip_rect(rect))
+            captured = time.perf_counter()
+            blank = check_blank and capture.is_blank(frame)
+            if check_blank:
+                self.state["vision"]["blank"] = blank
+            if blank:
+                outcome = "blank"
+            else:
+                defer = getattr(det, "defer_calibration_writes", None)
+                with defer() if defer and context else nullcontext(None) as commit:
+                    offer = det.scan_full(frame, (rect.left, rect.top)) if full else det.check_strip(frame, rect)
+                    if context and (invalid := self._scan_invalid_reason(context)):
+                        self._discard_scan(det, context, invalid)
+                        outcome = "stale"
+                        return None
+                    if commit is not None:
+                        commit()
+                outcome = "matched" if offer is not None else "unmatched"
+            finished = time.perf_counter()
+            if blank and context and (invalid := self._scan_invalid_reason(context)):
+                self._discard_scan(det, context, invalid)
+                outcome = "stale"
+                return None
+            if offer is not None:
+                offer = replace(offer, trace={"scan": sequence, "path": "full" if full else "strip",
+                    "reason": reason, "started": started, "captured": captured, "finished": finished,
+                    "capture_ms": (captured-started)*1000, "work_ms": (finished-captured)*1000,
+                    "context": context})
+            return offer
+        finally:
+            if finished is None:
+                finished = time.perf_counter()
+            capture_ms = ((captured if captured is not None else finished)-started)*1000
+            work_ms = (finished-captured)*1000 if captured is not None else 0.0
+            path = "full" if full else "strip"
+            logged = getattr(self, "_slow_scan_logged", {})
+            if finished-started >= 1 and finished-logged.get(path, float("-inf")) >= 60:
+                logged[path] = finished
+                self._slow_scan_logged = logged
+                log.info("扫描诊断：scan=%d path=%s reason=%s window=%dx%d confirmed=%s capture=%.0fms work=%.0fms total=%.0fms outcome=%s stage=%s matches=%d",
+                         sequence, path, reason, rect.width, rect.height, det.confirmed_for(rect.width, rect.height),
+                         capture_ms, work_ms, (finished-started)*1000,
+                         outcome, "work" if captured is not None else "capture", offer.matched() if offer is not None else 0)
+
     @staticmethod
     def _log_vision_cost(det) -> None:
         c = det.cost
@@ -579,6 +742,12 @@ class Engine:
             log.info("这局认字：标题条 %d 次（平均 %.0f 毫秒，CPU %.0f），整块扫描 %d 次（平均 %.0f 毫秒，CPU %.0f），标题OCR %d 次",
                      c["strip"], avg("strip_s", "strip"), avg("strip_cpu", "strip"),
                      c["full"], avg("full_s", "full"), avg("full_cpu", "full"), c.get("strip_ocr", 0))
+            log.info("这局识别诊断：全域文本行=%d 全域名字匹配=%d 条带缓存=%d 标题名字拒绝=%d 颜色冲突拒绝=%d 待确认观察=%d",
+                     c.get("full_lines", 0), c.get("full_matches", 0), c.get("strip_cache", 0),
+                     c.get("name_reject", 0), c.get("color_reject", 0), c.get("pending", 0))
+            log.info("这局标题优先：检测框=%d 实际认字=%d 提前完成=%d 重复名字拒绝=%d 同名多处=%d",
+                     c.get("full_detected", 0), c.get("full_recognized", 0), c.get("full_early", 0),
+                     c.get("full_duplicate_reject", 0), c.get("full_repeat_name", 0))
         det.cost = dict.fromkeys(c, 0)
 
     SHOTS_KEEP = 3
@@ -609,12 +778,16 @@ class Engine:
         threading.Thread(target=save, daemon=True).start()
 
     def _on_offer(self, offer) -> None:
+        context = (offer.trace or {}).get("context") if offer is not None else None
+        if context and (invalid := self._scan_invalid_reason(context)):
+            self._discard_scan(self._detector, context, invalid)
+            return
         with self._lock:
             prev = self.state.get("offer")
             if offer is None:
                 self.state.update(offer=None, evaluation=None)
                 return
-            if self.state["phase"] != "ingame":
+            if self.state["phase"] != "ingame" or (context and context[0] != getattr(self, "_scan_epoch", 0)):
                 return  # 这帧识别完成时已经退出对局，不再发布旧卡片。
             slots = list(offer.slots)
             if prev and prev.get("corrected"):
@@ -622,12 +795,22 @@ class Engine:
             if prev and prev["slots"] == slots:
                 # 卡片内容不变也可能移动或切换分辨率：保留评分，更新绘制坐标。
                 prev.update(texts=offer.texts, scores=offer.scores, boxes=offer.boxes, at=offer.at,
-                            padded=offer.padded, source=offer.source, observation=offer.observation)
+                            padded=offer.padded, source=offer.source, observation=offer.observation,
+                            _scan_context=context)
                 return
             self.state["offer"] = {"slots": slots, "texts": offer.texts, "scores": offer.scores,
                                    "boxes": offer.boxes, "at": offer.at, "padded": offer.padded,
-                                   "source": offer.source, "observation": offer.observation}
-        self._reevaluate()
+                                   "source": offer.source, "observation": offer.observation,
+                                   "_scan_context": context}
+            self.state["evaluation"] = None  # 新卡片不能在后台重算期间沿用上一组评分。
+        evaluation = self._reevaluate()
+        trace = offer.trace
+        if evaluation is not None and trace is not None:
+            published = time.perf_counter()
+            log.info("推荐状态发布：scan=%d path=%s reason=%s source=%s observation=%d capture=%.0fms work=%.0fms after=%.0fms total=%.0fms frame_age=%.0fms",
+                     trace["scan"], trace["path"], trace["reason"], offer.source, offer.observation,
+                     trace["capture_ms"], trace["work_ms"], (published-trace["finished"])*1000,
+                     (published-trace["started"])*1000, (published-trace["captured"])*1000)
 
     def _reevaluate(self) -> dict | None:
         with self._lock:
@@ -638,11 +821,17 @@ class Engine:
             slots = list(offer["slots"]) if offer else None
         if not offer:
             return None
-        ev = recommend.evaluate(self.store, hid, slots, self.settings.smoothing_games)
+        with getattr(self.store, "_lock", nullcontext()):
+            ev = recommend.evaluate(self.store, hid, slots, self.settings.smoothing_games)
+        context = offer.get("_scan_context")
+        if context and (invalid := self._scan_invalid_reason(context)):
+            self._discard_scan(self._detector, context, invalid)
+            return None
         with self._lock:
             # 后台重算期间可能已结束对局、换英雄或刷新卡片，不能覆盖新状态。
             if (revision != self._evaluation_revision
                     or self.state.get("offer") is not offer or self.state.get("hero_id") != hid
+                    or (context and context[0] != getattr(self, "_scan_epoch", 0))
                     or offer["slots"] != slots):
                 return None
             self.state["evaluation"] = ev
@@ -650,8 +839,8 @@ class Engine:
         if key != self._last_eval_log:
             self._last_eval_log = key
             log.info("三选一（%s）：%s｜%s", (self.store.heroes.get(str(hid)) or {}).get("name") or "未识别英雄",
-                     "；".join(f"{s.get('name') or '未识别'} {s['verdict']}"
+                     "；".join(f"{s.get('name') or _unread(offer, i)} {s['verdict']}"
                               + (f" {s['score']:+.1f}" if s.get("score") is not None else "")
-                              + (f"（{s['basis']}）" if s.get("basis") else "") for s in ev["slots"]),
+                              + (f"（{s['basis']}）" if s.get("basis") else "") for i, s in enumerate(ev["slots"])),
                      ev["advice"])
         return ev

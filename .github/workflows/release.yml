@@ -39,6 +39,9 @@ jobs:
           try { python scripts/update_data.py } catch { Write-Warning "取不到最新数据，用已提交的内置数据：$_" }
           if ($LASTEXITCODE) { Write-Warning "取不到最新数据，用已提交的内置数据"; $global:LASTEXITCODE = 0 }
 
+      # 内置官方资料（static_bundled.json 等）不在这里现抓：1.1.2 起只发审核过的那份，见 docs/OFFICIAL-DATA.md。
+      # 现抓的总表日期是当天、单英雄日期是腾讯的，对不上时程序启动就报错
+
       - name: 测试
         env:
           QT_QPA_PLATFORM: offscreen

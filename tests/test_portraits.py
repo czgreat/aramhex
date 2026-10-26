@@ -266,10 +266,14 @@ def test_clicking_own_panel_keeps_client_foreground(monkeypatch):
     monkeypatch.setattr(win, "IS_WINDOWS", True)
     monkeypatch.setattr(win, "ctypes", SimpleNamespace(windll=SimpleNamespace(user32=user32)))
     monkeypatch.setattr(win, "_companions", set())
+    monkeypatch.setattr(win, "_last_other", 0)
     assert win.is_foreground(111)
     fg["h"] = 222  # 点了自己的浮窗
     assert not win.is_foreground(111)
     win.add_companion(222)
+    fg["h"] = 111  # 浮窗登记好后：从客户端点浮窗
+    assert win.is_foreground(111)
+    fg["h"] = 222
     assert win.is_foreground(111)
     fg["h"] = 333  # 切到别的程序：照常隐藏
     assert not win.is_foreground(111)
@@ -359,3 +363,53 @@ def test_engine_warm_up_builds_bank_on_first_run(store, tmp_path):
     assert not (tmp_path / "home" / "data" / "icons").exists()
     eng._load_icons(download=False)
     assert eng._icon_bank is not None and len(eng._icon_bank) == len(store.heroes)
+
+
+def test_own_panel_over_other_program_hides_badges(monkeypatch):
+    """客户端被别的程序盖着、再点自己的浮窗：前台之前是别的程序，标注不能画到它上面（10-25 172 截图）；
+    云控 companion_last_fg 关掉退回旧做法。"""
+    from types import SimpleNamespace
+    from lolhex import cloud
+    from lolhex.vision import window as win
+    fg = {"h": 111}
+    user32 = SimpleNamespace(GetForegroundWindow=lambda: fg["h"], IsIconic=lambda h: 0)
+    monkeypatch.setattr(win, "IS_WINDOWS", True)
+    monkeypatch.setattr(win, "ctypes", SimpleNamespace(windll=SimpleNamespace(user32=user32)))
+    monkeypatch.setattr(win, "_companions", {222})
+    monkeypatch.setattr(win, "_last_other", 0)
+    monkeypatch.setattr(cloud, "get", lambda: cloud._merge({}))
+    assert win.is_foreground(111)
+    fg["h"] = 333  # 切到别的程序，它盖住了客户端
+    assert not win.is_foreground(111)
+    fg["h"] = 222  # 再点自己的浮窗
+    assert not win.is_foreground(111)
+    monkeypatch.setattr(cloud, "get", lambda: cloud._merge({"features": {"companion_last_fg": False}}))
+    assert win.is_foreground(111)  # 云控关掉：1.1.1 的做法
+    monkeypatch.setattr(cloud, "get", lambda: cloud._merge({}))
+    fg["h"] = 111  # 回到客户端，再点浮窗：照常显示
+    assert win.is_foreground(111)
+    fg["h"] = 222
+    assert win.is_foreground(111)
+
+
+def test_own_panel_switch_between_polls_and_unknown_history(monkeypatch):
+    """两次查询之间切到别的程序再点浮窗：靠前台切换事件记住，不画；一开始就点浮窗（不知道之前是谁）也先不画。"""
+    from types import SimpleNamespace
+    from lolhex import cloud
+    from lolhex.vision import window as win
+    fg = {"h": 222}
+    user32 = SimpleNamespace(GetForegroundWindow=lambda: fg["h"], IsIconic=lambda h: 0)
+    monkeypatch.setattr(win, "IS_WINDOWS", True)
+    monkeypatch.setattr(win, "ctypes", SimpleNamespace(windll=SimpleNamespace(user32=user32)))
+    monkeypatch.setattr(win, "_companions", {222})
+    monkeypatch.setattr(win, "_last_other", 0)
+    monkeypatch.setattr(cloud, "get", lambda: cloud._merge({}))
+    assert not win.is_foreground(111)  # 历史未知
+    fg["h"] = 111
+    assert win.is_foreground(111)
+    win._on_foreground(333)  # 切换事件：别的程序到了前台，没赶上查询
+    win._on_foreground(222)  # 马上点了浮窗（自己的浮窗不算）
+    fg["h"] = 222
+    assert not win.is_foreground(111)
+    for _ in range(5):  # 一直停在浮窗搜索框里也不会翻回去
+        assert not win.is_foreground(111)

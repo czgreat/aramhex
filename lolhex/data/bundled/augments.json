@@ -795,14 +795,6 @@
   "name": "翻倍时间",
   "rarity": "gold"
  },
- "3039": {
-  "name": "拯救",
-  "rarity": "gold"
- },
- "3048": {
-  "name": "弹跳蜜蜂",
-  "rarity": "prismatic"
- },
  "3049": {
   "name": "装甲冲击",
   "rarity": "gold"
@@ -822,10 +814,6 @@
  "3055": {
   "name": "终极循环往复",
   "rarity": "silver"
- },
- "3058": {
-  "name": "嗡嗡怪兽",
-  "rarity": "gold"
  },
  "3063": {
   "name": "溺水之赠礼",

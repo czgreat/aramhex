@@ -122,3 +122,10 @@ def _isolated_home(monkeypatch, tmp_path):
     from lolhex import cloud
     monkeypatch.setenv("ARAMHEX_HOME", str(tmp_path / "_home"))
     monkeypatch.setattr(cloud, "_cache", None)
+
+
+def render_in_game(layer, image, game_left: int = 0, game_top: int = 0) -> None:
+    """三选一标签层只盖标签那一块（不铺满游戏画面）：按它在游戏画面里的实际位置画进整张游戏大小的图。"""
+    from PySide6.QtCore import QPoint
+    r = image.devicePixelRatio() or 1
+    layer.render(image, QPoint(round((layer.origin.x() - game_left) / r), round((layer.origin.y() - game_top) / r)))

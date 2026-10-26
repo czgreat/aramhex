@@ -92,3 +92,103 @@ def test_redact_case_and_spaces(monkeypatch):
     t = logupload.redact(r"C:\Users\john smith\x c:\users\Zhang San\y desktop-ab12cd hide on bush#kr1",
                          "Hide on bush#KR1")
     assert "john" not in t.lower() and "zhang" not in t.lower() and "desktop" not in t.lower() and "hide on" not in t
+
+
+def test_cloud_max_kb_and_previous_file(tmp_path, monkeypatch):
+    # 1.1.2：云控 logs.max_kb 调上传大小；刚换过新日志文件时接着读 aramhex.log.1
+    s, sent = setup(tmp_path, monkeypatch, "新文件\n" * 1000)
+    (tmp_path / "aramhex.log.1").write_text("上一个文件\n" * 300000, encoding="utf-8")
+    big = cloud._merge({"logs": {"request": [ID], "max_kb": 2048}})
+    assert big["logs"]["max_kb"] == 2048
+    assert logupload.maybe_upload(s, big) == [ID]
+    body = sent[0][1].replace("\r\n", "\n")
+    assert body.endswith("新文件\n") and body.startswith("上一个文件\n")   # 旧文件在前、新文件在后
+    assert 1900 * 1024 < len(body.encode()) <= 2048 * 1024
+    assert cloud._merge({"logs": {"max_kb": 10 ** 9}})["logs"]["max_kb"] == 4096   # 有上限
+    assert cloud._merge({"logs": {"max_kb": "大"}})["logs"]["max_kb"] == 512        # 不认就用默认
+    assert cloud._merge({"logs": {"max_kb": True}})["logs"]["max_kb"] == 512
+
+
+def test_default_does_not_read_previous_file_when_current_is_long(tmp_path, monkeypatch):
+    s, sent = setup(tmp_path, monkeypatch, "当前\n" * 200000)
+    (tmp_path / "aramhex.log.1").write_text("上一个文件\n" * 1000, encoding="utf-8")
+    logupload.maybe_upload(s, cfg(ID))
+    assert "上一个文件" not in sent[0][1] and len(sent[0][1].encode()) <= logupload.MAX_BYTES
+
+
+def test_remote_verbose_needs_ticket_usage_and_expires(tmp_path, monkeypatch):
+    import logging
+    s, _ = setup(tmp_path, monkeypatch, "x\n")
+    root = logging.getLogger()
+    monkeypatch.setattr(root, "level", logging.INFO)
+    on = cloud._merge({"logs": {"verbose": [ID + ":v1"]}})
+    assert logupload.apply_verbose(s, on, now=1000.0) and root.level == logging.DEBUG
+    assert Settings.load(tmp_path / "config.json").extra["verbose_seen"] == {ID + ":v1": 1000.0}  # 记下开始时间
+    assert logupload.apply_verbose(s, on, now=1000.0 + 23 * 3600)            # 24 小时内一直开着
+    assert not logupload.apply_verbose(s, on, now=1000.0 + 25 * 3600) and root.level == logging.INFO  # 到时自动关
+    assert not logupload.apply_verbose(s, cloud._merge({"logs": {"verbose": [ID]}}), now=1.0)  # 必须带单号
+    assert logupload.apply_verbose(s, cloud._merge({"logs": {"verbose": [ID + ":v2"]}}), now=1.0e6)  # 换单号再开
+    assert not logupload.apply_verbose(s, cloud._merge({}), now=1.0e6) and root.level == logging.INFO  # 撤掉就恢复
+    s.send_usage = False
+    assert not logupload.apply_verbose(s, cloud._merge({"logs": {"verbose": [ID + ":v3"]}}), now=1.0e6)  # 关了「帮助改善软件」不生效
+    s.send_usage, s.debug_mode = True, True
+    assert logupload.apply_verbose(s, cloud._merge({}), now=1.0e6) and root.level == logging.DEBUG  # debug.txt 一直详细
+
+
+def test_remote_verbose_expires_without_cloud_refresh(tmp_path, monkeypatch):
+    """到期靠本地计时，不等下次刷新云控；同一台电脑列了超过 20 个单号也不会因为裁剪记录而重新计时。"""
+    import logging
+    s, _ = setup(tmp_path, monkeypatch, "x\n")
+    root = logging.getLogger()
+    monkeypatch.setattr(root, "level", logging.INFO)
+    armed = []
+    monkeypatch.setattr(logupload, "_arm", lambda _s, delay: armed.append(delay))
+    on = cloud._merge({"logs": {"verbose": [ID + ":v1"]}})
+    assert logupload.apply_verbose(s, on, now=1000.0)
+    assert armed[-1] == 24 * 3600 + 1  # 到期那一刻重算
+    assert logupload.apply_verbose(s, on, now=1000.0 + 20 * 3600) and armed[-1] == 4 * 3600 + 1
+    assert not logupload.apply_verbose(s, cloud._merge({}), now=2000.0) and armed[-1] is None
+    many = cloud._merge({"logs": {"verbose": [f"{ID}:t{i}" for i in range(50)]}})
+    assert logupload.apply_verbose(s, many, now=5000.0)
+    assert len(s.extra["verbose_seen"]) >= 50
+    assert not logupload.apply_verbose(s, many, now=5000.0 + 25 * 3600)  # 50 个单号都到期，不会重新开
+
+
+def test_remote_verbose_timer_restores_info(tmp_path, monkeypatch):
+    import logging
+    import time
+    s, _ = setup(tmp_path, monkeypatch, "x\n")
+    root = logging.getLogger()
+    monkeypatch.setattr(root, "level", logging.INFO)
+    on = cloud._merge({"logs": {"verbose": [ID + ":v1"]}})
+    monkeypatch.setattr(cloud, "get", lambda: on)
+    monkeypatch.setattr(logupload, "VERBOSE_HOURS", 0.5 / 3600)  # 半秒到期
+    assert logupload.apply_verbose(s, on) and root.level == logging.DEBUG
+    for _ in range(40):
+        if root.level == logging.INFO:
+            break
+        time.sleep(0.1)
+    assert root.level == logging.INFO
+    logupload._arm(s, None)
+
+
+def test_verbose_not_blocked_by_slow_upload(tmp_path, monkeypatch):
+    """日志上传卡在慢网（拿着上传锁）时，关「帮助改善软件」重算详细日志不能被挡住。"""
+    import logging
+    import threading
+    s, _ = setup(tmp_path, monkeypatch, "x\n")
+    root = logging.getLogger()
+    monkeypatch.setattr(root, "level", logging.INFO)
+    on = cloud._merge({"logs": {"verbose": [ID + ":v1"]}})
+    assert logupload.apply_verbose(s, on)
+    assert logupload._lock.acquire(timeout=1)  # 模拟上传正在等网络
+    try:
+        s.send_usage = False
+        done = []
+        t = threading.Thread(target=lambda: done.append(logupload.apply_verbose(s, on)), daemon=True)
+        t.start()
+        t.join(2)
+        assert done == [False] and root.level == logging.INFO
+    finally:
+        logupload._lock.release()
+        logupload._arm(s, None)

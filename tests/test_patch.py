@@ -133,6 +133,49 @@ def test_apply_script_rolls_back_on_failure(tmp_path):
         assert (root / rel).read_bytes() == body, rel  # 全部还原成旧版本
     assert (root / "update-failed.txt").exists()
 
+@win
+def test_backup_failure_preserves_files_not_yet_backed_up(tmp_path):
+    """第三个旧文件被占用：前两个还原，后面尚未备份的文件不能被删。"""
+    import ctypes
+    from ctypes import wintypes
+
+    files = {f"文件 {i}.txt": f"old-{i}".encode() for i in range(1, 5)}
+    root = _tree(tmp_path / "应用 目录", files)
+    _tree(root, {f"{patch.STAGING}/{rel}": b"new" for rel in files})
+    kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel.CreateFileW.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD,
+                                  wintypes.LPVOID, wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE]
+    kernel.CreateFileW.restype = wintypes.HANDLE
+    kernel.CloseHandle.argtypes = [wintypes.HANDLE]
+    kernel.CloseHandle.restype = wintypes.BOOL
+    # 允许读写，拒绝共享删除/重命名，让真正的 Move-Item 在备份第三个文件时失败。
+    handle = kernel.CreateFileW(str(root / "文件 3.txt"), 0x80000000, 0x1 | 0x2,
+                                None, 3, 0x80, None)
+    assert handle != wintypes.HANDLE(-1).value, ctypes.get_last_error()
+    try:
+        patch.launch_apply(root, list(files), [], "1.1.2", pid=_done_pid(), wait=True)
+    finally:
+        assert kernel.CloseHandle(handle)
+    for rel, body in files.items():
+        assert (root / rel).read_bytes() == body, rel
+    assert (root / "update-failed.txt").is_file()
+    assert not (root / patch.STAGING).exists()
+    assert not any(p.is_file() for p in (root / patch.BACKUP).rglob("*"))
+
+
+@win
+def test_place_failure_removes_only_new_files_and_restores_old_files(tmp_path):
+    """先放入新文件，再因暂存文件缺失失败：已放入的新文件须移除，旧文件须还原。"""
+    root = _tree(tmp_path / "app", {"old.txt": b"old", "stale.txt": b"stale"})
+    _tree(root, {f"{patch.STAGING}/added.txt": b"added"})
+    patch.launch_apply(root, ["added.txt", "old.txt"], ["stale.txt"],
+                       "1.1.2", pid=_done_pid(), wait=True)
+    assert not (root / "added.txt").exists()
+    assert (root / "old.txt").read_bytes() == b"old"
+    assert (root / "stale.txt").read_bytes() == b"stale"
+    assert (root / "update-failed.txt").is_file()
+
+
 def test_gz_preferred_and_plain_fallback(tmp_path, server):
     """新清单优先下 .gz（jsDelivr 不给下 .exe）；.gz 坏了就下原文件，照样校验。"""
     import gzip

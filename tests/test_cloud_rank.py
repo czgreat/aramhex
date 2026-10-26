@@ -57,6 +57,18 @@ def test_rank_lookup_paths(monkeypatch):
         rank.lookup("a#1")
 
 
+def test_rank_id_from_client_copy_is_cleaned(monkeypatch):
+    sent = []
+    monkeypatch.setattr(rank.requests, "get", lambda url, params=None, headers=None, timeout=None:
+                        sent.append(params["id"]) or Resp({"error": "没有查到"}, 404))
+    for raw in ("⁦魅 惑⁩#⁦60051⁩", " 魅 惑 ＃ 60051 ", "﻿魅 惑#60051​"):
+        with pytest.raises(rank.RankError):
+            rank.lookup(raw)
+    assert sent == ["魅 惑#60051"] * 3  # 名字中间的空格保留
+    with pytest.raises(rank.RankError, match="名字#编号"):
+        rank.lookup("⁦提莫⁩#⁦⁩")
+
+
 def test_rank_unreachable(monkeypatch):
     def boom(*a, **k):
         raise rank.requests.ConnectionError("x")

@@ -1,5 +1,6 @@
 """原生 Qt 窗口缩放与连续界面状态验证；截图是测试画面，不代表游戏实录。"""
 
+from conftest import render_in_game
 import os
 from pathlib import Path
 from types import SimpleNamespace
@@ -37,7 +38,7 @@ def test_badges_follow_physical_pixels_at_current_qt_scale(size, position, tmp_p
     image = QImage(width, height, QImage.Format_ARGB32)
     image.setDevicePixelRatio(layer.devicePixelRatioF())
     image.fill(0)
-    layer.render(image)
+    render_in_game(layer, image, *origin)
     regions = window.drawn_rects()
     assert len(regions) == 2
     if position == "top":

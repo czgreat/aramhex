@@ -1,5 +1,6 @@
 """从整块 OCR 到实际绘制，验证标题保护与窄条接续。"""
 
+from conftest import render_in_game
 import numpy as np
 import pytest
 
@@ -58,7 +59,7 @@ def test_full_scan_does_not_cover_titles_and_complete_offer_stays_put(size, coun
         layer.update_from(current, rect)
         canvas = QImage(width, height, QImage.Format_ARGB32)
         canvas.fill(0)
-        layer.render(canvas)
+        render_in_game(layer, canvas, *origin)
         return window.drawn_rects()
 
     first = draw(engine.snapshot())

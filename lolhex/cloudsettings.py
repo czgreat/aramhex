@@ -50,6 +50,7 @@ SPEC = {
     "overlay": _bool,
     "refresh_hours": _num(1, 72),
     "scan_interval_ms": _num(100, 5000, integer=True),
+    "idle_scan_ms": _num(100, 5000, integer=True),
     "bootstrap_interval_s": _num(1, 120),
     "match_threshold": _num(50, 99),
     "smoothing_games": _num(0, 10000, integer=True),

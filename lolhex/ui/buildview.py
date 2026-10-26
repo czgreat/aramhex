@@ -47,7 +47,7 @@ def lines(d: dict, icons, show_win: bool, size: int = 24, compact: bool = False)
     b = d.get("builds") or {}
     wr = (lambda x: f" <span style='color:{GRAY}'>{_pct(x)}</span>") if show_win else (lambda x: "")
     out = []
-    sums = d.get("summoners") or []  # panel.sort_summoners 已经筛好（出场 ≥10%、按胜率、最多两组）
+    sums = d.get("summoners") or []  # panel.sort_summoners 已经筛好（出场 ≥3% 且 ≥1000 局、按胜率、最多三组）
     if sums and d.get("summoner_source"):
         out.append("<span style='color:" + GRAY + "'>召唤师技能：" + escape(d["summoner_source"])
                    + " · " + escape(str(d.get("summoner_source_date") or "日期未知")) + "</span>")

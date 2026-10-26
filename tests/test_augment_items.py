@@ -1,3 +1,4 @@
+from conftest import render_in_game
 from lolhex import recommend
 from lolhex.data.public import Dataset
 from test_public import _add_file
@@ -92,7 +93,7 @@ def test_item_hint_opposite_side_icons_and_mask(position, height, tmp_path, monk
     app.processEvents()
     image = QImage(int(1920*k), height, QImage.Format_ARGB32)
     image.fill(0)
-    layer.render(image)
+    render_in_game(layer, image)
     base, hint = [r for r in published if len(r) == 2][-1]
     assert (base.top < 430*k) == (position == "top")
     assert (hint.top < 430*k) == (position == "bottom")

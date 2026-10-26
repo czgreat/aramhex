@@ -50,4 +50,9 @@ def mask_drawn(img: np.ndarray, rect: Rect, drawn) -> int:
 
 def is_blank(img: np.ndarray) -> bool:
     """全黑/几乎纯色：多半是独占全屏截不到。"""
-    return img.size == 0 or float(img.std()) < 2.0
+    if img.size == 0:
+        return True
+    # 隔 4 像素取一点就够判断是不是纯色，整张 4K 图算一次要 90 ms 左右；小条带照旧用整图
+    h, w = img.shape[:2]
+    sample = img if min(h, w) < 32 else img[::4, ::4]
+    return float(sample.std()) < 2.0

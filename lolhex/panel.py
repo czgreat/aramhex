@@ -7,14 +7,17 @@ from . import recommend
 MIN_SHARE = 0.1     # 出装按胜率排之前，先去掉出场不到同类最热门 1/10 的（样本太少，胜率说明不了什么）
 
 
-# 召唤师技能组合：只放出场率 ≥10% 的，按胜率排，最多两组（用户 10-22 定）。
-# 一组都不够 10% 时（极少见）放出场最多的那一组。
-SUMMONER_MIN_PICK = 0.10
-SUMMONER_SHOW = 2
+# 召唤师技能组合：出场率 ≥3% 且至少 1000 局的，按胜率排，最多三组（用户 10-23 定，和官网数据页一致）。
+# 以前是 ≥10%、最多两组：一半英雄只剩一组，格温的疾跑+雪球（5%、胜率最高、1 万多局）被挡掉。
+# 一组都不够时（极少见）放出场最多的那一组。
+SUMMONER_MIN_PICK = 0.03
+SUMMONER_MIN_GAMES = 1000
+SUMMONER_SHOW = 3
 
 
 def sort_summoners(rows: list[dict]) -> list[dict]:
-    enough = sorted((r for r in rows if r["pick"] >= SUMMONER_MIN_PICK), key=lambda r: -r["win"])
+    enough = sorted((r for r in rows if r["pick"] >= SUMMONER_MIN_PICK and r["games"] >= SUMMONER_MIN_GAMES),
+                    key=lambda r: -r["win"])
     return enough[:SUMMONER_SHOW] or sorted(rows, key=lambda r: -r["games"])[:1]
 
 
@@ -28,12 +31,12 @@ def by_win(rows: list[dict], min_games: int = 0) -> list[dict]:
     return sorted(keep, key=lambda x: -x["win"])
 
 
-def hero_panel(store, hero_key, k: int = 300) -> dict | None:
+def hero_panel(store, hero_key, k: int = 300, *, allow_network: bool = True) -> dict | None:
     hid = store.resolve_hero(hero_key)
     if not hid:
         return None
-    data = store.hero(hid) or {}
-    ag = store.win_data(hid) or {}
+    data = store.hero(hid, allow_network=allow_network) or {}
+    ag = store.win_data(hid, allow_network=allow_network) or {}
     ag_augs = ag.get("augments") or {}
     # 测试服数据的新海克斯：只显示测试服胜率，不算 Δ，不进「推荐海克斯」排行（不是同一个版本的数据）
     provisional = store.provisional_augments() if hasattr(store, "provisional_augments") else {}

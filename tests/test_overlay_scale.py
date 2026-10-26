@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from conftest import render_in_game
+
 import os
 
 import pytest
@@ -48,7 +50,7 @@ def _badge_rows(position: str, monkeypatch, desc_to: int = 560, wait_ms: int = 8
     _wait(wait_ms)                                   # 下方模式：量两次描述位置（隔 0.6 秒）
     img = QImage(1920, 1080, QImage.Format_ARGB32)
     img.fill(0)
-    layer.render(img)
+    render_in_game(layer, img)
     green = QColor(95, 211, 141).rgb()
     return [y for y in range(0, 1080, 2) if any(img.pixel(x, y) == green for x in range(760, 940, 3))]
 
@@ -112,7 +114,7 @@ def test_long_label_widens_box():
     app.processEvents()
     img = QImage(1920, 1080, QImage.Format_ARGB32)
     img.fill(0)
-    layer.render(img)
+    render_in_game(layer, img)
     y = 430 - 4 - 15                                 # 标签中间一行（只有大字，高 30）
     xs = [x for x in range(0, 1920) if img.pixelColor(x, y).alpha() > 100]
     from PySide6.QtGui import QFont, QFontMetrics
@@ -142,7 +144,7 @@ def test_reroll_keeps_bottom_badges(monkeypatch):
     def green_rows():
         img = QImage(1920, 1080, QImage.Format_ARGB32)
         img.fill(0)
-        layer.render(img)
+        render_in_game(layer, img)
         green = QColor(95, 211, 141).rgb()
         return [y for y in range(0, 1080, 2) if any(img.pixel(x, y) == green for x in range(760, 940, 3))]
 

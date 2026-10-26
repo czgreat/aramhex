@@ -53,9 +53,11 @@ def test_static_active_cache_rechecks_but_empty_cache_does_not(monkeypatch):
     det,ocr,clock,rect,strip=setup_detector(monkeypatch)
     clock[0]+=det.RECHECK_SECONDS+.1
     ocr.values=["甲甲","乙乙","丙丙"]
-    det.check_strip(strip,rect)
+    for _ in range(3):
+        det.check_strip(strip,rect)
+        clock[0]+=.3
     assert ocr.calls==6
-    clock[0]+=det.RECHECK_SECONDS+.1
+    det.clear_tracking()
     ocr.values=["", "", ""]
     assert det.check_strip(strip,rect) is None
     calls=ocr.calls

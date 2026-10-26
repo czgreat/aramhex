@@ -272,8 +272,8 @@ def download(base_url: str, manifest: dict, dest: Path, timeout: float = 30, pro
 class PublicStore(DataStore):
     def __init__(self, root: Path, refresh_hours: float = 6.0, bundled: Path | None = None,
                  check_updates: bool = True, base_url: str | list[str] | None = None,
-                 tag_hosts=None, tag_fmt: str = DATA_TAG_FMT, event_source=None):
-        super().__init__(root, refresh_hours)
+                 tag_hosts=None, tag_fmt: str = DATA_TAG_FMT, event_source=None, managed_official: bool = False):
+        super().__init__(root, refresh_hours, managed=managed_official)
         self.bundled = Path(bundled or BUNDLED_DIR)
         self.downloaded = self.root / "public"
         self.event_dir = self.root / "public-event"  # 活动规则的数据（首次必棱彩等）
@@ -301,6 +301,7 @@ class PublicStore(DataStore):
         self.sync_progress: dict | None = None  # 下载统计数据时 {done, total}（字节）
         self.sync_every_s = SYNC_EVERY_S  # 多久查一次数据仓库；引擎按云控 update.data_minutes 改
         self.hold = lambda: False  # 返回 True 时（正在对局）不在后台换数据，打完再换，一局里推荐前后一致
+        self.activation_guard = lambda: self._lock
         self.data_note: dict | None = None   # 后台换了新数据：{id, text}，界面在游戏外提示一次
         self.data_offer: dict | None = None  # 关了自动更新、发现有新数据：{id, text}，界面在游戏外问一次
         self._last_sync = 0.0
@@ -312,6 +313,8 @@ class PublicStore(DataStore):
 
     def reload_dataset(self) -> bool:
         """重新挑选数据；换了一份返回 True。有活动且有活动数据时用活动的，否则用常规的。"""
+        if self.hold():
+            return False
         ds = load_best([(self.downloaded, "downloaded"), (self.bundled, "bundled")])
         self.event_fallback = False
         if self.event:
@@ -320,7 +323,9 @@ class PublicStore(DataStore):
                 ds = ev
             else:
                 self.event_fallback = True
-        with self._lock:
+        with self.activation_guard():
+            if self.hold():
+                return False
             changed = ds is not None and (self.dataset is None or ds.revision != self.dataset.revision)
             if changed or ds is None:
                 self.dataset = ds
@@ -328,22 +333,60 @@ class PublicStore(DataStore):
             self._apply_ranks()
         return changed
 
+    def _activate_pending_data(self) -> bool:
+        """下载目录不覆盖当前资料；安全时才换目录并刷新内存。"""
+        with self.activation_guard():
+            if self.hold():
+                return False
+            promoted = False
+            for dest in (self.downloaded, self.event_dir):
+                pending = dest.with_name(dest.name + "-pending")
+                if not (pending / "latest.json").is_file():
+                    continue
+                try:
+                    Dataset(pending, "downloaded")  # 不完整的暂存目录不能进入使用状态。
+                except (OSError, ValueError, KeyError, TypeError) as e:
+                    # 坏的暂存目录删掉，下次重新下载；留着的话每次都卡在这里，再也换不了数据
+                    log.warning("下载的统计数据不完整，删掉重下：%s", e)
+                    shutil.rmtree(pending, ignore_errors=True)
+                    continue
+                backup = dest.with_name(dest.name + f".previous-{time.time_ns()}") if dest.exists() else None
+                if backup is not None:
+                    dest.rename(backup)
+                try:
+                    pending.rename(dest)
+                except OSError:
+                    if backup is not None:
+                        backup.rename(dest)
+                    raise
+                if backup is not None:
+                    shutil.rmtree(backup, ignore_errors=True)  # 换成功了，旧的一份不用留（每次更新约 3 MB）
+                promoted = True
+            if not promoted or not self.reload_dataset():
+                return False
+            self.data_updated_at = time.time()
+            self.data_offer = None
+            self.data_note = {"id": self.dataset.revision,
+                              "text": "数据已更新：" + self._describe(self.dataset.manifest)}
+            return True
+
     def sync_data(self, force: bool = False, manual: bool = False) -> bool:
         """查数据仓库有没有更新的统计数据，有就下载并换上。下载了新数据返回 True。
-        manual=True：用户点了「检查更新」或同意了更新提示，关了自动更新、正在对局也查。
+        manual=True：用户点了「检查更新」或同意了更新提示，绕过自动更新开关；选人/对局中仍推迟。
         后台查时：正在对局就先不查（打完再查）；关了自动更新只看有没有新的，有就记到 data_offer 等用户点头。"""
-        if not manual and self.hold():
+        if self.hold():
             log.debug("对局中，统计数据更新推迟到打完")
             return False
         if not self._sync_lock.acquire(blocking=False):
             return False
         try:
+            changed_pending = self._activate_pending_data()
             if not force and time.time() - self._last_sync < self.sync_every_s:
-                return False
+                return changed_pending
             self._last_sync = time.time()
             if not self.check_updates and not manual:
                 self._look_for_offer()
-                return False
+                return changed_pending
             event = self._event_source()
             if event != self.event:
                 self.event = event
@@ -357,7 +400,7 @@ class PublicStore(DataStore):
                         try:
                             changed = self._sync_from(tag_base)
                             self.data_source, self.sync_error = tag_base, None
-                            return changed
+                            return changed or changed_pending
                         except Exception as e:
                             errors.append(f"{tag_base.split('/')[2]}（tag）：{e}")
                 try:
@@ -372,10 +415,11 @@ class PublicStore(DataStore):
                         changed = self._sync_event(base) or changed
                     except Exception as e:
                         log.info("活动数据下载失败：%s", e)
-                return changed
+                # 开头已经换上了暂存的新数据、远端又没有更新的：也算换了（手动检查不能说「已是最新」）
+                return changed or changed_pending
             # 都连不上很常见：用手头的数据，不打扰用户
             self.sync_error = "；".join(errors)[:300]
-            return False
+            return changed_pending
         finally:
             self._sync_lock.release()
 
@@ -443,16 +487,11 @@ class PublicStore(DataStore):
         log.info("统计数据有更新：%s（样本截至 %s），从 %s 下载", remote.get("patch"), remote.get("snapshot_at"), base)
         self.sync_progress = {"done": 0, "total": 0}  # 界面据此显示"统计数据更新中 x / y MB"
         try:
-            download(base, remote, self.downloaded,
+            download(base, remote, self.downloaded.with_name(self.downloaded.name + "-pending"),
                      progress=lambda d, t: setattr(self, "sync_progress", {"done": d, "total": t}))
         finally:
             self.sync_progress = None
-        if self.reload_dataset():
-            self.data_updated_at = time.time()
-            self.data_offer = None
-            self.data_note = {"id": self.dataset.revision, "text": "数据已更新：" + self._describe(remote)}
-            return True
-        return False
+        return self._activate_pending_data()
 
     def _sync_event(self, base: str) -> bool:
         """活动期间：从数据仓库的 index.json 找同一规则最新的一份，下载到 public-event/。"""
@@ -469,8 +508,8 @@ class PublicStore(DataStore):
                 (str(remote.get("snapshot_at") or ""), str(remote.get("patch") or "")) <= (cur.snapshot_at, cur.patch):
             return False
         log.info("下载活动数据：%s %s", self.event["label"], remote.get("patch"))
-        download(base, remote, self.event_dir)
-        return self.reload_dataset()
+        download(base, remote, self.event_dir.with_name(self.event_dir.name + "-pending"))
+        return self._activate_pending_data()
 
     def refresh(self, force: bool = False) -> None:
         super().refresh(force)

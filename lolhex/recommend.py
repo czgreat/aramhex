@@ -11,7 +11,7 @@
 3. 样本分档：<250 局仅参考、250–999 中等、≥1000 充足，显示在界面上。
 4. 首选只在样本充足（≥1000 局）的海克斯里挑：冷门海克斯偶尔胜率高，多半是局数少碰巧打出来的。
    比同屏其他海克斯少一个数量级以上（<1/10）的，标"样本太少"并提示刷新，不管胜率多高；
-   只是不足 1000 局的，不当首选、标"样本偏少"。三张都不足时才正常比较。
+   只是不足 1000 局的，不当首选、标"样本偏少"。三张都不足时仍正常比较，但明确仅供参考。
 选取率只展示，不进分数：常拿不代表强。
 选了分段时（Gitea #7，10-21）：「这个海克斯比英雄平均高多少」按分段局数把分段和全体综合，
 Δ = w·Δ分段 + (1−w)·Δ全体，w = 分段局数 / (分段局数 + K)，K 由数据自己估（public._band_shrink）。
@@ -175,8 +175,9 @@ def _provisional(r: dict, p: dict, mine: dict | None, base: float | None, k: int
 
 
 def evaluate(store, hero_id: str | None, slots: list[str | None], k: int = 300) -> dict:
-    hero = store.hero(hero_id) if hero_id else None
-    ag = store.win_data(hero_id) if hero_id else None
+    # 重算也会由界面点击触发；网络更新交给 Engine 的后台预取。
+    hero = store.hero(hero_id, allow_network=False) if hero_id else None
+    ag = store.win_data(hero_id, allow_network=False) if hero_id else None
     label = (ag or {}).get("label") or "自采统计"
     ag_augs = (ag or {}).get("augments") or {}
     excluded = store.excluded_augments()
@@ -299,12 +300,18 @@ def evaluate(store, hero_id: str | None, slots: list[str | None], k: int = 300) 
         if r.get("basis") != "hero_win":
             continue
         g = r.get("games_all") or r.get("games") or 0
+        if g < RELIABLE_GAMES:
+            # 可信度提示独立于同屏比较：三张都不满 1000 局也不能隐藏样本不足。
+            # 分数、候选池和分段综合仍沿用原规则。
+            r["sample_warning"] = True
         if most >= RELIABLE_GAMES and g < most * TOO_FEW_RATIO:
             r["thin"] = "too_few"
             r["reasons"].append(f"只有 {g} 局，比同屏其他海克斯少一个数量级以上，胜率不可信")
         elif most >= RELIABLE_GAMES and g < RELIABLE_GAMES:
             r["thin"] = "few"
-            r["reasons"].append(f"只有 {g} 局，胜率偶然性大，不作首选")
+            r["reasons"].append("同屏有样本充足的海克斯，不作首选")
+        if g < RELIABLE_GAMES and r.get("thin") != "too_few":
+            r["reasons"].append(f"只有 {g} 局，样本偏少，胜率偶然性大，仅供参考")
 
     pool = [r for r in scored if not r.get("thin")] or scored
     best = max(pool, key=lambda r: r["score"]) if pool else None
@@ -323,6 +330,10 @@ def evaluate(store, hero_id: str | None, slots: list[str | None], k: int = 300) 
 
     if best is None:
         advice = "暂无可靠数据，请自行判断"
+    elif len(slots) == 3 and len(scored) == 3 and all(r.get("sample_warning") for r in scored):
+        advice = f"三张样本都偏少，「{best.get('name')}」相对好一点，仅供参考"
+    elif best.get("sample_warning"):
+        advice = f"「{best.get('name')}」样本偏少，相对好一点，仅供参考"
     elif len(scored) == len(slots) and all(r["score"] < REROLL_BELOW for r in scored):
         advice = f"三张都不理想，可考虑刷新；非要选就拿「{best.get('name')}」"
     else:

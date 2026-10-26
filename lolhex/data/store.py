@@ -5,6 +5,7 @@
   hero/<id>.json     单英雄的官方出装、加点、海克斯层级（按需抓取）
 
 网络失败时继续使用旧缓存，并在 status() 里标明，界面据此提示"官方资料可能过期"。
+连旧缓存都没有（第一次运行就连不上腾讯 CDN）时，用随程序内置的 static_bundled.json、hero_bundled.json（1.1.2）。
 胜率统计不在这里，见 public.py（自采统计数据）。
 """
 
@@ -50,6 +51,42 @@ def _read(path: Path):
         return None
 
 
+BUNDLED_STATIC = Path(__file__).with_name("static_bundled.json")
+
+
+def bundled_static(path: Path = BUNDLED_STATIC) -> dict:
+    """随程序内置的官方资料（英雄、海克斯、装备、召唤师技能，scripts/update_static.py 生成）。
+    只在本机没有缓存时用：第一次运行碰上腾讯 CDN 连不上（加速器、代理、网络拦截），以前英雄和海克斯名单都是空的，
+    选英雄、三选一全都认不出（玩家反馈 10-23）。fetched_at 记 0：照样算过期，每次启动先联网取最新的。"""
+    data = _read(path)
+    if not isinstance(data, dict) or not data.get("heroes") or not data.get("augments"):
+        return {}
+    return {**data, "fetched_at": 0, "bundled": True}
+
+
+BUNDLED_HEROES = Path(__file__).with_name("hero_bundled.json")
+_bundled_heroes: dict[str, dict] | None = None
+
+
+def bundled_hero(hero_id: str, path: Path = BUNDLED_HEROES) -> dict | None:
+    """随程序内置的单英雄官方数据（出装、加点、海克斯层级，scripts/update_static.py 生成）。
+    本机没有缓存又连不上腾讯时用；fetched_at 记 0，下次照样先联网。整个文件约 4 MB，用到才读，读一次就记住。"""
+    global _bundled_heroes
+    if path == BUNDLED_HEROES and _bundled_heroes is not None:
+        heroes = _bundled_heroes
+    else:
+        d = _read(path)
+        heroes = d["heroes"] if isinstance(d, dict) and isinstance(d.get("heroes"), dict) else {}
+        if path == BUNDLED_HEROES:
+            _bundled_heroes = heroes
+    h = heroes.get(str(hero_id))
+    return {**h, "fetched_at": 0, "bundled": True} if isinstance(h, dict) else None
+
+
+def _usable(static) -> bool:
+    return isinstance(static, dict) and bool(static.get("heroes")) and bool(static.get("augments"))
+
+
 def _write(path: Path, data) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".tmp")
@@ -58,14 +95,38 @@ def _write(path: Path, data) -> None:
 
 
 class DataStore:
-    def __init__(self, root: Path, refresh_hours: float = 6.0):
+    def __init__(self, root: Path, refresh_hours: float = 6.0, *, managed: bool = False):
         self.root = Path(root)
         self.refresh_s = refresh_hours * 3600
         self._lock = threading.RLock()
-        self.static: dict = _read(self.root / "static.json") or {}
+        cached = _read(self.root / "static.json")
+        self.static: dict = cached if _usable(cached) else bundled_static()
+        if self.static.get("bundled") and not managed:
+            log.info("没有官方资料缓存：先用内置的一份（%s 版本，%s），联网后换成最新的",
+                     self.static.get("patch") or "?", self.static.get("generated") or "?")
         self.ranks: dict = {}
         self._heroes: dict[str, dict] = {}
         self.last_error: str | None = None
+        self.official = None
+        if managed:
+            from .official import ManagedOfficial
+            self.official = ManagedOfficial(self.root / "official",
+                                           hold=lambda: getattr(self, "hold", lambda: False)())
+            self.official.activation_guard = lambda: self._lock
+            st = self.official.status()
+            log.info("官方资料：%s（第 %s 版，%s 版本，%s）；不连腾讯，只按云控从自有服务器检查更新",
+                     "内置" if st.get("official_origin") == "bundled" else "已下载",
+                     st.get("official_revision"), self.official.snapshot.static.get("patch") or "?",
+                     st.get("official_date") or "?")
+
+    @property
+    def static(self) -> dict:
+        official = getattr(self, "official", None)
+        return official.snapshot.static if official is not None else self._static
+
+    @static.setter
+    def static(self, value: dict) -> None:
+        self._static = value
 
     # ---------- 刷新 ----------
 
@@ -73,6 +134,12 @@ class DataStore:
         return not blob or time.time() - blob.get("fetched_at", 0) > self.refresh_s
 
     def refresh(self, force: bool = False) -> None:
+        if self.official is not None:
+            if self.official.sync(force=force):
+                with self._lock:
+                    self._heroes.clear()
+            self.last_error = self.official.status().get("official_error")
+            return
         self.last_error = None
         if force or self._stale(self.static) or not all("roles" in h for h in self.heroes.values()):
             try:
@@ -203,6 +270,9 @@ class DataStore:
     def official_hero(self, hero_id: str, allow_network: bool = True) -> dict | None:
         """单英雄官方数据：出装、加点、海克斯层级、原画。优先内存，再磁盘，过期则联网。"""
         hero_id = str(hero_id)
+        if self.official is not None:
+            # 玩家模式只用整体资料快照；不触发腾讯请求，也不混入旧的逐英雄缓存。
+            return self.official.snapshot.heroes.get(hero_id)
         with self._lock:
             cached = self._heroes.get(hero_id)
         path = self.root / "hero" / f"{hero_id}.json"
@@ -228,6 +298,8 @@ class DataStore:
                 log.warning("获取英雄 %s 官方数据失败：%s", hero_id, e)
                 self.last_error = f"英雄 {hero_id}：{e}"
         if cached is None:
+            cached = bundled_hero(hero_id)  # 本机没有缓存又连不上腾讯：用内置的（1.1.2）
+        if cached is None:
             return None
         with self._lock:
             self._heroes[hero_id] = cached
@@ -241,10 +313,13 @@ class DataStore:
         return None
 
     def status(self) -> dict:
-        return {
+        result = {
             "patch": self.static.get("patch"),
             "static_at": self.static.get("fetched_at"),
             "augments": len(self.augments),
             "heroes": len(self.heroes),
             "error": self.last_error,
         }
+        if self.official is not None:
+            result["official"] = self.official.status()
+        return result

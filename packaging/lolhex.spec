@@ -14,9 +14,12 @@ datas += [("../lolhex/data/hero_aliases.json", "lolhex/data")]  # 英雄别名�
 datas += [("../lolhex/data/bundled", "lolhex/data/bundled")]  # 内置统计数据（scripts/update_data.py）
 datas += [("../lolhex/data/hero_nicknames.json", "lolhex/data")]  # 英雄外号（网上常见叫法）
 datas += [("../lolhex/data/i18n.json", "lolhex/data")]  # 外服名字表（scripts/update_i18n.py）
-datas += [("../lolhex/data/client_icons.json", "lolhex/data")]
+datas += [("../lolhex/data/client_icons.json", "lolhex/data")]  # 拳头客户端英雄头像（scripts/update_client_icons.py）
 datas += [("../lolhex/data/hero_icons.json", "lolhex/data")]  # 腾讯英雄头像（scripts/update_hero_icons.py）
-datas += [("../lolhex/data/cacert.pem", "lolhex/data")]  # 根证书（去掉 eMudhra，scripts/make_cacert.py）  # 拳头客户端英雄头像（scripts/update_client_icons.py）
+datas += [("../lolhex/data/static_bundled.json", "lolhex/data")]  # 腾讯官方资料兜底（scripts/update_static.py）
+datas += [("../lolhex/data/hero_bundled.json", "lolhex/data")]  # 单英雄官方出装、加点兜底（同上）
+datas += [("../lolhex/data/item_icons.json", "lolhex/data")]  # 装备、召唤师技能图标兜底（同上）
+datas += [("../lolhex/data/cacert.pem", "lolhex/data")]  # 根证书（去掉 eMudhra，scripts/make_cacert.py）
 binaries = collect_dynamic_libs("onnxruntime")
 
 a = Analysis(

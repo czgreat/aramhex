@@ -221,6 +221,7 @@ def apply_script(root: Path, changed: list[str], stale: list[str], pid: int, ver
         " Start-Sleep -Seconds 1 } } }",
         "if (Test-Path $old) { Remove-Item -Recurse -Force $old }",
         "$moved = @()",
+        "$placed = @()",
         "try {",
         "  foreach ($rel in $changed + $stale) {",
         "    $dst = Join-Path $root $rel",
@@ -235,6 +236,7 @@ def apply_script(root: Path, changed: list[str], stale: list[str], pid: int, ver
         "    $dst = Join-Path $root $rel",
         "    New-Item -ItemType Directory -Force (Split-Path $dst) | Out-Null",
         "    Move-Retry (Join-Path $new $rel) $dst",
+        "    $placed += $rel",
         "  }",
         # 「应用」列表里的版本号：现在的安装包只装给当前用户（HKCU）；早期可能选过"所有用户"（HKLM，没管理员权限改不了，忽略）
         f"  foreach ($hive in 'HKCU:\\', 'HKLM:\\') {{ try {{ $k = $hive + {q(UNINSTALL_KEY)}; "
@@ -242,7 +244,7 @@ def apply_script(root: Path, changed: list[str], stale: list[str], pid: int, ver
         "catch { } }",
         "  Remove-Item -Recurse -Force $old -ErrorAction SilentlyContinue",
         "} catch {",
-        "  foreach ($rel in $changed) { $dst = Join-Path $root $rel; if (Test-Path -LiteralPath $dst) {"
+        "  foreach ($rel in $placed) { $dst = Join-Path $root $rel; if (Test-Path -LiteralPath $dst) {"
         " Remove-Item -LiteralPath $dst -Force -ErrorAction SilentlyContinue } }",
         "  foreach ($rel in $moved) { $dst = Join-Path $root $rel;"
         " New-Item -ItemType Directory -Force (Split-Path $dst) | Out-Null;"

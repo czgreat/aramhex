@@ -146,6 +146,43 @@ def test_sync_waits_until_game_ends(tmp_path, server):
     assert s.status()["data_note"]["id"] == s.dataset.revision
 
 
+def test_manual_sync_also_waits_during_game(tmp_path, server):
+    root, base = server
+    make_dataset(tmp_path / "b")
+    s = PublicStore(tmp_path / "data", bundled=tmp_path / "b", base_url=base)
+    _publish(root, "2026-10-20T00:00:00+08:00", patch="16.21")
+    s.hold = lambda: True
+    assert not s.sync_data(force=True, manual=True)
+    assert s.dataset.origin == "bundled" and s._last_sync == 0
+
+
+def test_download_entering_game_stages_without_replacing_active_files(tmp_path, server, monkeypatch):
+    root, base = server
+    make_dataset(tmp_path / "b")
+    s = PublicStore(tmp_path / "data", bundled=tmp_path / "b", base_url=base)
+    _publish(root, "2026-10-20T00:00:00+08:00", patch="16.21")
+    assert s.sync_data(force=True)
+    original_dataset = s.dataset
+    original_manifest = (s.downloaded / "latest.json").read_bytes()
+    original_download = public.download
+    in_game = [False]
+    s.hold = lambda: in_game[0]
+    _publish(root, "2026-10-21T00:00:00+08:00", patch="16.21")
+
+    def enter_during_download(*args, **kwargs):
+        original_download(*args, **kwargs)
+        in_game[0] = True
+
+    monkeypatch.setattr(public, "download", enter_during_download)
+    assert not s.sync_data(force=True)
+    assert s.dataset is original_dataset
+    assert (s.downloaded / "latest.json").read_bytes() == original_manifest
+    assert not s.reload_dataset()
+    in_game[0] = False
+    assert s.sync_data()  # 仍在检查冷却内，也能启用已完整下载的资料。
+    assert s.dataset.snapshot_at == "2026-10-21T00:00:00+08:00"
+
+
 def test_real_bundled_data_is_valid():
     """仓库里随程序发布的内置数据：清单、校验完整；分段有没有和清单声明一致（4.0 首版只有全体，bands=false）。"""
     if not (public.BUNDLED_DIR / "latest.json").exists():
@@ -314,7 +351,7 @@ def test_optional_spells_and_items_files(store):
     from lolhex.panel import hero_panel
     assert store.hero_spells("17") == ([], store.label()) and hero_panel(store, "17")["summoners"] == []
     folder = store.dataset.folder
-    _add_file(folder, "hero_spells.json", {"17": {"4+32": {"games": 900, "wins": 480}, "4+7": {"games": 100, "wins": 40},
+    _add_file(folder, "hero_spells.json", {"17": {"4+32": {"games": 90000, "wins": 48000}, "4+7": {"games": 10000, "wins": 4000},
                                                   "坏": {"games": "x"}, "4+14": {"games": 10, "wins": 11}}})
     _add_file(folder, "hero_items.json", {"17": {"3115": {"games": 500, "wins": 270}}})
     store.dataset = Dataset(folder, store.dataset.origin)
@@ -328,14 +365,20 @@ def test_optional_spells_and_items_files(store):
     assert "召唤师技能" in html and "常出装备" in html
 
 
-def test_summoners_pick_over_10pct_sorted_by_win_top2():
-    """召唤师技能：只放出场 ≥10% 的，按胜率排，最多两组；都不够 10% 时放出场最多的一组（用户 10-22）。"""
+def test_summoners_pick_over_3pct_1000_games_sorted_by_win_top3():
+    """召唤师技能：出场 ≥3% 且 ≥1000 局，按胜率排，最多三组；都不够时放出场最多的一组（用户 10-23）。"""
     from lolhex.panel import sort_summoners
     rows = [{"spells": ["4", "32"], "games": 5530, "win": 0.456, "pick": 0.553},
             {"spells": ["4", "21"], "games": 3480, "win": 0.433, "pick": 0.348},
             {"spells": ["4", "6"], "games": 1200, "win": 0.47, "pick": 0.12},
-            {"spells": ["4", "7"], "games": 440, "win": 0.60, "pick": 0.044}]
-    assert [r["spells"][1] for r in sort_summoners(rows)] == ["6", "32"]
+            {"spells": ["4", "7"], "games": 440, "win": 0.60, "pick": 0.044},   # 局数不够 1000
+            {"spells": ["1", "4"], "games": 200, "win": 0.70, "pick": 0.02}]    # 出场不够 3%
+    assert [r["spells"][1] for r in sort_summoners(rows)] == ["6", "32", "21"]
+    # 格温（seq8）：疾跑+雪球出场 5%、胜率最高，以前被 10% 挡掉
+    gwen = [{"spells": ["4", "32"], "games": 186814, "win": 0.5712, "pick": 0.829},
+            {"spells": ["4", "6"], "games": 24147, "win": 0.5566, "pick": 0.107},
+            {"spells": ["6", "32"], "games": 11240, "win": 0.5877, "pick": 0.050}]
+    assert [r["spells"] for r in sort_summoners(gwen)] == [["6", "32"], ["4", "32"], ["4", "6"]]
     few = [{"spells": ["4", "x"], "games": 90, "win": 0.5, "pick": 0.09}, {"spells": ["4", "y"], "games": 80, "win": 0.7, "pick": 0.08}]
     assert [r["spells"][1] for r in sort_summoners(few)] == ["x"]
 
@@ -353,3 +396,40 @@ def test_overlay_summoners_show_win_rate():
     assert "胜率" not in off and "出场 90.0%" in off
     full = "".join(buildview.lines(d, None, True))
     assert "胜率 53.4% · 出场 90.0%" in full
+
+
+def test_second_update_does_not_keep_old_copies(tmp_path, server):
+    """连着换两次数据：旧的一份换成功就删掉，data 目录里不越攒越多。"""
+    root, base = server
+    make_dataset(tmp_path / "b", snapshot_at="2026-10-13T00:00:00+08:00")
+    s = PublicStore(tmp_path / "data", bundled=tmp_path / "b", base_url=base)
+    _publish(root, "2026-10-20T00:00:00+08:00", patch="16.21")
+    assert s.sync_data(force=True) is True
+    _publish(root, "2026-10-22T00:00:00+08:00", patch="16.21")
+    assert s.sync_data(force=True) is True
+    assert s.dataset.snapshot_at.startswith("2026-10-22")
+    assert sorted(p.name for p in (tmp_path / "data").iterdir() if p.name.startswith("public")) == ["public"]
+
+
+def test_broken_pending_download_is_dropped(tmp_path, server):
+    """暂存目录坏了（比如下载到一半断电）：删掉重下，不能每次都卡在它上面。"""
+    root, base = server
+    make_dataset(tmp_path / "b", snapshot_at="2026-10-13T00:00:00+08:00")
+    pending = tmp_path / "data" / "public-pending"
+    make_dataset(pending, snapshot_at="2026-10-18T00:00:00+08:00", patch="16.21")
+    (pending / "heroes.json").write_text("{}", encoding="utf-8")  # 和清单里的 SHA-256 对不上
+    s = PublicStore(tmp_path / "data", bundled=tmp_path / "b", base_url=base)
+    _publish(root, "2026-10-20T00:00:00+08:00", patch="16.21")
+    assert s.sync_data(force=True) is True
+    assert not pending.exists() and s.dataset.snapshot_at.startswith("2026-10-20")
+
+
+def test_manual_check_reports_activated_pending_data(tmp_path, server):
+    """上次下载好、等对局结束才换的数据，手动检查时换上了，远端又没有更新的：要报「换了」，不能说已是最新。"""
+    root, base = server
+    make_dataset(tmp_path / "b", snapshot_at="2026-10-13T00:00:00+08:00")
+    make_dataset(tmp_path / "data" / "public-pending", snapshot_at="2026-10-20T00:00:00+08:00", patch="16.21")
+    _publish(root, "2026-10-20T00:00:00+08:00", patch="16.21")
+    s = PublicStore(tmp_path / "data", bundled=tmp_path / "b", base_url=base)
+    assert s.sync_data(force=True, manual=True) is True
+    assert s.dataset.snapshot_at.startswith("2026-10-20")

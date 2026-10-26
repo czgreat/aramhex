@@ -1,45 +1,99 @@
 {
  "augment_exposure": "对局结束时持有；同一玩家六个槽位去重，任意槽位持有即计入",
  "bands": null,
+ "collection_count_provenance": {
+  "aggregate_snapshot_at": "2026-10-26T11:41:58.636931+08:00",
+  "complete": true,
+  "count_snapshot_at": "2026-10-26T11:41:58.636931+08:00",
+  "late_arrival_assessment": "Count and valid aggregates share one MVCC snapshot and identical game_id scan bounds; later commits cannot alter either count.",
+  "method": "Count target headers inside the exact creation-time window on every existing page, before participant validity filtering; all seven regions reached EOF in the original repeatable-read readonly transaction.",
+  "patch": "16.21",
+  "queue_id": 2400,
+  "regions": [
+   {
+    "bounded_window_collected": 746268,
+    "platform": "GZ100"
+   },
+   {
+    "bounded_window_collected": 1482342,
+    "platform": "HN1"
+   },
+   {
+    "bounded_window_collected": 324512,
+    "platform": "NJ100"
+   },
+   {
+    "bounded_window_collected": 595246,
+    "platform": "CQ100"
+   },
+   {
+    "bounded_window_collected": 631809,
+    "platform": "TJ100"
+   },
+   {
+    "bounded_window_collected": 1061526,
+    "platform": "HN10"
+   },
+   {
+    "bounded_window_collected": 692790,
+    "platform": "TJ101"
+   }
+  ],
+  "same_mvcc_snapshot_as_aggregates": true,
+  "window": {
+   "end_exclusive": "2026-10-26T11:07:00+08:00",
+   "id": "patch_16.21",
+   "patch": "16.21",
+   "start_inclusive": "2026-10-25T00:00:00+08:00",
+   "time_field": "game_creation"
+  }
+ },
  "coverage": {
   "regions": [
    {
-    "first_game_creation": "2026-10-22T07:37:08.749+08:00",
-    "latest_game_creation": "2026-10-22T16:31:52.562+08:00",
-    "region": "联盟二区"
+    "first_game_creation": "2026-10-25T00:00:00.06+08:00",
+    "latest_game_creation": "2026-10-26T11:06:56.019+08:00",
+    "region": "联盟二区",
+    "valid_matches": 722965
    },
    {
-    "first_game_creation": "2026-10-22T04:06:44.602+08:00",
-    "latest_game_creation": "2026-10-22T16:40:08.412+08:00",
-    "region": "艾欧尼亚"
+    "first_game_creation": "2026-10-25T00:00:00.065+08:00",
+    "latest_game_creation": "2026-10-25T21:27:27.93+08:00",
+    "region": "艾欧尼亚",
+    "valid_matches": 1440142
    },
    {
-    "first_game_creation": "2026-10-22T07:37:35.001+08:00",
-    "latest_game_creation": "2026-10-22T16:18:16.101+08:00",
-    "region": "联盟一区"
+    "first_game_creation": "2026-10-25T00:00:00.07+08:00",
+    "latest_game_creation": "2026-10-25T17:26:10.281+08:00",
+    "region": "联盟一区",
+    "valid_matches": 314084
    },
    {
-    "first_game_creation": "2026-10-22T07:37:14.316+08:00",
-    "latest_game_creation": "2026-10-22T16:42:11.452+08:00",
-    "region": "联盟三区"
+    "first_game_creation": "2026-10-25T00:00:00.185+08:00",
+    "latest_game_creation": "2026-10-26T00:43:54.09+08:00",
+    "region": "联盟三区",
+    "valid_matches": 576798
    },
    {
-    "first_game_creation": "2026-10-22T07:36:58.46+08:00",
-    "latest_game_creation": "2026-10-22T16:39:20.28+08:00",
-    "region": "联盟四区"
+    "first_game_creation": "2026-10-25T00:00:00.101+08:00",
+    "latest_game_creation": "2026-10-25T21:36:08.216+08:00",
+    "region": "联盟四区",
+    "valid_matches": 615496
    },
    {
-    "first_game_creation": "2026-10-22T07:37:03.301+08:00",
-    "latest_game_creation": "2026-10-22T16:40:02.601+08:00",
-    "region": "黑色玫瑰"
+    "first_game_creation": "2026-10-25T00:00:00.117+08:00",
+    "latest_game_creation": "2026-10-26T07:18:00.34+08:00",
+    "region": "黑色玫瑰",
+    "valid_matches": 1032574
    },
    {
-    "first_game_creation": "2026-10-22T07:36:59.921+08:00",
-    "latest_game_creation": "2026-10-22T16:47:21.004+08:00",
-    "region": "联盟五区"
+    "first_game_creation": "2026-10-25T00:00:00+08:00",
+    "latest_game_creation": "2026-10-25T21:47:43.834+08:00",
+    "region": "联盟五区",
+    "valid_matches": 674673
    }
   ],
-  "scope": "截至快照时已入库的对局，不是全服全集，各区采集进度不同"
+  "scope": "库内样本；各区采集进度不同，窗口上界不代表各区均已完整采集至该时刻。"
  },
  "excluded_augments": {
   "1337": {
@@ -47,20 +101,20 @@
    "reason": "任务完成后被替换，局末持有统计失真"
   },
   "3176": {
-   "name": "GoH_PentakillAug_Generic_BlankName",
+   "name": "赛季之星:五杀摇滚",
    "reason": "五杀乐队通用标记，与具体技能强化重复，不作为独立海克斯统计"
   }
  },
  "files": {
-  "augments.json": "302740c60e441e11ed24614c6971d535429a9214ea742cd066a8fce7dc2d5d97",
-  "hero_augments.csv": "678c5bd9413c43cee6714b5298cd1b4e18c739cdf68ca8bab8a9dc60d178f9d9",
-  "hero_augments.json": "c2ebc4c428258596d08a09a820ab41b863a089bfa5e12a9bb567215b5661d24e",
-  "hero_spells.csv": "1c1a4dcdea10d146fd325e31a98ee70256620afa243e6f7a95c23be97112e328",
-  "hero_spells.json": "10420b6c82a139f83a225ea784133987cceebf697ac88c8f440230eaa49257b2",
-  "heroes.csv": "e71fc199e6de69bcf99296ba608c62902e0996d5b6971cb94ee043ad4df8cec6",
-  "heroes.json": "b6331df088a7d327e43ee9400360b9c2f155b5a55c9eebbb6abf06ea7fc7795a"
+  "augments.json": "69b7bf4f2f3e87598ad664d31d582009df357dde1432678bfd7aa3ecbbafa48b",
+  "hero_augments.csv": "37292d1856d571ebdae8cf142812763c2a35fd38cbf575701ed1911ff2ed783c",
+  "hero_augments.json": "993f242b5b6899354c3cc71e35bf08930940645b885a72588b2fc0d8c6ce0f3f",
+  "hero_spells.csv": "84a2f6ab4fc464b8fcdc5646397c7504f4dedc0f7792930b005fe6e30f216933",
+  "hero_spells.json": "03f7431d61c038dccedb8090fa7211fa0911721816f3de069e41bf29d897dc62",
+  "heroes.csv": "f0a22686df396be148099a33009cd016c867becfb4ac7bad3a79150c1b01532d",
+  "heroes.json": "b2ceeb922925c0dc837657c414d6a081f11f315fa165cf753bed187df134c981"
  },
- "hero_participations": 10855960,
+ "hero_participations": 53767320,
  "heroes": 173,
  "label": "16.21 版本 · 常规",
  "license": "CC BY-NC 4.0",
@@ -73,78 +127,25 @@
   "样本少的组合（low_sample 为 true，或局数很少）胜率波动大，请谨慎参考。"
  ],
  "matches": {
-  "collected": 1124509,
-  "excluded": 38913,
-  "valid": 1085596,
+  "collected": 5534493,
+  "excluded": 157761,
+  "valid": 5376732,
   "validity_rule": "对局时长不少于 4 分钟（240 秒）、10 名玩家齐全且正好 5 胜 5 负、正常结束（GameComplete）；重开、提前解散、数据不全的对局不计"
  },
  "mode": "normal",
  "mode_label": "常规",
  "mode_rule": "常规规则。",
  "notes": [
-  "首版样本使用全体，暂不提供分段统计。",
-  "各区采集进度不同，统计窗口上界不是各区均已完整采到的承诺。",
-  "召唤师技能组合为观察统计，选择倾向与英雄适配可能影响胜率；小样本谨慎参考。",
-  "9个暂无正式服有效持有记录的新海克斯，保留旧测试服过渡统计并单独标注来源；不计入正式服有效对局数。"
+  "全体统计，不分段。",
+  "采集局数在与英雄、海克斯、技能统计相同的只读 MVCC 快照内逐页计数，使用相同时间窗、版本、队列及各区 game_id 范围；excluded 为该快照内未通过有效性规则的对局数。",
+  "召唤师技能保留全量双技能组合，按数值排序合并 D/F；客户端各自按展示门槛选择。"
  ],
- "patch": "16.21",
- "provisional_augments": {
-  "3016": {
-   "games": 1973,
-   "source": "测试服 16.21.828，10-16 17:35 – 10-21 20:13，29637 局",
-   "win_rate": 0.466295,
-   "wins": 920
-  },
-  "3025": {
-   "games": 466,
-   "source": "测试服 16.21.828，10-16 17:35 – 10-21 20:13，29637 局",
-   "win_rate": 0.542918,
-   "wins": 253
-  },
-  "3039": {
-   "games": 3472,
-   "source": "测试服 16.21.828，10-16 17:35 – 10-21 20:13，29637 局",
-   "win_rate": 0.492224,
-   "wins": 1709
-  },
-  "3048": {
-   "games": 2979,
-   "source": "测试服 16.21.828，10-16 17:35 – 10-21 20:13，29637 局",
-   "win_rate": 0.54045,
-   "wins": 1610
-  },
-  "3058": {
-   "games": 3467,
-   "source": "测试服 16.21.828，10-16 17:35 – 10-21 20:13，29637 局",
-   "win_rate": 0.436689,
-   "wins": 1514
-  },
-  "3063": {
-   "games": 3327,
-   "source": "测试服 16.21.828，10-16 17:35 – 10-21 20:13，29637 局",
-   "win_rate": 0.48963,
-   "wins": 1629
-  },
-  "3081": {
-   "games": 17195,
-   "source": "测试服 16.21.828，10-16 17:35 – 10-21 20:13，29637 局",
-   "win_rate": 0.527712,
-   "wins": 9074
-  },
-  "3118": {
-   "games": 7894,
-   "source": "测试服 16.21.828，10-16 17:35 – 10-21 20:13，29637 局",
-   "win_rate": 0.471117,
-   "wins": 3719
-  },
-  "3134": {
-   "games": 3935,
-   "source": "测试服 16.21.828，10-16 17:35 – 10-21 20:13，29637 局",
-   "win_rate": 0.496823,
-   "wins": 1955
-  }
+ "official_reference": {
+  "package_sha256": "2c1efee98616072eb411cba2dc86b8b16fb53510c02802a2cf06887441a934c9",
+  "patch": "16.21",
+  "revision": 1
  },
- "provisional_note": "9个暂无正式服有效持有记录的新海克斯，保留旧测试服过渡统计并单独标注来源；不计入正式服有效对局数。",
+ "patch": "16.21",
  "regions": [
   "联盟二区",
   "艾欧尼亚",
@@ -156,24 +157,17 @@
  ],
  "regions_combined": true,
  "schema_version": 1,
- "snapshot_at": "2026-10-22T17:33:16+08:00",
+ "snapshot_at": "2026-10-26T11:41:58+08:00",
  "summoner_spells": {
-  "excluded_missing_or_invalid_participations": 0,
-  "observation": "结算记录字段，不代表局内施放次数、使用时机或换技能历史",
-  "ordering": "按使用次数降序展示，不把最高胜率当因果推荐",
-  "pair_definition": "每位玩家两个记录的召唤师技能ID，按数值排序，D/F顺序合并；每位玩家计一次",
-  "pick_rate_denominator": "该英雄有可用双技能组合的有效参赛记录总数",
-  "source": "自采正式服16.21有效对局",
-  "source_labels": {
-   "1": "净化",
-   "13": "清晰术",
-   "14": "引燃",
-   "21": "屏障",
-   "32": "标记",
-   "4": "闪现",
-   "6": "幽灵疾步",
-   "7": "治疗术"
+  "display_rules": {
+   "1.1.1": "占比>=10%，最多2组；无达标组合时取局数最多1组",
+   "1.1.2": "占比>=3%且>=1000局，最多3组"
   },
+  "excluded_missing_or_invalid_participations": 0,
+  "observation": "two summoner spell IDs retained in the match participant fields; no casting timeline or in-game swap history",
+  "pair_definition": "numerically sorted, D/F order merged",
+  "pick_rate_denominator": "该英雄所有可用双技能组合的有效玩家记录数",
+  "source": "自采正式服16.21有效对局",
   "spell_ids": [
    "1",
    "4",
@@ -184,50 +178,12 @@
    "21",
    "32"
   ],
-  "valid_participations": 10855960
- },
- "unobserved_augments": {
-  "3016": {
-   "name": "伤不过三",
-   "status": "本次正式服有效持有记录中未出现；不代表已停用"
-  },
-  "3025": {
-   "name": "音之屏障",
-   "status": "本次正式服有效持有记录中未出现；不代表已停用"
-  },
-  "3039": {
-   "name": "拯救",
-   "status": "本次正式服有效持有记录中未出现；不代表已停用"
-  },
-  "3048": {
-   "name": "弹跳蜜蜂",
-   "status": "本次正式服有效持有记录中未出现；不代表已停用"
-  },
-  "3058": {
-   "name": "嗡嗡怪兽",
-   "status": "本次正式服有效持有记录中未出现；不代表已停用"
-  },
-  "3063": {
-   "name": "溺水之赠礼",
-   "status": "本次正式服有效持有记录中未出现；不代表已停用"
-  },
-  "3081": {
-   "name": "命运之武器",
-   "status": "本次正式服有效持有记录中未出现；不代表已停用"
-  },
-  "3118": {
-   "name": "奥术公理",
-   "status": "本次正式服有效持有记录中未出现；不代表已停用"
-  },
-  "3134": {
-   "name": "孤勇者",
-   "status": "本次正式服有效持有记录中未出现；不代表已停用"
-  }
+  "valid_participations": 53767320
  },
  "window": {
-  "end_exclusive": "2026-10-22T17:30:00+08:00",
+  "end_exclusive": "2026-10-26T11:07:00+08:00",
   "periods": null,
-  "start": "2026-10-22T04:06:00+08:00",
+  "start": "2026-10-25T00:00:00+08:00",
   "time_field": "对局创建时间（北京时间）"
  }
 }

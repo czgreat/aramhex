@@ -15,12 +15,15 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import time
 from dataclasses import dataclass, field, replace
+from contextlib import contextmanager
 from pathlib import Path
 
 import numpy as np
 
+from .. import cloud
 from .matcher import NameMatcher
 from .ocr import OCR, TextLine
 from .window import Rect
@@ -54,6 +57,20 @@ class Calibration:
     def pixel_boxes(self, w: int, h: int) -> list[tuple[int, int, int, int]]:
         return [(int(a * w), int(b * h), int(c * w), int(d * h)) for a, b, c, d in self.boxes]
 
+    def valid(self) -> bool:
+        """标题区域须在客户区内、从左到右且互不重叠；不要求固定间距。"""
+        if len(self.boxes) != 3 or len(self.size) != 2 or any(not math.isfinite(v) or v <= 0 for v in self.size):
+            return False
+        for box in self.boxes:
+            if len(box) != 4 or not all(math.isfinite(v) for v in box):
+                return False
+            a,b,c,d = box
+            if not (0 <= a < c <= 1 and 0 <= b < d <= 1):
+                return False
+            if int(c*self.size[0]) <= int(a*self.size[0]) or int(d*self.size[1]) <= int(b*self.size[1]):
+                return False
+        return all(left[2] <= right[0] for left,right in zip(self.boxes,self.boxes[1:]))
+
 
 @dataclass
 class Offer:
@@ -65,6 +82,7 @@ class Offer:
     padded: bool = False  # boxes 是否为带上下留白的校准框；原始 OCR 字框不含留白
     source: str = "full"
     observation: int = 0  # 真实 OCR 批次；指纹缓存返回不增加。
+    trace: dict | None = None  # 单调时钟诊断；不是卡片真实出现时刻，不进入 UI 状态。
 
     def key(self) -> tuple:
         return tuple(self.slots)
@@ -110,16 +128,22 @@ class AugmentDetector:
         self._cells: list[dict | None] = [None] * 3
         self._stable: Offer | None = None
         self._pending: list[dict | None] = [None] * 3
+        self._low_match_reads = 0  # 已稳定后，有限次数的新 OCR 确认；缓存空值不作新证据。
         self._observation = 0
         # 这局花在认字上的次数和时间（秒），对局结束写进日志，玩家说卡的时候看
         # *_cpu 是本线程实际算了多久（单线程推理在调用线程上跑）；比 *_s（墙钟）小很多说明线程在排队等 CPU
         self.cost = {"strip": 0, "strip_s": 0.0, "strip_cpu": 0.0, "strip_ocr": 0,
-                     "full": 0, "full_s": 0.0, "full_cpu": 0.0}
+                     "full": 0, "full_s": 0.0, "full_cpu": 0.0,
+                     "full_lines": 0, "full_matches": 0, "strip_cache": 0,
+                     "name_reject": 0, "color_reject": 0, "pending": 0}
         if calib_path and calib_path.exists():
             try:
                 d = json.loads(calib_path.read_text(encoding="utf-8"))
                 self.calibration = Calibration([tuple(b) for b in d["boxes"]], tuple(d["size"]))
-            except (OSError, ValueError, KeyError):
+                if not self.calibration.valid():
+                    log.warning("忽略无效三选一校准：标题区域越界、重叠或顺序错误")
+                    self.calibration = None
+            except (OSError, ValueError, KeyError, TypeError):
                 self.calibration = None
 
     @property
@@ -134,11 +158,13 @@ class AugmentDetector:
         self._cells = [None]*3
         self._stable = None
         self._pending = [None]*3
+        self._low_match_reads = 0
 
     def set_matcher(self, matcher: NameMatcher) -> None:
         self.matcher = matcher
         self._last_fp = None
         self._cells = [None] * 3
+        self._low_match_reads = 0
 
     def calibrated_for(self, w: int, h: int) -> bool:
         return self.calibration is not None and tuple(self.calibration.size) == (w, h)
@@ -154,6 +180,7 @@ class AugmentDetector:
             self._cells = [None] * 3
             self._stable = None
             self._pending = [None] * 3
+            self._low_match_reads = 0
 
     def reset_calibration(self) -> None:
         self.calibration = None
@@ -161,13 +188,29 @@ class AugmentDetector:
         self._cells = [None] * 3
         self._stable = None
         self._pending = [None] * 3
+        self._low_match_reads = 0
         if self.calib_path and self.calib_path.exists():
             self.calib_path.unlink()
 
     def _save_calibration(self) -> None:
+        if getattr(self, "_defer_calibration", False):
+            self._calibration_dirty = True
+            return
+        self._write_calibration()
+
+    def _write_calibration(self) -> None:
         if self.calib_path and self.calibration:
             self.calib_path.write_text(json.dumps({"boxes": self.calibration.boxes,
                                                    "size": self.calibration.size}), encoding="utf-8")
+
+    @contextmanager
+    def defer_calibration_writes(self):
+        """扫描结果仍属当前窗口才提交定位；过时帧不能先污染磁盘。"""
+        self._defer_calibration, self._calibration_dirty = True, False
+        try:
+            yield lambda: self._write_calibration() if self._calibration_dirty else None
+        finally:
+            self._defer_calibration, self._calibration_dirty = False, False
 
     # ---------- 1. 全区域扫描 ----------
 
@@ -189,21 +232,78 @@ class AugmentDetector:
         x0, y0, x1, y1 = int(BAND[0] * W), int(BAND[1] * H), int(BAND[2] * W), int(BAND[3] * H)
         band = frame[y0:y1, x0:x1]
         scale = min(1.0, DETECT_MAX_W / max(1, band.shape[1]))
-        lines = self.ocr.detect(_resize(band, scale))
+        image = _resize(band, scale)
+        priority = getattr(self.ocr, "detect_prioritized", None)
+        # Split recognition batches are validated with the bundled model only.
+        if getattr(self.ocr, "rec_model", None) or not cloud.feature("title_priority"):
+            priority = None  # 云控 features.title_priority=false：退回 1.1.1 的整块全部认字
+        if callable(priority):
+            from .title_rows import title_groups, title_plan
+            reference = self.calibration if self.calibrated_for(W, H) else Calibration.default(W, H)
+            regions = [tuple((v - (x0 if j % 2 == 0 else y0)) * scale for j, v in enumerate(box))
+                       for box in reference.pixel_boxes(W, H)]
+            def accept_titles(candidates, prefix):
+                mapped, anchors = [], []
+                prefix_ids = {id(ln) for ln in prefix}
+                for ln in candidates:
+                    aid, sc = self.matcher.match(ln.text)
+                    if aid:
+                        hit = (TextLine(ln.text, ln.score, tuple(int(v/scale) + (x0 if j % 2 == 0 else y0)
+                               for j, v in enumerate(ln.box))), aid, sc)
+                        mapped.append(hit)
+                        if id(ln) in prefix_ids:
+                            anchors.append(hit)
+                def strong(group):
+                    return (len(group) == 3 and len({aid for _, aid, _ in group}) == 3
+                            and all(ln.score >= .85 and sc >= 90 for ln, _, sc in group))
+                # A complete early anchor must already win three matches. Later
+                # partial rows cannot establish detector-order precedence.
+                if not strong(self._pick_row(mapped, H, anchors=anchors)):
+                    return False
+                chosen = self._pick_row(mapped, H)
+                if not strong(chosen):
+                    return False
+                chosen.sort(key=lambda t: t[0].cx)
+                return self._calibration_candidate(chosen, W, H).valid()
+            def plans(boxes):
+                return [plan for group in title_groups(boxes, regions)
+                        if (plan := title_plan(boxes, group, H, scale, (x0, y0))) is not None]
+            lines, stats = priority(image, plans, accept_titles)
+            for key, value in (("full_detected", stats["detected"]), ("full_recognized", stats["recognized"]),
+                               ("full_early", int(stats["early"]))):
+                self.cost[key] = self.cost.get(key, 0) + value
+        else:
+            lines = self.ocr.detect(image)
+        self.cost["full_lines"] += len(lines)
         hits: list[tuple[TextLine, str, float]] = []
         for ln in lines:
             aid, sc = self.matcher.match(ln.text)
             if aid:
                 bx = tuple(int(v / scale) for v in ln.box)
                 hits.append((TextLine(ln.text, ln.score, (bx[0] + x0, bx[1] + y0, bx[2] + x0, bx[3] + y0)), aid, sc))
+        self.cost["full_matches"] += len(hits)
         group = self._pick_row(hits, H)
+        self._log_repeated_names(hits, group, W, H)
         if len(group) < 2:
+            return None
+        if len({aid for _, aid, _ in group if aid}) < 2:
+            self.cost["full_duplicate_reject"] = self.cost.get("full_duplicate_reject", 0) + 1
+            now = time.monotonic()
+            if now-getattr(self, "_duplicate_rejected_at", float("-inf")) >= 60:
+                self._duplicate_rejected_at = now
+                log.info("拒绝整块识别：匹配列=%d，但不足两个不同海克斯名", len(group))
             return None
         group.sort(key=lambda t: t[0].cx)
         slots, texts, scores, boxes = self._assign_columns(group, W)
         if len(group) == 3:
-            self._calibrate(group, W, H)
+            if not self._calibrate(group, W, H):
+                return None  # 不发布错误位置，也不污染已确认的校准。
             boxes = self.calibration.pixel_boxes(W, H)
+        else:
+            # 整块扫描已找到卡片，旧条带的空缓存不能遮掉这次恢复。
+            self._last_fp = self._last_result = self._last_window = None
+            self._cells = [None] * 3
+        self._low_match_reads = 0
         ox, oy = origin
         sboxes = [None if b is None else (b[0] + ox, b[1] + oy, b[2] + ox, b[3] + oy) for b in boxes]
         self._observation += 1
@@ -214,17 +314,38 @@ class AugmentDetector:
                   offer.observation, texts, slots, scores)
         return offer
 
+    def _log_repeated_names(self, hits, group, W, H) -> None:
+        """诊断：选中那一行里同一个海克斯在别的横向位置也匹配到了。只记海克斯名和相对位置，限频 60 秒。"""
+        if not group:
+            return
+        cy = group[0][0].cy
+        chosen = {aid: ln.cx for ln, aid, _ in group}
+        extra = [(aid, ln.cx, sc) for ln, aid, sc in hits
+                 if aid in chosen and abs(ln.cy - cy) < 0.03 * H and abs(ln.cx - chosen[aid]) > 0.08 * H]
+        if not extra:
+            return
+        self.cost["full_repeat_name"] = self.cost.get("full_repeat_name", 0) + 1
+        now = time.monotonic()
+        if now - getattr(self, "_repeat_logged_at", float("-inf")) >= 60:
+            self._repeat_logged_at = now
+            log.info("整块识别同名多处：选用=%s 另有=%s @ %dx%d",
+                     " ".join(f"{aid}@{ln.cx / W:.3f}" for ln, aid, _ in sorted(group, key=lambda t: t[0].cx)),
+                     " ".join(f"{aid}@{cx / W:.3f}/{sc:.0f}" for aid, cx, sc in extra), W, H)
+
     @staticmethod
-    def _pick_row(hits, H):
+    def _pick_row(hits, H, anchors=None):
         """同一水平线上、横向分开的匹配项；一张卡只取分数最高的一条。"""
         best: list = []
-        for ln, _, _ in hits:
+        once = cloud.feature("same_name_once")
+        for ln, _, _ in (hits if anchors is None else anchors):
             row = [t for t in hits if abs(t[0].cy - ln.cy) < 0.03 * H]
             # 同一张卡上可能匹配到多行（标题 + 描述里提到别的海克斯名），按横向距离去重。
             row.sort(key=lambda t: -t[2])
             uniq: list = []
+            # 三选一不会出现两张同名卡：同一个海克斯在别处又匹配到（1.1.1 日志里中框常被定在宽 0.38 处，
+            # 读成左卡的名字），只留分数最高的那条，别让它挤掉真正的中卡。
             for t in row:
-                if all(abs(t[0].cx - u[0].cx) > 0.08 * H for u in uniq):
+                if all(abs(t[0].cx - u[0].cx) > 0.08 * H and (not once or t[1] != u[1]) for u in uniq):
                     uniq.append(t)
             if len(uniq) > len(best):
                 best = uniq
@@ -253,7 +374,8 @@ class AugmentDetector:
             slots[i], texts[i], scores[i], boxes[i] = aid, ln.text, sc, ln.box
         return slots, texts, scores, boxes
 
-    def _calibrate(self, group, W, H) -> None:
+    @staticmethod
+    def _calibration_candidate(group, W, H):
         centers = [t[0].cx for t in group]
         spacing = (centers[2] - centers[0]) / 2
         th = int(np.median([t[0].h for t in group]))
@@ -261,12 +383,25 @@ class AugmentDetector:
         half_w = 0.42 * spacing
         half_h = 0.9 * th
         boxes = [((c - half_w) / W, (cy - half_h) / H, (c + half_w) / W, (cy + half_h) / H) for c in centers]
-        self.calibration = Calibration(boxes, (W, H))
+        return Calibration(boxes, (W, H))
+
+    def _calibrate(self, group, W, H) -> bool:
+        candidate = self._calibration_candidate(group, W, H)
+        boxes = candidate.boxes
+        if not candidate.valid():
+            now = time.monotonic()
+            if now-getattr(self, "_geometry_rejected_at", float("-inf")) >= 60:
+                self._geometry_rejected_at = now
+                log.warning("拒绝三选一校准：标题区域越界、重叠或顺序错误 boxes=%s @ %dx%d", boxes, W, H)
+            return False
+        self.calibration = candidate
         # 定位框变更后不能用旧条带的近似指纹命中旧坐标。
         self._last_fp = self._last_result = self._last_window = None
         self._cells = [None] * 3
+        self._low_match_reads = 0
         self._save_calibration()
         log.info("已校准三选一标题位置：%s @ %dx%d", boxes, W, H)
+        return True
 
     # ---------- 2. 已校准的轻量检查 ----------
 
@@ -287,19 +422,23 @@ class AugmentDetector:
 
     RECHECK_SECONDS = 5.0
     PENDING_SECONDS = 0.9
+    LOW_MATCH_READS = 3
 
     def check_strip(self, strip: np.ndarray, win: Rect) -> Offer | None:
         """strip 为 strip_rect 截图。画面没变化时直接复用上次结果。"""
         fp = fingerprint(strip)
         now = time.monotonic()
         active = self._last_result is not None
+        confirming = self._stable is not None and 0 < self._low_match_reads < self.LOW_MATCH_READS
         due = any(c is None for c in self._cells) or (active and any(
             now-c["at"] >= self.RECHECK_SECONDS for c in self._cells))
-        if self._last_window == win and not fp_changed(self._last_fp, fp) and not due and not any(self._pending):
+        if self._last_window == win and not fp_changed(self._last_fp, fp) and not due and not any(self._pending) and not confirming:
+            self.cost["strip_cache"] += 1
             log.debug("海克斯OCR source=cache observation=%d", self._observation)
             return replace(self._last_result, source="cache") if self._last_result else None
         if self._last_window != win:
             self._cells = [None] * 3
+            self._low_match_reads = 0
         self._last_fp = fp
         self._last_window = win
         t0, c0 = time.perf_counter(), time.thread_time()
@@ -321,18 +460,32 @@ class AugmentDetector:
         slots: list[str | None] = []
         texts, scores, boxes, fresh = [], [], [], []
         now = time.monotonic()
+        crops = [strip[y0-sy:y1-sy, x0-sx:x1-sx] for x0, y0, x1, y1 in pb]
+        fingerprints = [fingerprint(crop) for crop in crops]
+        changed = [old is None or fp_changed(old["fp"], fp)
+                   for old, fp in zip(self._cells, fingerprints)]
+        confirming = self._stable is not None and 0 < self._low_match_reads < self.LOW_MATCH_READS
+        urgent = any(changed) or any(self._pending) or confirming
+        expired = [i for i, old in enumerate(self._cells) if old is not None
+                   and self._last_result is not None and now-old["at"] >= self.RECHECK_SECONDS]
+        # 定期检查一次只读一列；先响应变化，最迟两倍周期内仍安排复查，防动画饿死其他列。
+        maintenance = min(expired, key=lambda i: self._cells[i]["at"]) if expired else None
+        if maintenance is not None and urgent and now-self._cells[maintenance]["at"] < 2*self.RECHECK_SECONDS:
+            maintenance = None
         for i, (x0, y0, x1, y1) in enumerate(pb):
-            crop = strip[y0 - sy:y1 - sy, x0 - sx:x1 - sx]
-            fp = fingerprint(crop)
+            crop, fp = crops[i], fingerprints[i]
             old = self._cells[i]
-            read = (old is None or fp_changed(old["fp"], fp) or self._pending[i] is not None
-                    or (self._last_result is not None and now-old["at"] >= self.RECHECK_SECONDS))
+            read = (changed[i] or self._pending[i] is not None or i == maintenance
+                    or (confirming and old is not None and old["aid"] is None))
             if read:
                 scale = REC_HEIGHT / max(1, crop.shape[0])
                 txt, conf = self.ocr.recognize(_resize(crop, scale))
                 aid, sc = self.matcher.match(txt)
+                if not aid:
+                    self.cost["name_reject"] += 1
                 if aid and rarities[i] and self.rarities.get(aid) != rarities[i]:
                     log.debug("海克斯颜色冲突 column=%d observed=%s match=%s", i, rarities[i], aid)
+                    self.cost["color_reject"] += 1
                     aid = None
                 self._cells[i] = {"fp": fp, "at": now, "text": txt, "conf": conf, "aid": aid, "score": sc}
                 self.cost["strip_ocr"] += 1
@@ -351,10 +504,25 @@ class AugmentDetector:
         if self.calibration.guess and offer.matched() == 3:
             self.calibration.guess = False  # 默认位置在本机对上了，存下来
             self._save_calibration()
-        self._last_result = self._stabilize(offer, fresh) if offer.matched() >= 2 else None
-        if self._last_result is None:
-            self._stable = None
-            self._pending = [None] * 3
+        if offer.matched() >= 2:
+            if self._low_match_reads:
+                log.info("三选一跟踪恢复：低命中新观察=%d 本轮重读=%s", self._low_match_reads, fresh)
+            self._low_match_reads = 0
+            self._last_result = self._stabilize(offer, fresh)
+        else:
+            self._last_result = None
+            for i, read in enumerate(fresh):
+                if read:
+                    self._pending[i] = None  # 本轮不可靠读数中断此前的“连续新观察”。
+            # 暂不发布旧卡，只保留内部连续状态供短暂失败恢复。引擎仍按3次None关闭。
+            # 确认期间绕过空缓存，仅重读失败列，三次None因而来自三个真实OCR批次。
+            if self._stable is not None and any(fresh):
+                self._low_match_reads += 1
+                log.info("三选一跟踪待确认：低命中新观察=%d/%d 本轮重读=%s 命中=%d",
+                         self._low_match_reads, self.LOW_MATCH_READS, fresh, offer.matched())
+            if self._stable is None or self._low_match_reads >= self.LOW_MATCH_READS:
+                self._stable = None
+                self._pending = [None] * 3
         return self._last_result
 
     def _stabilize(self, offer: Offer, fresh: list[bool]) -> Offer:
@@ -377,6 +545,7 @@ class AugmentDetector:
                 accepted[i] = aid
                 self._pending[i] = None
             else:
+                self.cost["pending"] += 1
                 self._pending[i] = {"aid": aid, "count": count, "first": first}
                 if now-first >= self.PENDING_SECONDS:
                     accepted[i] = None

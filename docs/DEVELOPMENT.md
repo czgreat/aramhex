@@ -105,6 +105,22 @@ pwsh -NoProfile -File packaging\build.ps1
 
 云控（`aramhex.com/config.json`）里的开关一律写 JSON 的 `true` / `false`（如 `rank.enabled`、`update.paused`），写成 `0`、`"false"` 1.1.0 起不认；数字写成数字；网盘链接这类文字写字符串。写错的值程序按默认值处理，不会崩。
 
+1.1.2 新增的云控项（旧版本不认、直接忽略；连不上官网时用上次存下的，再没有就用默认值）：
+
+| 项 | 默认 | 说明 |
+|---|---|---|
+| `mirrors.official` | `[]` | 官方资料（英雄/海克斯/装备）发布目录，例如 `["https://aramhex.com/u/official"]`，见 `docs/OFFICIAL-DATA.md` |
+| `update.official_minutes` | `0` | 多久查一次官方资料：`0` 关闭、`60` 每小时（出新内容时用）、`43200` 每 30 天 |
+| `logs.max_kb` | `512` | 点名上传最近多少 KB 日志（64–4096）；`aramhex.log` 不够长时接着读 `aramhex.log.1` |
+| `logs.verbose` | `[]` | `["<匿名编号>:<单号>"]`：这台电脑临时记详细日志（DEBUG，不截图），每个单号最多 24 小时；之后用 `logs.request` 点名上传 |
+| `features.title_priority` | `true` | 整块扫描先读标题；`false` 退回 1.1.1 全部认字 |
+| `features.same_name_once` | `true` | 同一行同名海克斯只算一张 |
+| `features.overlay_fit` | `true` | 分数缩放时浮层收回多出的 1 像素、不反复重摆 |
+| `features.cards_drop_early` | `true` | 选完英雄卡马上撤掉卡下胜率 |
+| `features.companion_last_fg` | `true` | 客户端被别的程序盖着时点浮窗，选人标注跟着隐藏；`false` 退回点浮窗一律按客户端在前台算 |
+
+`features` 是应急开关：对所有认识它的版本（1.1.2 起）一起生效，不能按比例分批；新做法出问题时先关掉，修好发版后再开。
+
 ## 国内连不上 GitHub 时
 
 - jsDelivr 按分支名（`@main`、`@updates`）取文件会缓存好几个小时，刷新也不一定生效；按 tag 取是即时的。所以：

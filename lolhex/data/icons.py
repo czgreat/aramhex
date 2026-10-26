@@ -2,11 +2,16 @@
 
 界面线程只查本地文件，不等网络：没有就先返回 None（界面先显示文字），同时交给后台线程下载；
 下载完成后 version 加一，界面据此重新渲染。
+本地没有的先从内置的 item_icons.json（1.1.2，scripts/update_static.py 生成）解出来，连不上腾讯也有图标；
+解出来的文件日期记成过期，联网时照样换成最新的。
 """
 
 from __future__ import annotations
 
+import base64
+import json
 import logging
+import os
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -16,12 +21,31 @@ from . import http
 
 log = logging.getLogger(__name__)
 MAX_AGE_S = 14 * 86400  # 图标很少变；两周后顺手重下一次，跟上版本改图
+BUNDLED = Path(__file__).with_name("item_icons.json")
+_bundled: dict[str, dict[str, str]] | None = None
+
+
+def bundled_icons(path: Path = BUNDLED) -> dict[str, dict[str, str]]:
+    """内置图标 {kind: {key: PNG 的 base64}}；没有或坏了返回空。读一次就记住。"""
+    global _bundled
+    if _bundled is not None and path == BUNDLED:
+        return _bundled
+    try:
+        d = json.loads(path.read_text(encoding="utf-8"))["icons"]
+        out = {k: v for k, v in d.items() if isinstance(v, dict)}
+    except (OSError, ValueError, KeyError, TypeError) as e:
+        log.info("内置图标读不到：%s", e)
+        out = {}
+    if path == BUNDLED:
+        _bundled = out
+    return out
 
 
 class IconCache:
-    def __init__(self, folder: Path, workers: int = 4):
+    def __init__(self, folder: Path, workers: int = 4, *, allow_network: bool = True):
         self.folder = folder
         self.version = 0
+        self.allow_network = allow_network
         self._pending: set[str] = set()
         self._failed: dict[str, float] = {}
         self._lock = threading.Lock()
@@ -32,10 +56,27 @@ class IconCache:
         if not key:
             return None
         path = self.folder / kind / f"{key}.png"
+        if not path.exists():
+            self._unpack(kind, str(key), path)
         fresh = path.exists() and time.time() - path.stat().st_mtime < MAX_AGE_S
-        if not fresh and url:
+        if not fresh and url and self.allow_network:
             self._fetch(path, url)
         return path.as_posix() if path.exists() else None
+
+    @staticmethod
+    def _unpack(kind: str, key: str, path: Path) -> None:
+        blob = (bundled_icons().get(kind) or {}).get(key)
+        if not blob:
+            return
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            tmp = path.with_suffix(".tmp")
+            tmp.write_bytes(base64.b64decode(blob))
+            tmp.replace(path)
+            old = time.time() - MAX_AGE_S - 1
+            os.utime(path, (old, old))  # 记成过期：能联网时照样下最新的
+        except (OSError, ValueError) as e:
+            log.info("内置图标解不出 %s/%s：%s", kind, key, e)
 
     def _fetch(self, path: Path, url: str) -> None:
         tag = str(path)

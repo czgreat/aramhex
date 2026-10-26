@@ -3,7 +3,7 @@
 import os as _os
 from pathlib import Path as _Path
 
-__version__ = "1.1.1"
+__version__ = "1.1.2"
 
 # 根证书：用 lolhex/data/cacert.pem（certifi 的去掉 eMudhra，见 scripts/make_cacert.py）。
 # 放在这里，所有入口（界面、增量更新、命令行）联网前都已生效；用户自己设了 REQUESTS_CA_BUNDLE（公司代理等）就不动

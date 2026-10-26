@@ -19,7 +19,7 @@ from PySide6.QtCore import Qt, QThread, QTimer, Signal
 from PySide6.QtGui import QAction, QIcon, QPixmap
 from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QFormLayout, QFrame, QGridLayout,
                                QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMenu, QMessageBox, QProgressBar, QScrollArea,
-                               QPushButton, QSystemTrayIcon, QTabWidget, QVBoxLayout, QWidget)
+                               QPushButton, QSizePolicy, QSystemTrayIcon, QTabWidget, QVBoxLayout, QWidget)
 
 from .. import DATA_HOMEPAGE, HELP_PAGE, HOMEPAGE, WEBSITE, __version__, cloud, cloudsettings, i18n, langpack, logupload, patch, rank, recommend, update
 from ..config import SPEEDS, is_portable
@@ -329,7 +329,13 @@ class MainWindow(QMainWindow):
         self.tab_hero.setTextInteractionFlags(Qt.TextSelectableByMouse)
         w1 = QWidget()
         QVBoxLayout(w1).addWidget(self.tab_hero)
-        self.tabs.addTab(w1, "出装与加点")
+        # 出装、加点很长：放进滚动区，不然标签页按最高的一页定高度，选了英雄后设置页的「检查更新」被挤出窗口
+        w1_scroll = QScrollArea()
+        w1_scroll.setWidget(w1)
+        w1_scroll.setWidgetResizable(True)
+        w1_scroll.setFrameShape(QFrame.NoFrame)
+        w1_scroll.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Ignored)
+        self.tabs.addTab(w1_scroll, "出装与加点")
 
         w2 = QWidget()
         l2 = QVBoxLayout(w2)
@@ -364,7 +370,7 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self._settings_tab(), "设置")
         lay.addWidget(self.tabs, 1)
         # 小屏或高缩放时保留完整内容，允许滚动，不让底部操作落到屏幕外。
-        root.setMinimumSize(640, 700)
+        root.setMinimumWidth(640)
         viewport = QScrollArea()
         viewport.setWidgetResizable(True)
         viewport.setFrameShape(QScrollArea.NoFrame)
@@ -469,10 +475,13 @@ class MainWindow(QMainWindow):
         self._show_rank(s.my_rank)
         self._rank_worker = None
         outer.addStretch(1)
+        # 版本和检查更新固定在页底，设置项较多时只滚动上面的表单。
         card = _card()
-        cv = QVBoxLayout(card)
-        cv.setContentsMargins(18, 16, 18, 16)
+        about_row = QHBoxLayout(card)
+        about_row.setContentsMargins(18, 12, 18, 12)
+        cv = QVBoxLayout()
         cv.setSpacing(8)
+        about_row.addLayout(cv, 1)
         about = QLabel(about_html())
         about.setTextFormat(Qt.RichText)
         about.setWordWrap(True)
@@ -481,23 +490,26 @@ class MainWindow(QMainWindow):
         cv.addWidget(about)
         self.about_data = QLabel()
         self.about_data.setStyleSheet("color:#555")
+        self.about_data.setWordWrap(True)
         cv.addWidget(self.about_data)
-        row = QHBoxLayout()
-        row.setContentsMargins(0, 6, 0, 0)
         self.btn_check = QPushButton("检查更新")
-        self.btn_check.setMinimumWidth(140)
+        self.btn_check.setMinimumWidth(120)
         self.btn_check.setMinimumHeight(34)
         self.btn_check.clicked.connect(lambda: self.check_update(manual=True))
-        row.addWidget(self.btn_check)
-        row.addStretch(1)
-        cv.addLayout(row)
-        outer.addWidget(card)
+        about_row.addWidget(self.btn_check, 0, Qt.AlignVCenter)
         # 设置项越来越多：放进可滚动区域，窗口矮的时候不会被压扁
         scroll = QScrollArea()
         scroll.setWidget(w)
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.NoFrame)
-        return scroll
+        # 表单的建议高度不能撑大整页，否则外层滚动区仍会把页底按钮推到屏幕外。
+        scroll.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Ignored)
+        tab = QWidget()
+        tab_layout = QVBoxLayout(tab)
+        tab_layout.setContentsMargins(0, 0, 0, 0)
+        tab_layout.addWidget(scroll, 1)
+        tab_layout.addWidget(card)
+        return tab
 
     # ---------- 查我的水平 ----------
 
@@ -696,10 +708,16 @@ class MainWindow(QMainWindow):
         self.badge_preview.set_position(s.badge_position)
 
     def _apply_cloud(self, cfg: dict):
+        if hasattr(self.engine, "cloud_changed"):
+            self.engine.cloud_changed()
         try:
             self._apply_cloud_settings(cfg)
         except Exception:
             logging.getLogger(__name__).exception("云控设置出错")
+        try:
+            logupload.apply_verbose(self.engine.settings, cfg)
+        except Exception:
+            logging.getLogger(__name__).exception("远程详细日志出错")
         try:
             self.recheck_rank_if_newer(cfg)
             threading.Thread(target=self._upload_logs, args=(cfg,), daemon=True).start()
@@ -754,6 +772,10 @@ class MainWindow(QMainWindow):
         s.check_data_updates = self.set_data.isChecked()
         s.send_usage = self.set_usage.isChecked()
         cloud.set_install_id(s.install_id if s.send_usage else None)
+        try:
+            logupload.apply_verbose(s, cloud.get())  # 关了「帮助改善软件」，远程详细日志马上停
+        except Exception:
+            logging.getLogger(__name__).exception("远程详细日志出错")
         if hasattr(self.engine.store, "check_updates"):
             self.engine.store.check_updates = s.check_data_updates  # 马上生效，不用重开
         s.speed = self.set_speed.currentData() or "standard"
@@ -1105,6 +1127,8 @@ class MainWindow(QMainWindow):
                                   + (f"<br><span style='color:#c9a0ff'>{escape(pk)}</span>" if pk else ""))
         for lab, r in zip(self.offer_cards, ev["slots"]):
             v, col = VERDICT_CN.get(r["verdict"], VERDICT_CN["unknown"])
+            if r["verdict"] == "best" and r.get("sample_warning"):
+                v = "相对较好，仅供参考"
             lines = [f"<b style='color:{col}'>{v}</b>", f"<b>{r.get('name') or '未识别'}</b>"]
             meta = [RARITY_CN.get(r.get("rarity"), "")]
             if r.get("tier"):
@@ -1120,8 +1144,8 @@ class MainWindow(QMainWindow):
                 s = f"{r['score']:+.1f}"
                 if show_win and recommend.win_text(r):
                     s += " · " + recommend.win_text(r)
-                if r.get("thin"):
-                    warn = "⚠ 样本太少" if r["thin"] == "too_few" else "样本偏少"
+                if r.get("thin") or r.get("sample_warning"):
+                    warn = "⚠ 样本太少" if r.get("thin") == "too_few" else "样本偏少"
                     s += f" · <span style='color:#ff7a6b'>{warn}</span>"
                 lines.append(s)
             lab.setText("<br>".join(lines))

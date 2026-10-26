@@ -8,10 +8,14 @@
     rank        查分 {enabled, api, message}：可以远程关掉查询
     event       当前活动 {mode, label, start, end}：例如 first-prismatic「首次必棱彩」，活动期间改用这个规则的统计数据
     mirrors     额外线路 {update: [".../{version}"], data: [...]}：换服务器、加线路不用发版，排在内置线路前面
-    features    功能开关（预留）：{名字: true/false}
+    features    功能开关 {名字: true/false}（1.1.2）：新做法出问题时云控关掉、退回 1.1.1 的老做法，不用发版。
+                没写 / 连不上 = 开。title_priority 整块扫描先读标题；same_name_once 同一行同名海克斯只算一张；
+                overlay_fit 分数缩放时浮层收回多出的 1 像素、不反复重摆；cards_drop_early 选完英雄卡马上撤卡下胜率；
+                companion_last_fg 客户端被别的程序盖着时点浮窗，不再把标注画到那个程序上
     update      检查频率和分批推送（1.1.0 起）：
                   check_minutes   多久查一次云控和新版本（默认 180，30–1440）；启动时、手动「检查更新」照常查
                   data_minutes    多久查一次统计数据（默认 360，60–1440）
+                  official_minutes 官方资料检查（0 关闭，60 一小时，43200 三十天）；只从 mirrors.official 更新
                   rollout_version / rollout_percent  这个版本先只提示一部分人（0–100）。按本机随机编号分组，
                                   同一台电脑分组固定，把比例调大，之前提示过的人仍在里面
                   paused          true 时暂停提示新版本（发现问题时用）；「最低版本」和手动检查不受影响
@@ -41,16 +45,18 @@ DEFAULT = {
     # as_of：查分库最新数据的日期（1.1.1）；比本机上次查到的新，就自动重查一次
     "rank": {"enabled": True, "api": f"{WEBSITE}/api/rank", "message": "", "as_of": ""},
     "event": {"mode": "", "label": "", "start": "", "end": ""},
-    "mirrors": {"update": [], "data": []},
+    "mirrors": {"update": [], "data": [], "official": []},
     "features": {},
-    "update": {"check_minutes": 180, "data_minutes": 360, "rollout_version": "", "rollout_percent": 100,
+    "update": {"check_minutes": 180, "data_minutes": 360, "official_minutes": 0, "rollout_version": "", "rollout_percent": 100,
                "paused": False},
     # 大厅里助手图标的位置（客户端 1280×720 下的像素，按窗口高度等比例）：图标中心离右边、离上边，直径。
     # 默认在头像右边「在线」那一行、铃铛左边；客户端改版挪了位置时云控改这三个数就行
     "ui": {"client_badge_right": 60, "client_badge_top": 53, "client_badge_size": 26},
     "settings": [],  # 云控设置规则，见 cloudsettings.py
     # 开发者点名上传日志（见 logupload.py）：request 里是匿名编号（可带「:单号」）
-    "logs": {"url": f"{WEBSITE}/api/logs", "request": []},
+    # max_kb：上传最近多少 KB 日志（1.1.2，64–4096，默认 512）；当前日志不够长时接着读上一个日志文件
+    # verbose：临时记详细日志的电脑 ["<匿名编号>:<单号>"]（1.1.2，每个单号最多 24 小时，不截图，见 logupload.py）
+    "logs": {"url": f"{WEBSITE}/api/logs", "request": [], "max_kb": 512, "verbose": []},
 }
 _lock = threading.Lock()
 _cache: dict | None = None
@@ -123,8 +129,13 @@ def _merge(raw: dict) -> dict:
                 out[k]["url"] = v["url"]
             if isinstance(v.get("request"), list):
                 out[k]["request"] = [str(x)[:64] for x in v["request"] if isinstance(x, str)][:200]
+            if isinstance(v.get("verbose"), list):
+                out[k]["verbose"] = [str(x)[:64] for x in v["verbose"] if isinstance(x, str)][:50]
+            kb = v.get("max_kb")
+            if isinstance(kb, (int, float)) and not isinstance(kb, bool) and math.isfinite(kb):
+                out[k]["max_kb"] = int(max(64, min(4096, kb)))
         elif k == "mirrors" and isinstance(v, dict):
-            for kk in ("update", "data"):
+            for kk in ("update", "data", "official"):
                 urls = v.get(kk)
                 if isinstance(urls, list):
                     out[k][kk] = [u for u in urls if isinstance(u, str) and u.startswith("https://")][:5]
@@ -203,6 +214,12 @@ def check_minutes() -> int:
 def data_minutes() -> int:
     """多久查一次统计数据（分钟）。"""
     return _minutes("data_minutes", 360, 60, 1440)
+
+
+def official_minutes() -> int:
+    """官方资料检查间隔：0 关闭，60 一小时，43200 三十天。"""
+    v = _num((get().get("update") or {}).get("official_minutes", 0), 0)
+    return max(0, min(43200, int(v)))
 
 
 def bucket(install_id: str | None) -> int:

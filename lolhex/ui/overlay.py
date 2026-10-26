@@ -10,12 +10,13 @@
 
 from __future__ import annotations
 
+import copy
 import logging
 import time
 from html import escape
 
-from PySide6.QtCore import QEvent, QPoint, QRect, QSize, Qt, QTimer
-from PySide6.QtGui import QColor, QCursor, QFont, QFontMetrics, QGuiApplication, QPainter, QPen, QPixmap
+from PySide6.QtCore import QEvent, QPoint, QRect, QRectF, QSize, Qt, QTimer
+from PySide6.QtGui import QColor, QCursor, QFont, QFontMetrics, QGuiApplication, QPainter, QPen, QPixmap, QRegion
 from PySide6.QtWidgets import (QApplication, QHBoxLayout, QLabel, QLineEdit, QPushButton,
                                QVBoxLayout, QWidget)
 
@@ -47,6 +48,18 @@ def _dpr() -> float:
 
 def _logical(x: float) -> int:
     return int(round(x / _dpr()))
+
+
+def _overflow(actual, rect) -> bool:
+    """实际窗口超出要盖住的范围（哪怕 1 像素，可能已经伸到相邻显示器上）。"""
+    return (actual.left < rect.left or actual.top < rect.top
+            or actual.right > rect.right or actual.bottom > rect.bottom)
+
+
+def _gap(actual, rect) -> int:
+    """实际窗口比要盖住的范围小了多少像素（取各边最大）。"""
+    return max(actual.left - rect.left, actual.top - rect.top,
+               rect.right - actual.right, rect.bottom - actual.bottom, 0)
 
 
 def _flags(widget: QWidget, click_through: bool) -> None:
@@ -91,6 +104,7 @@ class _Layer(QWidget):
         self.origin = QPoint(0, 0)
         self.target_h = 1080
         self._diag = None
+        self._fit: tuple | None = None  # (要盖住的, 摆完的实际位置)：分数缩放下摆不准时记住，不再反复重摆
 
     def hideEvent(self, e):
         win.set_drawn(type(self).__name__, [])
@@ -115,8 +129,8 @@ class _Layer(QWidget):
         if not self.isVisible():
             self.show()
 
-    def _place(self, rect, target_hwnd: int = 0) -> None:
-        self.target_h = rect.height
+    def _place(self, rect, target_hwnd: int = 0, target_h: int | None = None) -> None:
+        self.target_h = target_h or rect.height
         if not win.IS_WINDOWS:
             return self._place_qt(rect)
         if not self.isVisible():
@@ -125,9 +139,23 @@ class _Layer(QWidget):
         actual = win.window_rect(hwnd)
         if actual is None:  # 读不到窗口位置（没有真窗口的无界面测试等）：按 Qt 坐标摆
             return self._place_qt(rect)
-        if actual != rect:
+        fit = self._fit if self._fit and self._fit[0] == rect else None
+        if not cloud.feature("overlay_fit"):  # 云控关掉：按 1.1.1 每次对不上就重摆
+            if actual != rect:
+                win.set_window_rect(hwnd, rect)
+                actual = win.window_rect(hwnd) or rect
+        elif actual != rect and (fit is None or actual != fit[1]):
+            # 缩放 1.25/1.5 时 Qt 按逻辑像素取整，窗口会比要求多出 1 像素（双屏时伸到另一块屏上），
+            # 原来每次刷新都再 SetWindowPos 一次。往里收掉多出的部分再摆一次；同一个目标只调一轮，
+            # 之后窗口还在这一轮摆出的位置就不再动
             win.set_window_rect(hwnd, rect)
             actual = win.window_rect(hwnd) or rect
+            if _overflow(actual, rect):
+                inner = win.Rect(rect.left, rect.top, rect.width - max(0, actual.right - rect.right),
+                                 rect.height - max(0, actual.bottom - rect.bottom))
+                win.set_window_rect(hwnd, inner)
+                actual = win.window_rect(hwnd) or inner
+            self._fit = (rect, actual)
         self.origin = QPoint(actual.left, actual.top)
         key = (rect, actual, round(self._scale(), 3))
         if key != self._diag:
@@ -135,21 +163,51 @@ class _Layer(QWidget):
             screens = "；".join(
                 f"{sc.name()} {sc.geometry().x()},{sc.geometry().y()} {sc.geometry().width()}x{sc.geometry().height()}"
                 f" 缩放{sc.devicePixelRatio():g}" for sc in QGuiApplication.screens())
-            (log.warning if actual != rect else log.info)(
+            (log.warning if _overflow(actual, rect) or _gap(actual, rect) > 2 else log.info)(
                 "%s：要盖住 %s，实际 %s，浮层缩放 %g；目标窗口 %s；本程序 %s；屏幕 %s", self.name,
                 _rect_text(rect), _rect_text(actual), self._scale(), win.dpi_info(target_hwnd) or "?",
                 win.dpi_info() or "?", screens)
 
 
 class BadgeLayer(_Layer):
-    """覆盖游戏客户区的透明层，只画三张卡的标签。"""
+    """盖在三张卡标签那一块的透明层（不铺满游戏画面），只画三张卡的标签。"""
 
     name = "三选一标签"
+    # 标签和装备提示最远画到标题框外多少（1080P 像素）：左右按最宽的装备提示 340 的一半再留余量，
+    # 上方是标签 84 + 装备提示 126 叠起来，下方是 BOTTOM_EDGE
+    BAND_SIDE, BAND_ABOVE, BAND_BELOW = 200, 300, BOTTOM_EDGE + 40
+    EDGE = 4  # 离游戏画面边缘至少留几个物理像素
 
     def __init__(self):
         super().__init__()
         self.snapshot: dict = {}
         self.icons = None
+        self._painted = None
+
+    def hideEvent(self, e):
+        self._painted = None
+        super().hideEvent(e)
+
+    def band(self, rect, boxes) -> "win.Rect":
+        """标签层的位置：三张卡标题框往外扩一圈，限制在游戏画面里、离边缘 EDGE 像素。
+
+        以前铺满整个游戏画面，Windows 缩放 150% 时 2560 宽的层被 Qt 取整成 2561，多出的 1 像素
+        压到右边的副屏上；置顶的透明窗口横跨两块屏，游戏选海克斯时明显掉帧，有时切出去再切回来才恢复
+        （10-24 多个双屏玩家反馈，日志里「要盖住 0,0 2560x1440，实际 0,0 2561x1440」）。
+        只盖中间这一块，取整多一两个像素也碰不到屏幕边缘，盖住的面积也小得多。"""
+        unit = _unit(rect.height)
+        known = [b for b in boxes or [] if b]
+        x0, y0 = rect.left + self.EDGE, rect.top + self.EDGE
+        x1, y1 = rect.right - self.EDGE, rect.bottom - self.EDGE
+        if known:
+            x0 = max(x0, int(min(b[0] for b in known) - self.BAND_SIDE * unit))
+            x1 = min(x1, int(max(b[2] for b in known) + self.BAND_SIDE * unit))
+            y0 = max(y0, int(min(b[1] for b in known) - self.BAND_ABOVE * unit))
+            y1 = min(y1, int(max(b[3] for b in known) + self.BAND_BELOW * unit))
+        if x1 - x0 < 50 or y1 - y0 < 50:  # 框不在画面里（异常）：退回整个画面（仍离边缘 EDGE）
+            x0, y0 = rect.left + self.EDGE, rect.top + self.EDGE
+            x1, y1 = rect.right - self.EDGE, rect.bottom - self.EDGE
+        return win.Rect(x0, y0, x1 - x0, y1 - y0)
 
     def update_from(self, snap: dict, rect, hwnd: int = 0) -> None:
         self.snapshot = snap
@@ -157,24 +215,45 @@ class BadgeLayer(_Layer):
         if not ev or not offer or rect is None:
             self.hide()
             return
-        self._place(rect, hwnd)
-        self.update()
+        self._place(self.band(rect, offer.get("boxes")), hwnd, target_h=rect.height)
+        # 内容不变时不重画；单列刷新只更新显示变化的标签，避免另外两张一起闪。
+        geometry = (offer.get("boxes"), offer.get("padded"), self.origin.x(), self.origin.y(),
+                    self.target_h, round(self._scale(), 3), self.size())
+        cards = {}
+        factor = _unit(self.target_h) / self._scale()
+        for r, label, color, lines, badge, hint_rect, *_ in self._badge_layout(snap):
+            region = QRegion()
+            for bounds in (badge, hint_rect):
+                if bounds is not None:
+                    logical = QRectF(bounds.x()*factor, bounds.y()*factor,
+                                     bounds.width()*factor, bounds.height()*factor)
+                    region |= logical.toAlignedRect().adjusted(-2, -2, 2, 2)
+            visual = (label, color.rgba(), lines, r.get("item_hint"), badge, hint_rect)
+            cards[r["index"]] = (copy.deepcopy(visual), region)
+        previous = self._painted
+        self._painted = (copy.deepcopy(geometry), cards)
+        if previous is None or previous[0] != geometry:
+            self.update()
+        else:
+            dirty = QRegion()
+            for index in previous[1].keys() | cards.keys():
+                before, after = previous[1].get(index), cards.get(index)
+                if before is None or after is None or before[0] != after[0]:
+                    if before is not None:
+                        dirty |= before[1]
+                    if after is not None:
+                        dirty |= after[1]
+            if not dirty.isEmpty():
+                self.update(dirty)
 
-    def paintEvent(self, _):
-        snap = self.snapshot
-        ev, offer = snap.get("evaluation"), snap.get("offer")
-        if not ev or not offer:
-            win.set_drawn(type(self).__name__, [])
-            return
+    def _badge_layout(self, snap):
+        ev, offer = snap["evaluation"], snap["offer"]
         show_win = snap.get("settings", {}).get("show_winrate", True)
         # 选了放下方就一直放下方：以前先截图量描述写到哪、放不下整组回标题上方，卡片淡入时半透明，
         # 后面的血条和名字透出来被当成描述，刷新后常误判跳回上方，玩家以为设置没生效
         below = snap.get("settings", {}).get("badge_position") == "bottom"
-        p = QPainter(self)
-        p.setRenderHint(QPainter.Antialiasing)
         # 下面都按「1080P 像素」算：标签大小跟着卡片走
         unit = _unit(self.target_h)
-        p.scale(unit / self._scale(), unit / self._scale())
         ox, oy = self.origin.x(), self.origin.y()
         f_big = QFont("Microsoft YaHei UI", 12, QFont.Bold)
         f_small = QFont("Microsoft YaHei UI", 9)
@@ -194,6 +273,8 @@ class BadgeLayer(_Layer):
             y0 = (box[1] - oy) / unit
             cx = (x0 + x1) / 2
             label, color = VERDICT.get(r["verdict"], VERDICT["unknown"])
+            if r["verdict"] == "best" and r.get("sample_warning"):
+                label = "相对较好 · 仅供参考"
             if r.get("basis") == "excluded":  # 尊我为王这类：写明原因，免得以为是助手没数据
                 label = NODATA_NOTE
             if r.get("thin") == "too_few":
@@ -214,7 +295,7 @@ class BadgeLayer(_Layer):
                 meta.append("按官方层级")
             if r.get("basis") == "pbe" and r.get("pbe_games"):  # 新海克斯先用测试服数据：直接给局数和胜率，看得出高低
                 meta.append(f"测试服 {r['pbe_games']} 局 胜率{_pct(r['pbe_win'])}")
-            if r.get("thin") == "few":
+            if r.get("thin") == "few" or r.get("sample_warning") and r.get("thin") != "too_few":
                 meta.insert(0, "样本偏少")
             if meta:
                 lines.append(" · ".join(meta))
@@ -224,7 +305,7 @@ class BadgeLayer(_Layer):
             h = 30 + 18 * len(lines)
             yc = ((box[1] + box[3]) / 2 - oy) / unit
             items.append((r, label, color, lines, cx, w, h, y0, yc))
-        drawn = []
+        result = []
         for r, label, color, lines, cx, w, h, y0, yc in items:
             if below:  # 描述文字下面、卡片底边上面那块空白
                 rect = QRect(int(cx - w / 2), int(yc + BOTTOM_EDGE - h), int(w), int(h))
@@ -234,6 +315,27 @@ class BadgeLayer(_Layer):
                 title_pad = (boxes[r["index"]][3] - boxes[r["index"]][1]) / unit * 2 / 9
                 shift = min(12.0, max(0.0, title_pad)) if offer.get("padded") else 0.0
                 rect = QRect(int(cx - w / 2), int(y0 - 4 + shift - h), int(w), int(h))
+            hint = r.get("item_hint")
+            hr = self._item_hint_rect(hint, cx, y0, yc, not below, fm_small, show_win) if hint else None
+            result.append((r, label, color, lines, rect, hr, cx, y0, yc))
+        return result
+
+    def paintEvent(self, _):
+        snap = self.snapshot
+        if not snap.get("evaluation") or not snap.get("offer"):
+            win.set_drawn(type(self).__name__, [])
+            return
+        show_win = snap.get("settings", {}).get("show_winrate", True)
+        below = snap.get("settings", {}).get("badge_position") == "bottom"
+        unit = _unit(self.target_h)
+        p = QPainter(self)
+        p.setRenderHint(QPainter.Antialiasing)
+        p.scale(unit / self._scale(), unit / self._scale())
+        f_big = QFont("Microsoft YaHei UI", 12, QFont.Bold)
+        f_small = QFont("Microsoft YaHei UI", 9)
+        fm_small = QFontMetrics(f_small, self)
+        drawn = []
+        for r, label, color, lines, rect, hr, cx, y0, yc in self._badge_layout(snap):
             drawn.append(rect)
             p.setPen(Qt.NoPen)
             p.setBrush(QColor(10, 12, 16, 215))
@@ -255,9 +357,8 @@ class BadgeLayer(_Layer):
         p.end()
         self._publish(drawn, unit)
 
-    def _paint_item_hint(self, p, hint, cx, y0, yc, below, fm, show_win):
+    def _item_hint_rect(self, hint, cx, y0, yc, below, fm, show_win):
         rows = hint["items"][:3]
-        source = {"stats": "统计参考", "community": "社区推荐", "manual": "人工推荐"}[hint["source"]]
         texts = []
         for row in rows:
             text = row["name"]
@@ -267,6 +368,19 @@ class BadgeLayer(_Layer):
         width = min(340, max(240, max((fm.horizontalAdvance(t) + 46 for t in texts), default=240)))
         height = 42 + 28 * len(rows)
         rect = QRect(int(cx - width / 2), int(yc + BOTTOM_EDGE - height if below else y0 - 4 - height), width, height)
+        return rect
+
+    def _paint_item_hint(self, p, hint, cx, y0, yc, below, fm, show_win):
+        rows = hint["items"][:3]
+        source = {"stats": "统计参考", "community": "社区推荐", "manual": "人工推荐"}[hint["source"]]
+        texts = []
+        for row in rows:
+            text = row["name"]
+            if show_win and row.get("win") is not None:
+                text += f"  {_pct(row['win'])}（{row['games']}局）"
+            texts.append(text)
+        rect = self._item_hint_rect(hint, cx, y0, yc, below, fm, show_win)
+        width, height = rect.width(), rect.height()
         p.setPen(Qt.NoPen)
         p.setBrush(QColor(10, 12, 16, 230))
         p.drawRoundedRect(rect, 6, 6)
@@ -832,6 +946,7 @@ class ControlPanel(QWidget):
 class Overlay:
     def __init__(self, engine):
         self.engine = engine
+        win.watch_foreground()
         self.badges = BadgeLayer()
         self.badges.icons = engine.icons
         self.champ = ChampSelectLayer()
@@ -862,7 +977,7 @@ class Overlay:
                 notify("游戏可能是全屏模式，无法识别。请在游戏内设置-窗口模式中选择无边框/窗口。")
         game = win.find_game_window()
         grect = win.client_rect(game) if game else None
-        self.badges.update_from(snap, grect, game)
+        self.badges.update_from(snap, grect if grect and win.is_foreground(game) else None, game)
         client = None if grect else win.find_client_window()
         crect = win.client_rect(client) if client else None
         # 标注层置顶：客户端不在前台（切到别的窗口）时隐藏，免得盖在别的程序上
