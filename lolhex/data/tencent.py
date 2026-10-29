@@ -15,6 +15,7 @@ import json
 import re
 
 from . import http
+from .. import cloud
 
 GTIMG = "https://game.gtimg.cn/images/lol/act/img"
 MLOL = "https://mlol.qt.qq.com/go"
@@ -22,6 +23,16 @@ ODP = MLOL + "/battle_info/odp_proxy"
 REFERER = "https://101.qq.com/"
 
 RARITY = {"kSilver": "silver", "kGold": "gold", "kPrismatic": "prismatic"}
+# 腾讯标错的稀有度，按拳头 CommunityDragon（cherry-augments.json）和游戏里的卡框改。
+# 2078 连锁反应：腾讯标棱彩，游戏里是金色，卡框颜色核对一直拒绝它（1.1.2 日志 58/216 份，Gitea #34）
+RARITY_FIX = {"2078": "gold"}
+
+
+def rarity_fixes() -> dict[str, str]:
+    """安装包更正与已校验云控合并，同 ID 的云控值优先；撤掉云控自动恢复内置。"""
+    return {**RARITY_FIX, **cloud.get()["augments"]["rarity_fix"]}
+
+
 RARITY_CN = {"silver": "白银", "gold": "黄金", "prismatic": "棱彩"}
 SKILL_KEYS = {"1": "Q", "2": "W", "3": "E", "4": "R"}
 
@@ -127,7 +138,7 @@ def parse_kiwi_augments(raw: list) -> dict[str, dict]:
             "id": aid,
             "name": a.get("name_cn", "").strip(),
             "en": a.get("name_en", ""),
-            "rarity": RARITY.get(a.get("level", ""), "unknown"),
+            "rarity": RARITY_FIX.get(aid) or RARITY.get(a.get("level", ""), "unknown"),
             "desc": _TAG.sub("", a.get("tooltip") or a.get("desc") or "").strip(),
             "icon": a.get("small_Icon") or a.get("large_Icon") or "",
             "modes": modes,
@@ -238,7 +249,7 @@ def parse_hero_hex(raw: dict) -> dict:
                 a["overall_rank"] = _i(f[0])
                 a["overall_tier"] = f[5].strip() or None
             else:
-                a["rarity"] = RARITY.get(key, key)
+                a["rarity"] = RARITY_FIX.get(f[2]) or RARITY.get(key, key)
                 a["rank"] = _i(f[0])
                 a["tier"] = f[5].strip() or None
     out["augments"] = sorted(by_id.values(), key=lambda a: (a["rarity"] or "", a["rank"] or 999))

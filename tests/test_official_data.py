@@ -79,6 +79,11 @@ def test_constructor_uses_complete_bundled_without_network(setup):
     assert client.snapshot.heroes["17"]["builds"] == {}
 
 
+def test_manifest_accepts_test_client_version(setup):
+    manifest, _ = package(revision=2)
+    assert check_manifest(manifest, "1.1.3-test.2")["revision"] == 2
+
+
 def test_download_validate_activate_and_restart(setup):
     create, server, _, _ = setup
     client = create()
@@ -89,6 +94,24 @@ def test_download_validate_activate_and_restart(setup):
     restarted = create()
     assert restarted.snapshot.revision == 1
     assert len(server.calls) == 2
+
+
+@pytest.mark.parametrize("deferred", [False, True])
+def test_activation_logs_version_and_origin_once(setup, caplog, deferred):
+    create, _, _, config = setup
+    client = create()
+    config["hold"] = deferred
+    with caplog.at_level("INFO", logger="lolhex.data.official"):
+        assert client.sync() is (not deferred)
+        if deferred:
+            assert not caplog.records
+            config["hold"] = False
+            assert client.activate_pending()
+        assert not client.activate_pending()
+        assert not client.sync(force=True)
+    records = [r for r in caplog.records if "官方资料已切换" in r.getMessage()]
+    assert len(records) == 1 and records[0].levelname == "INFO"
+    assert "版本=16.21 第1版 来源=downloaded" in records[0].getMessage()
 
 
 def test_same_revision_only_checks_manifest_and_obeys_interval(setup):
@@ -219,6 +242,17 @@ def test_invalid_download_keeps_previous_snapshot(setup, damage):
     assert client.snapshot is before
     assert client.last_error
     assert create().snapshot.revision == 1
+
+
+def test_failed_check_uses_memory_backoff_without_persisting_check_time(setup):
+    create, server, now, config = setup
+    client = create()
+    server.get = lambda url, **kwargs: (_ for _ in ()).throw(OSError("offline"))
+    assert not client.sync(force=True)
+    assert 0 < client.seconds_until_check() <= 600
+    assert not (client.root / "check-state.json").exists()
+    now[0] += 601
+    assert not client.sync(force=True)
 
 
 def test_incompatible_client_is_rejected_before_package_download(setup):

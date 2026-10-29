@@ -42,7 +42,7 @@ def test_only_changed_column_is_confirmed_by_new_ocr(monkeypatch):
 
 def test_short_blank_column_does_not_change_recommendations(monkeypatch):
     det,ocr,clock,rect,strip=setup_detector(monkeypatch)
-    det._cells[1]["at"]-=det.RECHECK_SECONDS+1
+    det._cells[1]["at"]-=det.recheck_seconds+1
     ocr.values=["", "乙乙"]
     assert det.check_strip(strip,rect).slots==["0","1","2"]
     clock[0]+=.3
@@ -51,7 +51,7 @@ def test_short_blank_column_does_not_change_recommendations(monkeypatch):
 
 def test_static_active_cache_rechecks_but_empty_cache_does_not(monkeypatch):
     det,ocr,clock,rect,strip=setup_detector(monkeypatch)
-    clock[0]+=det.RECHECK_SECONDS+.1
+    clock[0]+=det.recheck_seconds+.1
     ocr.values=["甲甲","乙乙","丙丙"]
     for _ in range(3):
         det.check_strip(strip,rect)
@@ -76,7 +76,7 @@ def test_fuzzy_ties_are_unknown_but_full_names_keep_identity():
 
 def test_persistent_unknown_column_does_not_run_ocr_every_tick(monkeypatch):
     det,ocr,clock,rect,strip=setup_detector(monkeypatch)
-    det._cells[1]["at"]-=det.RECHECK_SECONDS+1
+    det._cells[1]["at"]-=det.recheck_seconds+1
     ocr.values=["", ""]
     det.check_strip(strip,rect)
     clock[0]+=.3

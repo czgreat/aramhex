@@ -39,6 +39,11 @@ _VERSION = re.compile(r'^__version__\s*=\s*"([0-9][0-9A-Za-z.\-]*)"', re.M)
 PROBE_HOSTS = ("fastly.jsdelivr.net", "gcore.jsdelivr.net")
 SITE_LATEST = f"{MIRROR}/latest.json"
 DOWNLOAD_PAGE = f"{WEBSITE}/#download"
+
+
+def download_page() -> str:
+    """官网下载页（云控换了官网地址就用新的）。"""
+    return f"{cloud.site()}/#download"
 SLOW_BPS = 150 * 1024    # 整包下载：前 SLOW_AFTER_S 秒平均低于这个速度就放弃，改让用户去网盘
 SLOW_AFTER_S = 12
 
@@ -73,7 +78,8 @@ def check_site(current: str, timeout: float = 6, url: str = SITE_LATEST) -> dict
 def _next_versions(v: str) -> list[str]:
     k = list(version_key(v)) + [0, 0, 0]
     major, minor, patch_ = k[:3]
-    return [f"{major}.{minor}.{patch_ + 1}", f"{major}.{minor + 1}.0", f"{major + 1}.0.0"]
+    base = [f"{major}.{minor}.{patch_}"] if is_test(v) else []  # 测试版 1.1.3-test.2 先试正式版 1.1.3
+    return base + [f"{major}.{minor}.{patch_ + 1}", f"{major}.{minor + 1}.0", f"{major + 1}.0.0"]
 
 
 def probe_newer(current: str, timeout: float = 8, hosts=PROBE_HOSTS, steps: int = 6) -> tuple[str | None, bool]:
@@ -145,8 +151,26 @@ def check_mirror(current: str, timeout: float = 8, mirrors=VERSION_MIRRORS, prob
             "notes": "", "page": RELEASES_PAGE, "mirror": True}
 
 
+_PRE = re.compile(r"^v?(\d+(?:\.\d+){0,3})(?:-([A-Za-z]+)\.?(\d*))?$")
+
+
 def version_key(v: str) -> tuple:
-    return tuple(int(x) for x in re.findall(r"\d+", str(v))[:4])
+    """「1.1.3-test.2」这种测试版排在 1.1.2 之后、正式版 1.1.3 之前：正式版一发，测试版就会提示更新（1.1.3）。
+    以前只取数字，1.1.3-test.2 会被当成 1.1.3.2，比正式版还新。"""
+    s = str(v).strip()
+    m = _PRE.match(s)
+    if not m:
+        return tuple(int(x) for x in re.findall(r"\d+", s)[:4])
+    nums = [int(x) for x in m.group(1).split(".")]
+    nums += [0] * (4 - len(nums))
+    pre = (0, int(m.group(3) or 0)) if m.group(2) else (1, 0)
+    return (*nums, *pre)
+
+
+def is_test(v: str) -> bool:
+    """带测试标记的版本号（1.1.3-test.2）。"""
+    m = _PRE.match(str(v).strip())
+    return bool(m and m.group(2))
 
 
 def is_newer(latest: str, current: str) -> bool:
@@ -169,12 +193,13 @@ def _sha_from_sums(assets: list[dict], name: str, timeout: float) -> str | None:
 def check(current: str, timeout: float = 8, strict: bool = False, api: str = API,
           mirrors=VERSION_MIRRORS, probe_hosts=PROBE_HOSTS, site: str | None = SITE_LATEST) -> dict | None:
     """有新版本返回它的信息，没有或查不到返回 None。先问官网镜像，不通再问 GitHub 和 jsDelivr。
-    strict=True（用户手动点"检查更新"）时查不到就抛异常，好告诉用户是没新版本还是没连上。"""
-    if site:
+    strict=True（用户手动点"检查更新"）时查不到就抛异常，好告诉用户是没新版本还是没连上。
+    site 用默认值时按云控的官网地址顺序问（换了新官网先问新的，内置 aramhex.com 最后）。"""
+    for url in ([f"{s}/u/latest.json" for s in cloud.sites()] if site == SITE_LATEST else [site] if site else []):
         try:
-            return check_site(current, min(timeout, 6), site)
+            return check_site(current, min(timeout, 6), url)
         except (requests.RequestException, ValueError, KeyError, TypeError) as e:
-            log.info("官网查更新失败，改查 GitHub：%s", e)
+            log.info("官网查更新失败（%s），换下一个：%s", url, e)
     try:
         r = requests.get(api, headers=cloud.headers(api, Accept="application/vnd.github+json"), timeout=timeout)
         if r.status_code == 404:

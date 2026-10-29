@@ -78,6 +78,13 @@ class NameMatcher:
                 break
         return self._pick(pos, text), float(score)
 
+    def exact(self, text: str) -> str | None:
+        """规范化后整个名字（含别名）一字不差时返回 ID，否则 None。match 的 100 分也可能来自
+        partial_ratio（「棱彩阶恶趣味」对「恶趣味」），不能当作完全对上。"""
+        q = normalize(text)
+        pos = next((i for i, k in enumerate(self._keys) if k == q), None) if q else None
+        return None if pos is None else self._pick(pos, text)
+
     def _pick(self, pos: int, text: str) -> str:
         """去掉标点后同名的几个海克斯（4.0「罪恶快感！」和老的「罪恶快感」）：按有没有感叹号分。"""
         same = [i for i, k in enumerate(self._keys) if k == self._keys[pos] and self._ids[i] != self._ids[pos]]

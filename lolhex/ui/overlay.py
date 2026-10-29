@@ -2,7 +2,7 @@
 
 - 小按钮：常驻游戏窗口右上角，点一下展开/收起详情（英雄、推荐出装、加点、识别状态）。
   点完按钮、候选或链接后把焦点还给游戏，免得空格等按键落在浮窗上；展开后鼠标离开
-  AUTO_HIDE_SECONDS 秒自动收起（正在搜索框里打字时不收）。
+  AUTO_HIDE_SECONDS 秒自动收起（正在搜索框里打字时不收；进游戏没认出英雄自动展开的，选好英雄前不收）。
 - 卡片标签：识别到三选一时，在每张卡的标题下方显示「首选 / 可选 / 可考虑刷新」与依据。
   标签层对鼠标完全透明，不挡游戏点击；所有悬浮窗都设置为不被截图，避免识别到自己。
 只有无边框/窗口化模式下悬浮层才能盖在游戏上面。
@@ -297,6 +297,8 @@ class BadgeLayer(_Layer):
                 meta.append(f"测试服 {r['pbe_games']} 局 胜率{_pct(r['pbe_win'])}")
             if r.get("thin") == "few" or r.get("sample_warning") and r.get("thin") != "too_few":
                 meta.insert(0, "样本偏少")
+            if not ev.get("hero_id"):  # 只在浮窗里写的话进游戏 5 秒就收起，玩家常常不知道是按全英雄算的
+                meta.insert(0, "未识别英雄 · 按全英雄数据")
             if meta:
                 lines.append(" · ".join(meta))
             # 标题框只是标题文字那么宽（还没校准时）：字长的（尊我为王那句）按字撑开，不让底框比字窄
@@ -601,6 +603,7 @@ class ControlPanel(QWidget):
         self._auto_opened = False
         self._auto_opened_for = None
         self._missing_hero_notified = False
+        self._hold_for_hero = False  # 进游戏没认出英雄自动展开的：选好英雄或玩家手动收起前不自动收
         self._names = {}
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
@@ -727,7 +730,7 @@ class ControlPanel(QWidget):
 
     def toggle(self):
         self.expanded = not self.expanded
-        self._away_since, self._hovered, self._auto_opened = None, False, False
+        self._away_since, self._hovered, self._auto_opened, self._hold_for_hero = None, False, False, False
         log.debug("浮窗%s", "展开" if self.expanded else "收起")
         self._place_body()
 
@@ -759,7 +762,9 @@ class ControlPanel(QWidget):
             return
         # 选英雄阶段自动展开的：一直开着，换英雄时内容跟着换；只有手动点图标收起，进游戏后再按时收起
         # 选英雄阶段秒退回大厅（还是 client 但不在选英雄界面）：照常计时收起，不一直盖在客户端右上角
-        if self._typing() or (self._auto_opened and phase == "client" and in_champ_select):
+        # 进游戏没认出英雄自动展开的：一直开着提示手动选，直到选好英雄（update_from 里清掉）或玩家点图标收起。
+        # 以前 5 秒就收起，那时多半还在读条，玩家看不到；1.1.2 日志里约 3% 的局整局按全英雄数据推荐
+        if self._typing() or (self._auto_opened and phase == "client" and in_champ_select) or self._hold_for_hero:
             self._away_since = None
             return
         now = time.monotonic()
@@ -879,7 +884,10 @@ class ControlPanel(QWidget):
             self._missing_hero_notified = True
             if not self.expanded:
                 self.toggle()
+                self._hold_for_hero = True
             log.info("未识别到英雄，请手动选择")
+        if hid or snap.get("phase") != "ingame":
+            self._hold_for_hero = False  # 选好了（手动或补认出）、对局结束：照常按时收起
         if not hid:
             self._auto_opened_for = None  # 英雄清掉了（新的一把）：下一把同一个英雄也再自动展开
         if hid and snap.get("phase") == "client" and self._auto_opened_for != hid:

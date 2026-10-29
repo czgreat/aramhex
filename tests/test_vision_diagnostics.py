@@ -107,10 +107,11 @@ def test_existing_full_scan_cadence_is_preserved(monkeypatch):
     engine = Engine.__new__(Engine)
     engine._stop, engine._rescan, engine._detector = Stop(), threading.Event(), detector
     engine.state = {"phase": "ingame", "vision": {}}
-    engine.settings = SimpleNamespace(scan_interval_ms=300, idle_scan_ms=300, speed_factor=1, bootstrap_interval_s=3)
+    engine.settings = SimpleNamespace(scan_interval_ms=300, idle_scan_ms=300, speed_factor=1, bootstrap_interval_s=3, fallback_scan_s=30)
     engine._observed_scan = scan
+    engine._sync_augment_tables = lambda det: None  # 本测试只控制扫描节奏
     engine._vision_loop()
-    assert len(full_starts) == 3  # Original ~30 s start-to-start, not 15 s + 60 s backoff.
+    assert len(full_starts) == 3  # 按 fallback_scan_s（这里设 30）start-to-start，不是 15 s + 60 s backoff.
     assert all(30 < b-a < 31 for a, b in zip(full_starts, full_starts[1:]))
     assert not any(full_starts[0] < t < full_starts[0]+15 for t in strip_starts)
 

@@ -161,7 +161,7 @@ def maybe_upload(settings, cfg: dict, timeout: float = 30) -> list[str]:
     tries = settings.extra.get("logs_tries") if isinstance(settings.extra.get("logs_tries"), dict) else {}
     todo = [t for t in _tickets(cfg, settings.install_id) if t not in sent and int(tries.get(t) or 0) < MAX_TRIES]
     url = str(((cfg or {}).get("logs") or {}).get("url") or "")
-    if not todo or not url.startswith(cloud.WEBSITE + "/"):
+    if not todo or not cloud.own(url):
         return []
     if not _lock.acquire(blocking=False):
         return []

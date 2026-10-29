@@ -6,3 +6,4 @@ dist/
 .pytest_cache/
 *.spec.bak
 lolhex/data/bundled.new/
+lolhex/_build.py

@@ -1,32 +1,96 @@
 {
- "bands": false,
+ "bands": true,
  "files": {
   "augments.json": {
    "sha256": "69b7bf4f2f3e87598ad664d31d582009df357dde1432678bfd7aa3ecbbafa48b",
    "size": 14391
   },
+  "bands/casual/augments.json": {
+   "sha256": "69b7bf4f2f3e87598ad664d31d582009df357dde1432678bfd7aa3ecbbafa48b",
+   "size": 14391
+  },
+  "bands/casual/hero_augments.json": {
+   "sha256": "f23d4a679729a6c4158e80098281a09f99077e433d7f99c313c22c8fd00cc991",
+   "size": 2323299
+  },
+  "bands/casual/hero_spells.json": {
+   "sha256": "3163b87868c6670843b3abd7365e0523564f5b14ae91e59cbdde5f32d9cb8815",
+   "size": 223945
+  },
+  "bands/casual/heroes.json": {
+   "sha256": "ec3e5a27936edfa91f30c8cc65fb5f2ba30c1d7a6b086580f9d69e0616875c6f",
+   "size": 28079
+  },
+  "bands/high/augments.json": {
+   "sha256": "69b7bf4f2f3e87598ad664d31d582009df357dde1432678bfd7aa3ecbbafa48b",
+   "size": 14391
+  },
+  "bands/high/hero_augments.json": {
+   "sha256": "e258276812bee7350d37fb72c574b93387cafba6416bf7181cb8cc30e3ed438c",
+   "size": 2271016
+  },
+  "bands/high/hero_spells.json": {
+   "sha256": "48b10b31c01bafda7448219607d190756a7e08356c732287421d374f5035d4b7",
+   "size": 131241
+  },
+  "bands/high/heroes.json": {
+   "sha256": "7984546b856fc31df2aa1362e3dda0a98086cb35bc16640c33ad1836efe7efb1",
+   "size": 27821
+  },
+  "bands/mid/augments.json": {
+   "sha256": "69b7bf4f2f3e87598ad664d31d582009df357dde1432678bfd7aa3ecbbafa48b",
+   "size": 14391
+  },
+  "bands/mid/hero_augments.json": {
+   "sha256": "840c74d9092707cf745c8c89e1d5a2175c2720b3377a0268217b0850c81f0810",
+   "size": 2314786
+  },
+  "bands/mid/hero_spells.json": {
+   "sha256": "fc310efc96d8d68a706d4606678411d5d5f9d6f8e71855d37e081be83f791c1a",
+   "size": 189486
+  },
+  "bands/mid/heroes.json": {
+   "sha256": "5d98ab30244af63e3226475624165b6a8b3a8833d7fe5a76ab222a1920f305dd",
+   "size": 28044
+  },
+  "bands/top/augments.json": {
+   "sha256": "69b7bf4f2f3e87598ad664d31d582009df357dde1432678bfd7aa3ecbbafa48b",
+   "size": 14391
+  },
+  "bands/top/hero_augments.json": {
+   "sha256": "e258276812bee7350d37fb72c574b93387cafba6416bf7181cb8cc30e3ed438c",
+   "size": 2271016
+  },
+  "bands/top/hero_spells.json": {
+   "sha256": "48b10b31c01bafda7448219607d190756a7e08356c732287421d374f5035d4b7",
+   "size": 131241
+  },
+  "bands/top/heroes.json": {
+   "sha256": "7984546b856fc31df2aa1362e3dda0a98086cb35bc16640c33ad1836efe7efb1",
+   "size": 27821
+  },
   "hero_augments.json": {
-   "sha256": "993f242b5b6899354c3cc71e35bf08930940645b885a72588b2fc0d8c6ce0f3f",
-   "size": 2303167
+   "sha256": "27a1bf02c5e44f538292ec1fa7df01996f0f086cfa2777d2620aac9222cbcb24",
+   "size": 2340250
   },
   "hero_spells.json": {
-   "sha256": "03f7431d61c038dccedb8090fa7211fa0911721816f3de069e41bf29d897dc62",
-   "size": 205807
+   "sha256": "0559c392a020cf349ba914ff005a23e30685a2b23555ad16a3a2e14031773959",
+   "size": 228608
   },
   "heroes.json": {
-   "sha256": "b2ceeb922925c0dc837657c414d6a081f11f315fa165cf753bed187df134c981",
-   "size": 27976
+   "sha256": "6b86817788db334f4608f1a7e265472b467fb6b2d09f232f7728a17f81a776b8",
+   "size": 28194
   },
   "meta.json": {
-   "sha256": "f381215402b2d8e02120f436d80ec5274197d6b89b07a2a98792a6699ac88569",
-   "size": 6777
+   "sha256": "c4af3ba0d69fc19963c16b4c40a5d95ec44c6bd7debcebfcc7549e6d079fe88a",
+   "size": 7099
   }
  },
- "matches": 5376732,
+ "matches": 22552455,
  "matches_detail": {
-  "collected": 5534493,
-  "excluded": 157761,
-  "valid": 5376732,
+  "collected": 23222386,
+  "excluded": 669931,
+  "valid": 22552455,
   "validity_rule": "对局时长不少于 4 分钟（240 秒）、10 名玩家齐全且正好 5 胜 5 负、正常结束（GameComplete）；重开、提前解散、数据不全的对局不计"
  },
  "mode": "normal",
@@ -34,12 +98,12 @@
  "patch": "16.21",
  "path": "patches/16.21/normal",
  "schema_version": 1,
- "seq": 9,
- "snapshot_at": "2026-10-26T11:41:58+08:00",
+ "seq": 10,
+ "snapshot_at": "2026-10-28T12:28:35.908470+08:00",
  "window": {
-  "end_exclusive": "2026-10-26T11:07:00+08:00",
+  "end_exclusive": "2026-10-28T11:00:00+08:00",
   "periods": null,
-  "start": "2026-10-25T00:00:00+08:00",
+  "start": "2026-10-24T00:00:00+08:00",
   "time_field": "对局创建时间（北京时间）"
  }
 }

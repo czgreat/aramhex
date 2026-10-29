@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QFormLayout, 
                                QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMenu, QMessageBox, QProgressBar, QScrollArea,
                                QPushButton, QSizePolicy, QSystemTrayIcon, QTabWidget, QVBoxLayout, QWidget)
 
-from .. import DATA_HOMEPAGE, HELP_PAGE, HOMEPAGE, WEBSITE, __version__, cloud, cloudsettings, i18n, langpack, logupload, patch, rank, recommend, update
+from .. import DATA_HOMEPAGE, HOMEPAGE, __version__, cloud, cloudsettings, i18n, langpack, logupload, patch, rank, recommend, update
 from ..config import SPEEDS, is_portable
 from ..vision import window as win
 from ..data.public import BANDS, norm_band
@@ -196,7 +196,7 @@ BAND_CHOICES = [("", "全体")] + [(c, BANDS[c]) for c in BANDS]
 
 
 def about_html() -> str:
-    links = [f"<a href='{WEBSITE}'>官网</a>", f"<a href='{HOMEPAGE}'>GitHub</a>", f"<a href='{DATA_HOMEPAGE}'>统计数据</a>"]
+    links = [f"<a href='{cloud.site()}'>官网</a>", f"<a href='{HOMEPAGE}'>GitHub</a>", f"<a href='{DATA_HOMEPAGE}'>统计数据</a>"]
     for c in cloud.community():  # 云控：QQ 群、B 站、赞助……
         label = escape(c["name"] + (" " + c["text"] if c.get("text") else ""))
         links.append(f"<a href='{escape(c['url'])}'>{label}</a>" if c.get("url") else label)
@@ -236,7 +236,7 @@ class MainWindow(QMainWindow):
         self.btn_comm.hide()
         head.addWidget(self.btn_comm)
         self.btn_dash = QPushButton("帮助")
-        self.btn_dash.clicked.connect(lambda: webbrowser.open(HELP_PAGE))
+        self.btn_dash.clicked.connect(lambda: webbrowser.open(f"{cloud.site()}/#faq"))
         head.addWidget(self.btn_dash)
         self._show_primary()
         lay.addLayout(head)
@@ -882,7 +882,7 @@ class MainWindow(QMainWindow):
         self._worker.start()
 
     def _sync_data_now(self) -> str:
-        """「检查更新」按钮：马上查统计数据（不管自动更新开关），返回一句结果。"""
+        """「检查更新」按钮：马上查统计数据（不管自动更新开关）和官方资料，返回结果。"""
         st = self.engine.store
         changed = st.sync_data(force=True, manual=True)
         if changed:  # 结果在「检查更新」的对话框里说了，右下角不再提示一遍
@@ -890,10 +890,21 @@ class MainWindow(QMainWindow):
         ds = st.dataset
         tail = f"（{ds.patch} 版本，截至 {str(ds.snapshot_at)[5:10]}）" if ds else ""
         if changed:
-            return f"统计数据已更新{tail}。"
-        if st.sync_error:
-            return "统计数据这次没连上，稍后会自动再试。"
-        return f"统计数据已是最新{tail}。"
+            msg = f"统计数据已更新{tail}。"
+        elif st.sync_error:
+            msg = "统计数据这次没连上，稍后会自动再试。"
+        else:
+            msg = f"统计数据已是最新{tail}。"
+        # 官方资料（英雄、海克斯、装备、召唤师技能）平时按云控间隔查（可能 30 天一次），按钮上也马上查一次。
+        # 只在换上新一版时多说一句；没变化、连不上都不提，免得多一行看不懂的话
+        if hasattr(st, "sync_official"):
+            try:
+                if st.sync_official(force=True):
+                    rev = st.official.status().get("official_revision")
+                    msg += f"\n官方资料已更新（第 {rev} 版）。"
+            except Exception:
+                logging.getLogger(__name__).exception("检查官方资料出错")
+        return msg
 
     def _data_line(self) -> str:
         msg = getattr(self, "_data_msg", "")
@@ -906,7 +917,7 @@ class MainWindow(QMainWindow):
         box.addButton("关闭", QMessageBox.RejectRole)
         box.exec()
         if box.clickedButton() is b_site:
-            webbrowser.open(update.DOWNLOAD_PAGE)
+            webbrowser.open(update.download_page())
 
     def _update_found(self, info: dict, manual: bool = False):
         known = (self._update_info or {}).get("version")
@@ -947,7 +958,7 @@ class MainWindow(QMainWindow):
             return
         # 源码运行、又没有安装包地址：只能打开下载页
         if patch.install_root() is None and (is_portable() or not self._update_info.get("url")):
-            webbrowser.open(WEBSITE)
+            webbrowser.open(cloud.site())
             return
         if self.engine.snapshot().get("phase") == "ingame":
             QMessageBox.information(self, "更新", "正在对局中，打完这局再更新。")
@@ -994,9 +1005,9 @@ class MainWindow(QMainWindow):
         box.setDefaultButton(b_pan)
         box.exec()
         if box.clickedButton() is b_pan:
-            webbrowser.open(pan or update.DOWNLOAD_PAGE)
+            webbrowser.open(pan or update.download_page())
         elif box.clickedButton() is b_site:
-            webbrowser.open(update.DOWNLOAD_PAGE)
+            webbrowser.open(update.download_page())
 
     def _install(self, path: str):
         show_progress(self.update_progress, "下载完成，正在启动安装程序…", 1, 1)

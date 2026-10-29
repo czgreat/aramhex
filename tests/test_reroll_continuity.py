@@ -61,7 +61,7 @@ def test_recovery_on_third_observation_preserves_two_read_rule(monkeypatch):
 
 def test_due_columns_do_not_all_reread_when_only_middle_changes(monkeypatch):
     det,ocr,clock,rect,strip=setup_detector(monkeypatch)
-    clock[0]+=det.RECHECK_SECONDS+.1
+    clock[0]+=det.recheck_seconds+.1
     change_columns(det,rect,strip,1)
     ocr.values=["丁丁","丁丁"]
     assert det.check_strip(strip,rect).slots==["0","1","2"] and ocr.calls==4
@@ -71,7 +71,7 @@ def test_due_columns_do_not_all_reread_when_only_middle_changes(monkeypatch):
 
 def test_periodic_reads_rotate_one_column_at_a_time(monkeypatch):
     det,ocr,clock,rect,strip=setup_detector(monkeypatch)
-    clock[0]+=det.RECHECK_SECONDS+.1
+    clock[0]+=det.recheck_seconds+.1
     for i,name in enumerate(["甲甲","乙乙","丙丙"]):
         ocr.values=[name]
         assert det.check_strip(strip,rect).slots==["0","1","2"]
@@ -101,7 +101,7 @@ def test_full_two_card_recovery_invalidates_old_empty_strip_cache(monkeypatch):
 def test_persistent_animation_does_not_starve_other_columns(monkeypatch):
     det,ocr,clock,rect,strip=setup_detector(monkeypatch)
     # Beyond the maintenance grace, a changed column cannot monopolize every read.
-    clock[0]+=2*det.RECHECK_SECONDS+.1
+    clock[0]+=2*det.recheck_seconds+.1
     change_columns(det,rect,strip,1)
     ocr.values=["甲甲","丁丁"]
     assert det.check_strip(strip,rect).slots==["0","1","2"]
@@ -135,6 +135,7 @@ def test_actual_engine_closes_only_after_new_negative_observations(monkeypatch,r
     engine.settings=SimpleNamespace(scan_interval_ms=300,idle_scan_ms=300,speed_factor=1,bootstrap_interval_s=3)
     engine._save_offer_shot=lambda _:None
     engine._on_offer=lambda offer:events.append(offer.slots if offer else None)
+    engine._sync_augment_tables = lambda det: None  # 本测试只控制三选一连续状态
     engine._vision_loop()
     assert (None in events) is not recover
     assert ocr.calls==(7 if recover else 9)

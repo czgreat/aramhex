@@ -44,6 +44,17 @@ def _version(value: str) -> tuple[int, ...]:
     return parts + (0,) * (4 - len(parts))
 
 
+def _client_version(value: str) -> tuple[int, ...]:
+    """客户端版本允许测试包后缀（例如 1.1.3-test.2），资料清单只比较正式版本号。"""
+    if not isinstance(value, str):
+        raise OfficialDataError("资料版本格式不对")
+    match = re.fullmatch(r"(\d+(?:\.\d+){1,3})(?:-test\.\d+)?", value)
+    if not match:
+        raise OfficialDataError("资料版本格式不对")
+    parts = tuple(int(p) for p in match.group(1).split("."))
+    return parts + (0,) * (4 - len(parts))
+
+
 def _date(value) -> str:
     if not isinstance(value, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
         raise OfficialDataError("资料日期格式不对")
@@ -86,7 +97,7 @@ def check_manifest(manifest: dict, client_version: str | None = None) -> dict:
     except (KeyError, ValueError, TypeError, AttributeError) as e:
         raise OfficialDataError("资料生成时间无效") from e
     minimum = _version(manifest.get("min_client"))
-    if client_version is not None and minimum > _version(client_version):
+    if client_version is not None and minimum > _client_version(client_version):
         raise OfficialDataError("官方资料需要较新的程序版本")
     package = manifest.get("package")
     if not isinstance(package, dict):
@@ -273,6 +284,7 @@ class ManagedOfficial:
         self._lock = threading.Lock()
         self._last_check: float | None = None
         self._last_sources: tuple[str, ...] | None = None
+        self._retry_at: float | None = None
         self._pending: tuple[str, OfficialSnapshot] | None = None
         self.activation_guard = nullcontext
         payload = check_payload({"static": _json(Path(static_path).read_bytes()),
@@ -358,9 +370,13 @@ class ManagedOfficial:
         minutes, sources = self._config()
         if not minutes or not sources:
             return None
-        if self._last_check is None or sources != self._last_sources:
+        if sources != self._last_sources:
             return 0.0
         now = self.clock()
+        if self._retry_at is not None:
+            return max(0.0, self._retry_at - now)
+        if self._last_check is None:
+            return 0.0
         if now < self._last_check:
             return 0.0  # 系统时钟回拨后重新查一次，不能无限等未来时间。
         return max(0.0, self._last_check + minutes * 60 - now)
@@ -404,6 +420,8 @@ class ManagedOfficial:
         _atomic_json(self.root / "active.json", {"folder": folder})
         self.snapshot = snapshot
         self._pending = None
+        log.info("官方资料已切换：版本=%s 第%d版 来源=%s", snapshot.manifest["patch"],
+                 snapshot.revision, snapshot.origin)
         pending = self.root / "pending.json"
         try:
             pending.unlink(missing_ok=True)
@@ -426,6 +444,15 @@ class ManagedOfficial:
         with self._lock:
             return self._activate()
 
+    def _record_check(self, checked_at: float, sources: tuple[str, ...]) -> None:
+        self._last_check, self._last_sources = checked_at, sources
+        self._retry_at = None
+        try:
+            _atomic_json(self.root / "check-state.json", {"last_check": checked_at,
+                                                          "sources": list(sources)})
+        except OSError:
+            log.info("官方资料检查时间暂未保存")
+
     def sync(self, force: bool = False) -> bool:
         """有新版才下载；返回 True 表示可安全切换的快照已激活。"""
         if not self._lock.acquire(blocking=False):
@@ -439,19 +466,16 @@ class ManagedOfficial:
             minutes, sources = self._config()
             if not minutes or not sources:
                 return changed
-            self._last_check, self._last_sources = self.clock(), sources
-            try:
-                _atomic_json(self.root / "check-state.json", {"last_check": self._last_check,
-                                                              "sources": list(sources)})
-            except OSError:
-                log.info("官方资料检查时间暂未保存")
+            checked_at = self.clock()
             for base in sources:
                 try:
                     manifest = check_manifest(_json(self._get(base + "/latest.json", MAX_MANIFEST)), __version__)
                     if not self._newer(manifest):
+                        self._record_check(checked_at, sources)
                         self.last_error = None
                         return changed
                     if self._pending and self._pending[1].manifest == manifest:
+                        self._record_check(checked_at, sources)
                         return changed or self._activate()
                     raw = self._get(base + "/" + manifest["package"]["path"], manifest["package"]["size"])
                     payload = _unpack(raw, manifest)
@@ -465,14 +489,20 @@ class ManagedOfficial:
                     _atomic_json(dest / "manifest.json", manifest)
                     _atomic_json(self.root / "pending.json", {"folder": folder})
                     self._pending = folder, self._snapshot(payload, manifest)
+                    self._record_check(checked_at, sources)
                     self.last_error = None
                     return self._activate() or changed
                 except (OSError, ValueError, TypeError, requests.RequestException) as e:
                     self.last_error = str(e)
                     log.info("官方资料更新失败，继续使用本地资料：%s", e)
+            # 网络或资料格式失败时不要把持久检查时间写成“成功”；但也不能每秒重试。
+            self._last_sources = sources
+            self._retry_at = checked_at + min(minutes, 10) * 60
             return changed
         except (OSError, ValueError, TypeError) as e:
             self.last_error = str(e)
+            self._last_sources = sources if 'sources' in locals() else self._last_sources
+            self._retry_at = self.clock() + min(minutes, 10) * 60 if 'minutes' in locals() else None
             return changed
         finally:
             self._lock.release()

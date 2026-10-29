@@ -133,12 +133,21 @@ class DataStore:
     def _stale(self, blob: dict) -> bool:
         return not blob or time.time() - blob.get("fetched_at", 0) > self.refresh_s
 
+    def sync_official(self, force: bool = False) -> bool:
+        """官方资料：按云控间隔查自有服务器，force=True 不等间隔（「检查更新」按钮）；换上新一版返回 True。
+        云控关了检查（official_minutes=0）或没有资料源时照样不联网；选英雄、对局中下载了也等结束再换。"""
+        if self.official is None:
+            return False
+        changed = self.official.sync(force=force)
+        if changed:
+            with self._lock:
+                self._heroes.clear()
+        self.last_error = self.official.status().get("official_error")
+        return changed
+
     def refresh(self, force: bool = False) -> None:
         if self.official is not None:
-            if self.official.sync(force=force):
-                with self._lock:
-                    self._heroes.clear()
-            self.last_error = self.official.status().get("official_error")
+            self.sync_official(force)
             return
         self.last_error = None
         if force or self._stale(self.static) or not all("roles" in h for h in self.heroes.values()):
@@ -192,7 +201,13 @@ class DataStore:
 
     @property
     def augments(self) -> dict[str, dict]:
-        return self.static.get("augments", {})
+        original, fixes = self.static.get("augments", {}), tencent.rarity_fixes()
+        cached = getattr(self, "_augment_fixes_cache", None)
+        if cached is None or cached[0] is not original or cached[1] != fixes:
+            corrected = {aid: {**row, "rarity": fixes[aid]} if aid in fixes else row
+                         for aid, row in original.items()}
+            self._augment_fixes_cache = original, fixes, corrected
+        return self._augment_fixes_cache[2]
 
     @property
     def heroes(self) -> dict[str, dict]:
@@ -268,6 +283,17 @@ class DataStore:
         return None
 
     def official_hero(self, hero_id: str, allow_network: bool = True) -> dict | None:
+        result = self._official_hero(hero_id, allow_network)
+        if result is None:
+            return None
+        fixes = tencent.rarity_fixes()
+        if not any(row.get("id") in fixes and row.get("rarity") != fixes[row["id"]]
+                   for row in result.get("augments", [])):
+            return result
+        return {**result, "augments": [({**row, "rarity": fixes[row["id"]]} if row.get("id") in fixes else row)
+                                        for row in result.get("augments", [])]}
+
+    def _official_hero(self, hero_id: str, allow_network: bool = True) -> dict | None:
         """单英雄官方数据：出装、加点、海克斯层级、原画。优先内存，再磁盘，过期则联网。"""
         hero_id = str(hero_id)
         if self.official is not None:

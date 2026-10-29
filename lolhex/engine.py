@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import copy
+import json
 from contextlib import nullcontext, contextmanager
 import logging
 import random
@@ -29,6 +30,21 @@ from .vision.matcher import NameMatcher, normalize
 log = logging.getLogger(__name__)
 
 
+_AUG_ALIASES: dict[str, list[str]] | None = None
+
+
+def augment_aliases() -> dict[str, list[str]]:
+    """{海克斯 ID: [OCR 常读错的写法]}，随安装包带（lolhex/data/augment_aliases.json）。"""
+    global _AUG_ALIASES
+    if _AUG_ALIASES is None:
+        try:
+            d = json.loads(Path(__file__).with_name("data").joinpath("augment_aliases.json").read_text(encoding="utf-8"))
+            _AUG_ALIASES = {str(k): [str(x) for x in v] for k, v in d["aliases"].items() if isinstance(v, list)}
+        except (OSError, ValueError, KeyError, AttributeError):
+            _AUG_ALIASES = {}
+    return {**_AUG_ALIASES, **cloud.get()["augments"]["aliases"]}
+
+
 def augment_matcher(store, settings) -> NameMatcher:
     """三选一认字用的名字表：中文用腾讯的名字，再加繁中（台服等）的名字；外服用那种语言的名字（ID 一样）。
     外服名字表里没有的（刚上线、名字表还没更新），退回中文名。"""
@@ -40,6 +56,11 @@ def augment_matcher(store, settings) -> NameMatcher:
     else:
         tw = i18n.traditional_augment_names()
         names = {aid: [n, tw[aid]] if tw.get(aid) and tw[aid] != n else n for aid, n in names.items()}
+    # OCR 常读错的写法（augment_aliases.json）：同一个 ID 多一个名字，和繁中名一样
+    for aid, extra in augment_aliases().items():
+        if aid in names:
+            n = names[aid]
+            names[aid] = (n if isinstance(n, list) else [n]) + extra
     return NameMatcher(names, settings.match_threshold, min_margin=6.0)
 
 
@@ -230,13 +251,16 @@ class Engine:
             hid = self.store.resolve_hero(hero_key)
             official = getattr(self.store, "official", None)
             snapshot = official.snapshot if official is not None else None
+            rarity_rules = cloud.get()["augments"]["rarity_fix"]
             if (self._panel_cache[0] == hid and self._panel_cache[1]
-                    and getattr(self, "_panel_snapshot", None) is snapshot):
+                    and getattr(self, "_panel_snapshot", None) is snapshot
+                    and getattr(self, "_panel_rarity_rules", None) == rarity_rules):
                 return self._panel_cache[1]
             p = hero_panel(self.store, hid, self.settings.smoothing_games,
                            allow_network=False) if hid else None
             self._panel_cache = (hid, p)
             self._panel_snapshot = snapshot
+            self._panel_rarity_rules = rarity_rules
         return p
 
     # ---------- 数据 ----------
@@ -248,8 +272,6 @@ class Engine:
             try:
                 self.store.refresh()
                 self._load_icons()
-                if self._detector:
-                    self._detector.set_matcher(self._augment_matcher())
                 self._panel_cache = (None, None)
                 self._reevaluate()
             except Exception:
@@ -285,6 +307,18 @@ class Engine:
 
     def _augment_matcher(self) -> NameMatcher:
         return augment_matcher(self.store, self.settings)
+
+    def _sync_augment_tables(self, det) -> None:
+        """云控与官方资料变化在识别线程下一轮生效，避免在一次 OCR 中途混用名字表。"""
+        augments = self.store.augments
+        revision = (augments, cloud.get()["augments"], self.settings.game_lang, self.settings.match_threshold)
+        previous = getattr(self, "_augment_tables_revision", None)
+        if previous is None or previous[0] is not augments or previous[1:] != revision[1:]:
+            det.set_matcher(self._augment_matcher())
+            det.rarities = {aid: row.get("rarity") for aid, row in augments.items()}
+            self._augment_tables_revision = revision
+            self._panel_cache = (None, None)
+            self._reevaluate()
 
     def _hero_matcher(self) -> NameMatcher:
         heroes = self.store.heroes
@@ -546,16 +580,23 @@ class Engine:
 
     # ---------- 海克斯识别 ----------
 
-    ACTIVE_HOLD_S = 5.0  # 三选一关掉后还快扫几秒：刷新、连着两次三选一时不用等慢扫
-
     def _strip_step(self, visible: bool, since_hit: float) -> float:
         """已校准时多久查一次标题条（秒）：没在选海克斯时按 idle_scan_ms（默认和快扫一样，云控可调大），
         三选一开着、关掉后几秒内按 scan_interval_ms 快扫。对局里画面一直在动，标题条几乎每次都要认字
         （10-24 日志一局约 2500 次、每次约 35 毫秒 CPU）。"""
         ms = self.settings.scan_interval_ms
-        if not visible and since_hit > self.ACTIVE_HOLD_S:
+        if not visible and since_hit > getattr(self.settings, "active_hold_s", Settings.active_hold_s):
             ms = max(ms, self.settings.idle_scan_ms)
         return ms / 1000 * self.settings.speed_factor
+
+    def _fallback_every(self, confirmed: bool, proven: bool = False) -> float:
+        """已校准时整块兜底扫描的间隔（秒）：还在用默认位置照常按 bootstrap 间隔扫；
+        本机校准过按 fallback_scan_s（默认 30）；这局标题条已认出过三选一按 fallback_proven_s（默认 3600）。"""
+        if not confirmed:
+            return self.settings.bootstrap_interval_s * self.settings.speed_factor
+        if proven:
+            return float(max(self.settings.fallback_scan_s, self.settings.fallback_proven_s))
+        return float(self.settings.fallback_scan_s)
 
     def _vision_loop(self) -> None:
         from .vision import capture
@@ -568,11 +609,13 @@ class Engine:
         except Exception:
             pass
         last_full = last_strip = 0.0
-        last_hit = float("-inf")  # 上次认出三选一的时间：之后 ACTIVE_HOLD_S 秒内照常快扫
+        last_hit = float("-inf")  # 上次认出三选一的时间：之后 active_hold_s 秒内照常快扫
         visible = False
         misses = 0  # 刷新动画会短暂缺卡，连续 3 次识别不到才算关闭
+        proven = None  # 这局标题条认出过三选一时的窗口尺寸：位置对了，兜底整块放慢
         while not self._stop.is_set():
             if self.state["phase"] != "ingame":
+                proven = None
                 if visible:
                     self._on_offer(None)
                     visible = False
@@ -592,7 +635,15 @@ class Engine:
                 self._detector = AugmentDetector(self._augment_matcher(), self.home / "calibration.json",
                     rarities={aid: a.get("rarity") for aid, a in self.store.augments.items()})
             det = self._detector
+            det.color_check = getattr(self.settings, "color_check", "log")
+            det.recheck_seconds = getattr(self.settings, "recheck_seconds", Settings.recheck_seconds)
+            det.pending_seconds = getattr(self.settings, "pending_seconds", Settings.pending_seconds)
+            det.low_match_reads = getattr(self.settings, "low_match_reads", Settings.low_match_reads)
+            det.group_confirm = getattr(self.settings, "group_confirm", Settings.group_confirm)
+            self._sync_augment_tables(det)
             det.ensure_calibration(rect.width, rect.height)
+            if proven is not None and proven != (rect.width, rect.height):
+                proven = None  # 换过窗口尺寸：换回来也要等标题条重新认出才放慢
             now = time.monotonic()
             forced = self._rescan.is_set()
             self._rescan.clear()
@@ -604,10 +655,11 @@ class Engine:
                         last_strip = now
                         offer = self._observed_scan(det, rect, full=False, reason="titles", hwnd=hwnd)
                         ran = True
-                        # 一直识别不到：整块扫描一次，防止卡片位置变了；
-                        # 还在用默认位置时照常按 bootstrap 间隔扫，本机校准过就 30 秒一次
-                        confirmed = det.confirmed_for(rect.width, rect.height)
-                        every = 30 if confirmed else self.settings.bootstrap_interval_s * self.settings.speed_factor
+                        if offer is not None and not self._scan_discarded:
+                            proven = (rect.width, rect.height)
+                        # 一直识别不到：整块扫描一次，防止卡片位置变了
+                        every = self._fallback_every(det.confirmed_for(rect.width, rect.height),
+                                                     proven is not None)
                         if offer is None and not self._scan_discarded and not visible and now - last_full > every:
                             last_full = now
                             offer = self._observed_scan(det, rect, full=True, reason="fallback", hwnd=hwnd)
@@ -621,7 +673,7 @@ class Engine:
             self.state["vision"].update(status="scanning", calibrated=det.confirmed_for(rect.width, rect.height))
             if ran and getattr(self, "_scan_discarded", False):
                 # 不把“旧画面被丢弃”累计成三次读空，也不再用旧客户区触发整块兜底。
-                visible, misses = False, 0
+                visible, misses, proven = False, 0, None
                 last_full = last_strip = 0.0
                 self._stop.wait(0.1)
                 continue
@@ -659,9 +711,13 @@ class Engine:
 
     def _discard_scan(self, det, context, reason: str) -> None:
         self._scan_discarded = True
-        # 在途全扫描可能已写入定位；只失效内存，保留磁盘原件供排查，不反复删文件。
+        # 在途全扫描可能已写入定位；只失效内存，不删磁盘上的。磁盘上那份只在画面仍有效时才写，
+        # 是本机确认过的位置：换回它，和刚启动时一样。以前置空后下一局先用默认位置，默认位置对不上的
+        # 电脑（改过游戏界面缩放等）会整局每 3 秒整块扫描一次，直到再认出一组三选一。云控 calib_restore 可关
         det.clear_tracking()
         det.calibration = None
+        restore = getattr(det, "restore_calibration", None)
+        restored = bool(restore and getattr(getattr(self, "settings", None), "calib_restore", True) and restore())
         with self._lock:
             current = self.state.get("offer")
             if context[0] == getattr(self, "_scan_epoch", 0) or (current or {}).get("_scan_context") == context:
@@ -669,7 +725,7 @@ class Engine:
         now = time.monotonic()
         if now - getattr(self, "_scan_discard_logged_at", float("-inf")) >= 60:
             self._scan_discard_logged_at = now
-            log.info("丢弃过时识别画面：reason=%s，下一轮重新定位", reason)
+            log.info("丢弃过时识别画面：reason=%s，%s", reason, "换回本机保存的位置" if restored else "下一轮重新定位")
 
     def _observed_scan(self, det, rect, *, full: bool, reason: str, check_blank: bool = False, hwnd: int = 0):
         """记录现有扫描耗时，并拒绝期间已换会话/窗口/客户区的结果。"""
@@ -742,9 +798,9 @@ class Engine:
             log.info("这局认字：标题条 %d 次（平均 %.0f 毫秒，CPU %.0f），整块扫描 %d 次（平均 %.0f 毫秒，CPU %.0f），标题OCR %d 次",
                      c["strip"], avg("strip_s", "strip"), avg("strip_cpu", "strip"),
                      c["full"], avg("full_s", "full"), avg("full_cpu", "full"), c.get("strip_ocr", 0))
-            log.info("这局识别诊断：全域文本行=%d 全域名字匹配=%d 条带缓存=%d 标题名字拒绝=%d 颜色冲突拒绝=%d 待确认观察=%d",
+            log.info("这局识别诊断：全域文本行=%d 全域名字匹配=%d 条带缓存=%d 标题名字拒绝=%d 颜色冲突拒绝=%d 颜色冲突按名字认=%d 待确认观察=%d",
                      c.get("full_lines", 0), c.get("full_matches", 0), c.get("strip_cache", 0),
-                     c.get("name_reject", 0), c.get("color_reject", 0), c.get("pending", 0))
+                     c.get("name_reject", 0), c.get("color_reject", 0), c.get("color_trust", 0), c.get("pending", 0))
             log.info("这局标题优先：检测框=%d 实际认字=%d 提前完成=%d 重复名字拒绝=%d 同名多处=%d",
                      c.get("full_detected", 0), c.get("full_recognized", 0), c.get("full_early", 0),
                      c.get("full_duplicate_reject", 0), c.get("full_repeat_name", 0))
@@ -789,6 +845,9 @@ class Engine:
                 return
             if self.state["phase"] != "ingame" or (context and context[0] != getattr(self, "_scan_epoch", 0)):
                 return  # 这帧识别完成时已经退出对局，不再发布旧卡片。
+            if getattr(offer, "group_changed", False):
+                self.state.update(offer=None, evaluation=None)
+                return
             slots = list(offer.slots)
             if prev and prev.get("corrected"):
                 slots = [s or p for s, p in zip(slots, prev["slots"])]

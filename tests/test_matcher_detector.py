@@ -1,4 +1,5 @@
 import pytest
+import numpy as np
 from conftest import fixture
 
 from lolhex.data.tencent import parse_kiwi_augments
@@ -106,8 +107,14 @@ def test_ocr_sessions_really_single_thread():
     """上面只看传进去的参数；参数名写错时 RapidOCR 不报错、静默用默认（占满所有核），所以再看真实会话。"""
     pytest.importorskip("rapidocr")
     from lolhex.vision.ocr import OCR
-    eng = OCR()._engine
-    for part in (eng.text_det, eng.text_cls, eng.text_rec):
+    ocr = OCR()
+    eng = ocr._engine
+    # RapidOCR creates detector/recognizer sessions lazily; run one real read first.
+    image = np.zeros((96, 320, 3), np.uint8)
+    ocr.recognize(image)
+    for part in (eng.text_det, eng.text_rec):
+        if part is None:
+            continue
         opts = part.session.session.get_session_options()
         assert opts.intra_op_num_threads == 1 and opts.inter_op_num_threads == 1
 

@@ -1,8 +1,10 @@
 # 打包：PyInstaller 生成程序目录 → GUI 自检 → Inno Setup 安装版 + 便携版 ZIP + SHA256SUMS.txt。
-# 用法（PowerShell 7）：pwsh -NoProfile -File packaging/build.ps1 [-PythonExe <python>] [-InnoCompiler <ISCC.exe>] [-PortableOnly]
+# 用法（PowerShell 7）：pwsh -NoProfile -File packaging/build.ps1 [-PythonExe <python>] [-InnoCompiler <ISCC.exe>] [-PortableOnly] [-TestTag test.1]
 # -PortableOnly：只出便携版（测试版自己用，不需要 Inno Setup）
+# -TestTag：发到群里、局域网测试的包一定要带，版本号变成「1.1.3-test.1」，比正式版 1.1.3 旧，正式版一发就会提示更新。
+#           以前测试包和正式版同号，测过的人收不到正式版的更新提示（1.1.2 正式发布时有 32 台）
 # 输出：build/release/AramHex-Setup-<版本>.exe、AramHex-Portable-<版本>.zip、SHA256SUMS.txt
-param([string]$PythonExe, [string]$InnoCompiler, [switch]$PortableOnly)
+param([string]$PythonExe, [string]$InnoCompiler, [switch]$PortableOnly, [string]$TestTag)
 $ErrorActionPreference = 'Stop'
 $env:PYTHONUTF8 = '1'  # 控制台不是 UTF-8 时（如 GitHub 的 Windows 构建机）输出中文也不能崩
 $root = Split-Path -Parent $PSScriptRoot
@@ -13,6 +15,14 @@ if (-not (Test-Path $py)) { throw "缺少 Python：先运行 python -m venv .ven
 & $py -m PyInstaller --version
 if ($LASTEXITCODE) { throw '缺少 PyInstaller：pip install -r requirements-build.txt' }
 
+# 测试标记写进 lolhex/_build.py（不进仓库）；不带 -TestTag 时删掉上次留下的，免得正式包带上测试号
+$buildInfo = Join-Path $root 'lolhex\_build.py'
+if ($TestTag) {
+    if ($TestTag -notmatch '^test\.\d+$') { throw '-TestTag 要写成 test.<数字>，例如 test.1' }
+    Set-Content -LiteralPath $buildInfo -Encoding utf8 -Value "TEST_TAG = `"$TestTag`"  # packaging/build.ps1 -TestTag 生成，测试包专用"
+} elseif (Test-Path -LiteralPath $buildInfo) {
+    Remove-Item -LiteralPath $buildInfo
+}
 $version = (& $py -c "import lolhex; print(lolhex.__version__)").Trim()
 Write-Host "版本 $version"
 if (-not (Test-Path (Join-Path $root 'lolhex\data\bundled\latest.json'))) {
@@ -89,3 +99,5 @@ $sums = foreach ($name in @($setup, $zip) | Where-Object { $_ }) {
 }
 Set-Content -LiteralPath (Join-Path $out 'SHA256SUMS.txt') -Encoding ascii -Value $sums
 Get-ChildItem $out | ForEach-Object { '{0}  {1:N1} MB' -f $_.Name, ($_.Length / 1MB) }
+# 测试标记只给这一次打包用，打完删掉；中途失败留下的，下次不带 -TestTag 打包时开头也会删
+if (Test-Path -LiteralPath $buildInfo) { Remove-Item -LiteralPath $buildInfo }

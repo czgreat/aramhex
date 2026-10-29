@@ -32,7 +32,7 @@ from pathlib import Path
 
 import requests
 
-from . import GITHUB_REPO, MIRROR, cloud
+from . import GITHUB_REPO, cloud
 from .config import program_dir
 
 log = logging.getLogger(__name__)
@@ -50,7 +50,8 @@ def sources_for(version: str) -> list[str]:
     from . import cloud
     tag = tag_for(version)
     extra = [u.replace("{version}", version).rstrip("/") for u in cloud.mirrors("update")]
-    return (extra + [f"{MIRROR}/{version}", f"https://raw.githubusercontent.com/{GITHUB_REPO}/{tag}"]
+    site = [f"{s}/u/{version}" for s in cloud.sites()]  # 云控换了官网地址时新的在前，内置 aramhex.com/u 在最后
+    return (extra + site + [f"https://raw.githubusercontent.com/{GITHUB_REPO}/{tag}"]
             + [f"https://{host}/gh/{GITHUB_REPO}@{tag}" for host in JSD_HOSTS]
             # 分支地址兜底（1.0.3 发布时还没有 tag）；清单版本对不上会被跳过
             + [f"https://raw.githubusercontent.com/{GITHUB_REPO}/{BRANCH}"]

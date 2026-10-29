@@ -203,3 +203,34 @@ def test_release_notes_only_key_part_fits_update_bar():
     body = m.notes("1.1.1", (root / "CHANGELOG.md").read_text(encoding="utf-8"))
     assert "完整更新内容" not in body and body.strip().endswith("更多详情见 GitHub") and len(body) <= 200
     assert m.notes("9.9.9", "## 9.9.9\n\n- a\n") == "- a\n"   # 没有「完整更新内容」的老格式照旧
+
+
+def test_test_builds_sort_before_their_release():
+    """测试包 1.1.3-test.2：比 1.1.2 新、比正式版 1.1.3 旧，正式版一发就提示更新（1.1.3）。"""
+    assert update.is_newer("1.1.3", "1.1.3-test.2")
+    assert update.is_newer("1.1.3-test.2", "1.1.2") and update.is_newer("1.1.3-test.2", "1.1.3-test.1")
+    assert not update.is_newer("1.1.3-test.2", "1.1.3") and not update.is_newer("1.1.2", "1.1.3-test.1")
+    assert update.is_newer("1.1.4", "1.1.3-test.9") and update.is_newer("1.1.3.1", "1.1.3")
+    assert update.is_test("1.1.3-test.1") and not update.is_test("1.1.3")
+
+
+def test_test_build_probes_its_own_release_first():
+    assert update._next_versions("1.1.3-test.2")[:2] == ["1.1.3", "1.1.4"]
+    assert update._next_versions("1.1.3") == ["1.1.4", "1.2.0", "2.0.0"]
+
+
+def test_build_info_adds_test_tag(tmp_path):
+    """packaging/build.ps1 -TestTag 生成 lolhex/_build.py：版本号带上测试标记。"""
+    import subprocess
+    import sys
+    from pathlib import Path
+    root = Path(__file__).resolve().parent.parent
+    pkg = tmp_path / "lolhex"
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text((root / "lolhex" / "__init__.py").read_text(encoding="utf-8"), encoding="utf-8")
+    plain = subprocess.run([sys.executable, "-c", "import lolhex; print(lolhex.__version__)"], cwd=tmp_path,
+                           capture_output=True, text=True, check=True).stdout.strip()
+    (pkg / "_build.py").write_text('TEST_TAG = "test.3"\n', encoding="utf-8")
+    tagged = subprocess.run([sys.executable, "-c", "import lolhex; print(lolhex.__version__)"], cwd=tmp_path,
+                            capture_output=True, text=True, check=True).stdout.strip()
+    assert tagged == plain + "-test.3" and update.is_newer(plain, tagged)

@@ -102,7 +102,7 @@ def test_4k_priority_to_single_column_reroll_keeps_other_columns_and_positions(m
     strip, full = establish_strip(detector, ocr, rect, frame)
     calibration = detector.calibration
     # All columns are due for maintenance; the real change still takes priority.
-    clock[0] += detector.RECHECK_SECONDS + .1
+    clock[0] += detector.recheck_seconds + .1
     marker = 180 + 20 * column
     ocr.title_outputs[marker] = WORDS[column + 3], .99
     paint_column(detector, rect, strip, column, marker)
@@ -177,7 +177,8 @@ def test_4k_priority_scan_during_window_move_cannot_save_or_publish_old_position
     ocr.on_detect = lambda: current.update(rect=new_rect)
 
     assert engine._observed_scan(detector, old_rect, full=True, reason="test", hwnd=7) is None
-    assert engine._scan_discarded and detector.calibration is None
+    # 1.1.3：作废的是内存里从旧画面算的位置；换回磁盘上那份（本机确认过的），磁盘不动
+    assert engine._scan_discarded and detector.calibration.boxes == [tuple(b) for b in original.boxes]
     assert engine.state["offer"] is None and path.read_bytes() == before
 
     ocr.on_detect = None

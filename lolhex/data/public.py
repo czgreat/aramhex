@@ -22,6 +22,7 @@ import logging
 import shutil
 import threading
 import time
+import math
 from pathlib import Path
 
 import requests
@@ -78,6 +79,76 @@ def check_manifest(manifest: dict) -> dict:
     return manifest
 
 
+def _required_number(value, *, integer: bool = False, minimum=None, maximum=None) -> bool:
+    if integer and type(value) is not int:
+        return False
+    if not integer and (type(value) not in (int, float) or isinstance(value, bool)):
+        return False
+    if not math.isfinite(value):
+        return False
+    return ((minimum is None or value >= minimum) and
+            (maximum is None or value <= maximum))
+
+
+def _validate_table_shape(name: str, value, *, augment: bool = False) -> None:
+    if not isinstance(value, dict) or not value:
+        raise DatasetError(f"{name} 顶层必须是对象")
+    for hid, row in value.items():
+        if not isinstance(hid, str) or not hid.isdigit() or not isinstance(row, dict):
+            raise DatasetError(f"{name} 有无效英雄记录")
+        if augment:
+            for aid, stats in row.items():
+                if not isinstance(aid, str) or not aid.isdigit() or not isinstance(stats, dict):
+                    raise DatasetError(f"{name} 有无效海克斯记录")
+                _validate_stats(name, stats)
+        else:
+            _validate_stats(name, row, require_win_rate=True)
+
+
+def _validate_stats(name: str, stats: dict, *, require_win_rate: bool = True) -> None:
+    required = ("games", "wins") + (("win_rate",) if require_win_rate else ())
+    if any(k not in stats for k in required):
+        raise DatasetError(f"{name} 缺少统计字段")
+    if not _required_number(stats["games"], integer=True, minimum=1):
+        raise DatasetError(f"{name} 局数字段无效")
+    if not _required_number(stats["wins"], integer=True, minimum=0, maximum=stats["games"]):
+        raise DatasetError(f"{name} 胜场字段无效")
+    if require_win_rate and not _required_number(stats["win_rate"], minimum=0, maximum=1):
+        raise DatasetError(f"{name} 胜率字段无效")
+
+
+def _validate_dataset_shape(folder: Path, manifest: dict) -> None:
+    """校验下载资料的实际消费形状，避免正确 SHA 的坏 JSON 被激活。"""
+    meta = _read(folder / "meta.json")
+    if not isinstance(meta, dict):
+        raise DatasetError("meta.json 顶层必须是对象")
+    for key in ("provisional_augments", "removed_augments", "excluded_augments"):
+        if key in meta and not isinstance(meta[key], dict):
+            raise DatasetError(f"meta.json 的 {key} 必须是对象")
+    _validate_table_shape("heroes.json", _read(folder / "heroes.json"))
+    _validate_table_shape("hero_augments.json", _read(folder / "hero_augments.json"), augment=True)
+    band_files = {name for name in manifest["files"] if name.startswith("bands/")}
+    expected_bands = {f"bands/{band}/{kind}.json" for band in (*BANDS, "top")
+                      for kind in ("heroes", "hero_augments")}
+    if manifest.get("bands") is True and not expected_bands <= set(manifest["files"]):
+        raise DatasetError("分段数据缺少完整表")
+    if manifest.get("bands") is not True and band_files:
+        raise DatasetError("清单声明无分段但包含分段数据")
+    for name in manifest["files"]:
+        if name.startswith("bands/") and name.endswith("/heroes.json"):
+            _validate_table_shape(name, _read(folder / name))
+        elif name.startswith("bands/") and name.endswith("/hero_augments.json"):
+            _validate_table_shape(name, _read(folder / name), augment=True)
+        elif name.rsplit("/", 1)[-1] in ("hero_spells.json", "hero_items.json"):
+            # 可选表（含分段里的）只校验到「英雄 → 对象」这一层；每行坏数据由面板过滤，保留能用的行
+            value = _read(folder / name)
+            if not isinstance(value, dict):
+                raise DatasetError(f"{name} 顶层必须是对象")
+            for hid, rows in value.items():
+                if not isinstance(hid, str) or not hid.isdigit() or not isinstance(rows, dict):
+                    raise DatasetError(f"{name} 有无效英雄记录")
+
+
 class Dataset:
     """读进内存的一份数据。构造时逐个文件核对 SHA-256，不对就整份不用。"""
 
@@ -91,6 +162,7 @@ class Dataset:
             p = self.folder / name
             if not p.is_file() or _sha256(p) != f["sha256"]:
                 raise DatasetError(f"{name} 缺失或校验不对")
+        _validate_dataset_shape(self.folder, self.manifest)
         self.meta = _read(self.folder / "meta.json") or {}
         self.patch = str(self.manifest.get("patch") or self.meta.get("patch") or "")
         self.snapshot_at = str(self.manifest.get("snapshot_at") or "")
@@ -257,7 +329,7 @@ def download(base_url: str, manifest: dict, dest: Path, timeout: float = 30, pro
             out.parent.mkdir(parents=True, exist_ok=True)
             out.write_bytes(body)
         (tmp / "latest.json").write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
-        Dataset(tmp, "downloaded")  # 整份再核一遍
+        Dataset(tmp, "downloaded")  # 整份再核一遍（含可消费结构）
         old = dest.with_name(dest.name + ".old")
         shutil.rmtree(old, ignore_errors=True)
         if dest.exists():
@@ -286,7 +358,8 @@ class PublicStore(DataStore):
         self.check_updates = check_updates
         if base_url is None:
             from .. import cloud
-            urls = [u.rstrip("/") for u in cloud.mirrors("data")] + DATA_SOURCES
+            site = [f"{s}/u/data" for s in cloud.sites()]  # 云控换了官网地址时新的在前，内置在后
+            urls = list(dict.fromkeys([u.rstrip("/") for u in cloud.mirrors("data")] + site + DATA_SOURCES))
         else:
             urls = [base_url] if isinstance(base_url, str) else base_url
         self.base_urls = [u.rstrip("/") for u in urls]

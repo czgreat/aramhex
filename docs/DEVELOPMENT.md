@@ -7,14 +7,15 @@ lolhex/
   __main__.py          入口（python -m lolhex）
   engine.py            调度：窗口状态、选人识别、三选一识别、推荐
   config.py            配置文件和目录（安装版 %APPDATA%\AramHex，便携版 程序目录\userdata）
-  update.py            程序更新：查 GitHub Releases 有没有新版本（连不上时查 jsDelivr）
-  patch.py             增量更新：只下载变了的文件（updates 分支，GitHub / jsDelivr），退出后替换，失败还原
+  update.py            程序更新：先查官网 aramhex.com/u/latest.json，连不上再查 GitHub Releases、jsDelivr
+  patch.py             增量更新：只下载变了的文件（官网 /u/<版本>/，再 GitHub / jsDelivr 的 updates-v<版本>），退出后替换，失败还原
   recommend.py         三选一评分
   panel.py             单英雄面板（胜率、出装、加点、海克斯表）
   i18n.py              外服：按游戏语言认海克斯名、英雄名、选人界面的字（名字表 data/i18n.json）
   langpack.py          韩服识别数据（韩文识别模型，选了韩文再下载，不进安装包）
   data/
-    store.py           腾讯官方资料（运行时获取，落盘缓存）
+    store.py           官方资料（英雄、海克斯、装备）的读取和缓存；1.1.2 起运行时不连腾讯
+    official.py        官方资料整包：内置优先，按云控从自己的服务器更新，对局外切换（见 docs/OFFICIAL-DATA.md）
     public.py          自采统计数据：内置 + 从数据仓库下载更新，逐文件校验 SHA-256；分数段切换
     tencent.py         腾讯接口和解析
     bundled/           内置统计数据（scripts/update_data.py 生成，不要手改）
@@ -63,17 +64,36 @@ pwsh -NoProfile -File packaging\build.ps1
 
 ## 发版
 
-1. 更新内置数据：`python scripts/update_data.py`，然后提交。
+开发在局域网 Gitea（每个版本一条 `release-x.y.z` 分支，功能分支开 PR 合进去）；GitHub 上每个版本是一条单独的提交，内容和 Gitea 发布分支相同。
+服务器、云控、官网这些不在本仓库的步骤，见内部交接文档「AramHex 发布链路」。
+
+### 测试包
+
+发给群里或局域网试用的包，一律带测试号打包：
+
+```powershell
+pwsh -NoProfile -File packaginguild.ps1 -PortableOnly -TestTag test.1   # 每次加 1
+```
+
+版本号会变成 `1.1.3-test.1`，比正式版 `1.1.3` 旧，正式版发布后能收到更新提示。不带测试号的包和正式版同号，装了的人收不到正式版（1.1.2 时有 32 台这样）。
+
+### 正式版
+
+1. 更新内置数据：`python scripts/update_data.py`，然后提交。注意第 4 步 Actions 打包时还会再跑一次，取数据仓库当时最新的一份；要换数据就先发数据，再打 tag。
 2. 改 `lolhex/__init__.py` 的 `__version__`，在 `CHANGELOG.md` 写这一版的说明。
    - 说明是写给玩家看的（发布页和软件里的「有新版本」提示都显示它）：一两句大白话，只写更新了什么、修了什么问题，比如「更新时能看到下载进度了」「修复：……」。不写技术细节、文件名、数字口径。
-3. 提交，然后打 tag 并推送：`git tag v1.2.3 && git push origin v1.2.3`。
+3. 把发布分支的内容合成一条提交推到 GitHub `main`（作者 czgreat，提交说明「AramHex x.y.z」，不带 AI 署名），等「测试」工作流通过；再打附注 tag `vX.Y.Z` 并推送。GitHub 上有人直接改过的文件（例如文档），先合回 Gitea。
 4. GitHub Actions（`.github/workflows/release.yml`）自动完成：
-   - 跑测试、打包；
    - 核对 tag 和 `__version__` 一致；
+   - 更新内置数据、跑测试、打包；
    - 把增量更新的清单和文件（另有 .gz 压缩版，jsDelivr 不给下 .exe）推到 `updates` 分支，并打 tag `updates-v<版本>`（先于建 Release）；
-   - 建 Release，上传安装版、便携版和 `SHA256SUMS.txt`；
+   - 建 Release，上传安装版、便携版和 `SHA256SUMS.txt`（文件名不能改，老版本按名字找）；
    - Release 说明取 `CHANGELOG.md` 里这一版的内容。
-5. 已安装的助手启动时、再次打开时，以及每隔一段时间（1.1.0 起由云控 `update.check_minutes` 决定，默认 3 小时；1.0.0 是 30 分钟）查一次新版本，有新版本就提示。
+5. 把 Release 里的安装包下载下来再检查一遍：Actions 打的和本机打的不是同一份字节（Actions 机器自带 VC 运行库，多一个 `_internal/msvcp140.dll`）。看 SHA-256、自检（`AramHex.exe --self-test-gui <report.json>`）、杀毒、从上一版增量升级。
+6. 软件先问官网 `aramhex.com/u/latest.json`，官网每 5 分钟从 GitHub 同步一次；只要官网连得上，就只听官网的。所以 GitHub Release 建好后，要等官网同步了，大多数人才会收到提示。发布时可以先暂停官网同步，检查完再放开。
+7. 已安装的助手启动时、再次打开时，以及每隔一段时间（1.1.0 起由云控 `update.check_minutes` 决定，默认 3 小时；1.0.0 是 30 分钟）查一次新版本，有新版本就提示。云控 `update.paused`、`update.rollout_version` + `update.rollout_percent` 可以暂停提示或只给一部分人提示（1.1.0 起）。
+
+一个版本号只打一次 tag（jsDelivr 永久缓存 tag）：发布失败也不要删了重打，直接发下一个版本号。
 
 只更新统计数据、不改程序时，不用发版：数据仓库更新后，助手会自己下载新数据。
 定期发版只是为了让新下载的用户拿到较新的内置数据。

@@ -34,5 +34,5 @@ def test_managed_store_never_contacts_tencent(tmp_path, outbound):
     icons.local("item", "3031", "https://game.gtimg.cn/images/lol/act/img/item/3031.png")
     assert outbound, "应该至少检查过一次自有服务器"
     assert not [u for u in outbound if any(d in u for d in ("qq.com", "gtimg.c"))], outbound
-    assert all(u.startswith("https://aramhex.com/") or "github" in u or "jsdelivr" in u for u in outbound), outbound
+    assert all(cloud.own(u) or "github" in u or "jsdelivr" in u for u in outbound), outbound  # 自己的官网（含备用 aramhex.cn）
 

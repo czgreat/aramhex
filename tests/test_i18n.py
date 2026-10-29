@@ -166,3 +166,17 @@ def test_whole_screen_ocr_skips_one_char_lines(store, tmp_path, monkeypatch):
     eng._champ_select_ocr(np.zeros((200, 200, 3), np.uint8))
     assert picked == ["157"]                         # 字最大的「慎」没算，认的是亚索
     assert eng._hero_by_name("慎") == "98"           # 我方每行、英雄卡的小块里一个字的名字照常认
+
+
+def test_augment_ocr_aliases():
+    """OCR 常读错的海克斯名（augment_aliases.json，Gitea #35）：4 个字错一个只有 50 分，过不了门槛。"""
+    store = SimpleNamespace(mayhem_augments=lambda: {"1005": {"name": "喂呜喂呜"}, "1063": {"name": "狂徒豪气"},
+                                                     "1420": {"name": "咏叹奏鸣"}})
+    m = augment_matcher(store, SimpleNamespace(game_lang="zh_CN", match_threshold=72.0))
+    assert m.match("喂鸣喂鸣") == ("1005", 100.0) and m.match("喂呜喂呜")[0] == "1005"
+    assert m.match("侠盗恆毅")[0] == "1063" and m.match("俠盜恆毅")[0] == "1063" and m.match("狂徒豪气")[0] == "1063"
+    assert m.match("咏叹奏鸣")[0] == "1420"
+    # 别名只加给名字表里有的海克斯
+    m = augment_matcher(SimpleNamespace(mayhem_augments=lambda: {"1420": {"name": "咏叹奏鸣"}}),
+                        SimpleNamespace(game_lang="zh_CN", match_threshold=72.0))
+    assert m.match("喂鸣喂鸣")[0] is None
