@@ -1,0 +1,147 @@
+{
+ "augment_exposure": "结算持有；同一玩家六槽去重",
+ "bands": {
+  "bands": {
+   "casual": {
+    "hero_participations": 115800098,
+    "hint": "分位>36%",
+    "label": "娱乐"
+   },
+   "high": {
+    "hero_participations": 18720184,
+    "hint": "分位<=5%",
+    "label": "前5%"
+   },
+   "mid": {
+    "hero_participations": 88690604,
+    "hint": "5%<分位<=36%",
+    "label": "中分"
+   },
+   "top": {
+    "alias_of": "high",
+    "hero_participations": 18720184,
+    "label": "前5%（旧客户端兼容别名）"
+   }
+  },
+  "coverage": {
+   "casual_people": 115800098,
+   "mid_people": 88690604,
+   "rated_people": 223210886,
+   "top01_matches": 119038,
+   "top01_people": 360415,
+   "top5_matches": 4310754,
+   "top5_people": 18720184,
+   "unrated_people": 2313664
+  },
+  "independently_strength_validated": false,
+  "method": "partition-fixed30-f-display-v1",
+  "note": "按各区冻结评分人口的分位划分，仅计本段玩家自己的参赛记录；不是官方段位。前0.1%包含于前5%。",
+  "retrospective_buckets": true,
+  "score_as_of": "2026-10-26T18:00:00+08:00",
+  "score_population": {
+   "scored_players": 19577732,
+   "top01_players": 19579,
+   "top5_players": 978887
+  }
+ },
+ "excluded_augments": {
+  "1337": {
+   "name": "尊我为王",
+   "reason": "任务完成后被替换，结算持有统计失真"
+  },
+  "3176": {
+   "name": "赛季之星:五杀摇滚",
+   "reason": "五杀乐队通用标记，不作为独立海克斯"
+  }
+ },
+ "files": {
+  "augments.json": "69b7bf4f2f3e87598ad664d31d582009df357dde1432678bfd7aa3ecbbafa48b",
+  "bands/casual/augments.json": "69b7bf4f2f3e87598ad664d31d582009df357dde1432678bfd7aa3ecbbafa48b",
+  "bands/casual/hero_augments.csv": "cc92c64b907036228b8444b1aa86074b605aaf4320faaf5ed4203a48ebcfa74b",
+  "bands/casual/hero_augments.json": "f23d4a679729a6c4158e80098281a09f99077e433d7f99c313c22c8fd00cc991",
+  "bands/casual/hero_spells.json": "3163b87868c6670843b3abd7365e0523564f5b14ae91e59cbdde5f32d9cb8815",
+  "bands/casual/heroes.csv": "9a9673638453fd817826d603a4e1afd167a9b85fe8928f09450e75d7956aded4",
+  "bands/casual/heroes.json": "ec3e5a27936edfa91f30c8cc65fb5f2ba30c1d7a6b086580f9d69e0616875c6f",
+  "bands/high/augments.json": "69b7bf4f2f3e87598ad664d31d582009df357dde1432678bfd7aa3ecbbafa48b",
+  "bands/high/hero_augments.csv": "176b6be809cbff0b5b03dd0875925ec237205de8c125c88969d4134c2527b92f",
+  "bands/high/hero_augments.json": "e258276812bee7350d37fb72c574b93387cafba6416bf7181cb8cc30e3ed438c",
+  "bands/high/hero_spells.json": "48b10b31c01bafda7448219607d190756a7e08356c732287421d374f5035d4b7",
+  "bands/high/heroes.csv": "0e875a39c0ac83accb72250924b2a332104b7575042bab6421fd6dc2bffca5aa",
+  "bands/high/heroes.json": "7984546b856fc31df2aa1362e3dda0a98086cb35bc16640c33ad1836efe7efb1",
+  "bands/mid/augments.json": "69b7bf4f2f3e87598ad664d31d582009df357dde1432678bfd7aa3ecbbafa48b",
+  "bands/mid/hero_augments.csv": "3383ff7693a01f8bda48944372aa86bf319bf5ec5b74f6dc7dac9e602848337a",
+  "bands/mid/hero_augments.json": "840c74d9092707cf745c8c89e1d5a2175c2720b3377a0268217b0850c81f0810",
+  "bands/mid/hero_spells.json": "fc310efc96d8d68a706d4606678411d5d5f9d6f8e71855d37e081be83f791c1a",
+  "bands/mid/heroes.csv": "cb6f2f18494e1f82264cc02c74b75e7511f4358ec5845c61dd72c28618cd8c43",
+  "bands/mid/heroes.json": "5d98ab30244af63e3226475624165b6a8b3a8833d7fe5a76ab222a1920f305dd",
+  "bands/top/augments.json": "69b7bf4f2f3e87598ad664d31d582009df357dde1432678bfd7aa3ecbbafa48b",
+  "bands/top/hero_augments.csv": "176b6be809cbff0b5b03dd0875925ec237205de8c125c88969d4134c2527b92f",
+  "bands/top/hero_augments.json": "e258276812bee7350d37fb72c574b93387cafba6416bf7181cb8cc30e3ed438c",
+  "bands/top/hero_spells.json": "48b10b31c01bafda7448219607d190756a7e08356c732287421d374f5035d4b7",
+  "bands/top/heroes.csv": "0e875a39c0ac83accb72250924b2a332104b7575042bab6421fd6dc2bffca5aa",
+  "bands/top/heroes.json": "7984546b856fc31df2aa1362e3dda0a98086cb35bc16640c33ad1836efe7efb1",
+  "hero_augments.csv": "ec12cbd91c8c58379ea21687baeb62ebac3c1ee59a6a440fc1225d679223c8cc",
+  "hero_augments.json": "27a1bf02c5e44f538292ec1fa7df01996f0f086cfa2777d2620aac9222cbcb24",
+  "hero_spells.json": "0559c392a020cf349ba914ff005a23e30685a2b23555ad16a3a2e14031773959",
+  "heroes.csv": "37bb84824fd45fb0ad62a3f9f6eed78a142e4afa4d00ff00ba63aa5e8551c00a",
+  "heroes.json": "6b86817788db334f4608f1a7e265472b467fb6b2d09f232f7728a17f81a776b8"
+ },
+ "hero_participations": 225524550,
+ "heroes": 173,
+ "hotfix": {
+  "effective_at": "2026-10-23T16:00:00+08:00",
+  "qualification": "按开局时间切窗，未逐局核验玩家是否已经退出重进。",
+  "reason": "考虑部分玩家未退出重进，排除热修后的8小时过渡期。",
+  "statistics_start": "2026-10-24T00:00:00+08:00",
+  "time_source": "用户确认",
+  "transition_hours_excluded": 8
+ },
+ "label": "16.21 版本 · 常规",
+ "license": "CC BY-NC 4.0",
+ "limitations": [
+  "只统计我们采集到的对局，不是全服数据。",
+  "只计有效对局：对局时长不少于 4 分钟（240 秒）、10 名玩家齐全且正好 5 胜 5 负、正常结束（GameComplete）；重开、提前解散、数据不全的对局不计。",
+  "海克斯按对局结束时持有的计算：同一玩家的六个海克斯槽位去重，任意槽位持有即计入。",
+  "持有某个海克斯和赢下对局是相关关系，不代表拿了它就会赢。",
+  "各大区的样本直接合在一起计算，没有按区加权；每份数据覆盖哪些区见 regions。",
+  "样本少的组合（low_sample 为 true，或局数很少）胜率波动大，请谨慎参考。",
+  "评分方法尚未经过独立实力验证；前0.1%只供参考。",
+  "分段为事后分组：评分截止时间位于本次统计窗口内，不可用于证明预测能力。"
+ ],
+ "low_sample_threshold": 3000,
+ "matches": {
+  "collected": 23222386,
+  "excluded": 669931,
+  "valid": 22552455,
+  "validity_rule": "对局时长不少于 4 分钟（240 秒）、10 名玩家齐全且正好 5 胜 5 负、正常结束（GameComplete）；重开、提前解散、数据不全的对局不计"
+ },
+ "mode": "normal",
+ "mode_label": "常规",
+ "mode_rule": "常规规则。",
+ "notes": [
+  "未发布候选；所有统计共享同一只读快照。",
+  "各区原始样本直接合并；窗口上界不保证各区采集完整。",
+  "评分冻结于10月26日18时，未匹配评分的玩家只进入全体统计。",
+  "bands/top与bands/high逐字节相同；前0.1%只在官网私有包web_segments/top01。",
+  "热修时间由用户确认：10月23日16:00；考虑未退出重进玩家，统计从10月24日00:00起，排除8小时过渡。"
+ ],
+ "patch": "16.21",
+ "regions": [
+  "联盟三区",
+  "联盟二区",
+  "艾欧尼亚",
+  "黑色玫瑰",
+  "联盟一区",
+  "联盟四区",
+  "联盟五区"
+ ],
+ "regions_combined": true,
+ "schema_version": 1,
+ "snapshot_at": "2026-10-28T12:28:35.908470+08:00",
+ "window": {
+  "end_exclusive": "2026-10-28T11:00:00+08:00",
+  "periods": null,
+  "start": "2026-10-24T00:00:00+08:00",
+  "time_field": "对局创建时间（北京时间）"
+ }
+}
