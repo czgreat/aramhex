@@ -43,7 +43,7 @@ def norm_band(band):
     return BAND_ALIASES.get(band, band) if band else band
 BUNDLED_DIR = Path(__file__).with_name("bundled")
 RAW_BASE = f"https://raw.githubusercontent.com/{DATA_REPO}/main"
-# 先走官网镜像（DMIT 定时从 GitHub 同步），不通再试 GitHub 和 jsDelivr。每个文件都按清单校验 SHA-256。
+# 先走官网镜像（定时从 GitHub 同步），不通再试 GitHub 和 jsDelivr。每个文件都按清单校验 SHA-256。
 DATA_SOURCES = [f"{MIRROR}/data", RAW_BASE] + [f"https://{host}/gh/{DATA_REPO}@main"
                              for host in ("fastly.jsdelivr.net", "gcore.jsdelivr.net", "cdn.jsdelivr.net")]
 # jsDelivr 按分支（@main）取会缓存好几个小时；数据每更新一次打 tag data-v<序号>，按"下一个序号"试探，按 tag 取是即时的
@@ -236,7 +236,7 @@ SHRINK_DEFAULT, SHRINK_MIN, SHRINK_MAX = 3000, 1000, 30000
 
 
 def _band_shrink(tables_all: tuple[dict, dict], tables_band: tuple[dict, dict]) -> int:
-    """分段和全体综合时的 K（局数）：分段里有 K 局时，「这个海克斯比英雄平均高多少」分段和全体各信一半（Gitea #7）。
+    """分段和全体综合时的 K（局数）：分段里有 K 局时，「这个海克斯比英雄平均高多少」分段和全体各信一半。
     按这份数据自己估：同英雄同海克斯，分段的优势减全体的优势，方差扣掉随机误差就是真实差别 τ²，K = 0.25 / τ²。
     16.20 估出来：娱乐、中分约 1.1 万，前 5% 约 3400。格子太少（新版本刚开始）用默认值。"""
     heroes_all, augs_all = tables_all

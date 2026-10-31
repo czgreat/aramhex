@@ -523,7 +523,7 @@ class AugmentDetector:
         crops = [strip[y0-sy:y1-sy, x0-sx:x1-sx] for x0, y0, x1, y1 in pb]
         fingerprints = [fingerprint(crop) for crop in crops]
         # 取快照：别的线程（换窗口、对局结束）随时可能 clear_tracking 把 self._cells 换成空的，
-        # 这一轮全程按快照算，读完再写回；被清过就不写回旧读数（Gitea #37）
+        # 这一轮全程按快照算，读完再写回；被清过就不写回旧读数
         cells_ref = self._cells
         cells = list(cells_ref)
         changed = [old is None or fp_changed(old["fp"], fp)
@@ -577,7 +577,7 @@ class AugmentDetector:
             texts.append(txt)
             scores.append(sc)
             boxes.append((win.left + x0, win.top + y0, win.left + x1, win.top + y1))
-        # 检查和写回放在同一把锁里：clear_tracking 也拿这把锁，检查通过后不会再被清空（Gitea #37 复核）
+        # 检查和写回放在同一把锁里：clear_tracking 也拿这把锁，检查通过后不会再被清空
         with self._track_lock:
             if self._cells is not cells_ref:
                 return None  # 读的时候被清空了（换窗口、对局结束）：这一轮的结果作废
@@ -608,7 +608,7 @@ class AugmentDetector:
                 if self._stable is None or self._low_match_reads >= self.low_match_reads:
                     self._stable = None
                     self._pending = [None] * 3
-                    self._group_target = None  # 等确认时面板关了：不带到下一次三选一（Gitea #62 问题一）
+                    self._group_target = None  # 等确认时面板关了：不带到下一次三选一
                     self._group_counts = [0] * 3
             return self._last_result
 
@@ -628,7 +628,7 @@ class AugmentDetector:
     def _stabilize(self, offer: Offer, fresh: list[bool]) -> Offer:
         """单列只采纳连续的新 OCR 观察，短暂读空不重排整组；不无限保留旧卡。"""
         if self._stable is None:
-            self._group_target = None  # 从头开始的卡组不沿用上一组的整组确认状态（Gitea #62 问题一）
+            self._group_target = None  # 从头开始的卡组不沿用上一组的整组确认状态
             self._group_counts = [0] * 3
             self._stable = replace(offer, pending_columns=(False, False, False))
             return self._stable
@@ -658,7 +658,7 @@ class AugmentDetector:
             done = [aid if count >= 2 else None for aid, count in zip(self._group_target, self._group_counts)]
             if all(done) or now - self._group_since >= 2 * self.pending_seconds:
                 # 超时：已确认的列正常发布；只读到一次的名字必须来自本轮新观察。
-                # 不能把动画中读到一次、后来一直读空的旧名字当作当前卡片（Gitea #67）。
+                # 不能把动画中读到一次、后来一直读空的旧名字当作当前卡片。
                 accepted = [aid if count >= 2 or (fresh[i] and offer.slots[i] == aid) else None
                             for i, (aid, count) in enumerate(zip(self._group_target, self._group_counts))]
                 if not all(done):

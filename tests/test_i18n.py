@@ -179,7 +179,7 @@ def test_whole_screen_ocr_skips_one_char_lines(store, tmp_path, monkeypatch):
 
 
 def test_augment_ocr_aliases():
-    """OCR 常读错的海克斯名（augment_aliases.json，Gitea #35）：4 个字错一个只有 50 分，过不了门槛。"""
+    """OCR 常读错的海克斯名（augment_aliases.json）：4 个字错一个只有 50 分，过不了门槛。"""
     store = SimpleNamespace(mayhem_augments=lambda: {"1005": {"name": "喂呜喂呜"}, "1063": {"name": "狂徒豪气"},
                                                      "1420": {"name": "咏叹奏鸣"}})
     m = augment_matcher(store, SimpleNamespace(game_lang="zh_CN", match_threshold=72.0))

@@ -24,7 +24,7 @@ REFERER = "https://101.qq.com/"
 
 RARITY = {"kSilver": "silver", "kGold": "gold", "kPrismatic": "prismatic"}
 # 腾讯标错的稀有度，按拳头 CommunityDragon（cherry-augments.json）和游戏里的卡框改。
-# 2078 连锁反应：腾讯标棱彩，游戏里是金色，卡框颜色核对一直拒绝它（1.1.2 日志 58/216 份，Gitea #34）
+# 2078 连锁反应：腾讯标棱彩，游戏里是金色，卡框颜色核对一直拒绝它（1.1.2 日志 58/216 份）
 RARITY_FIX = {"2078": "gold"}
 
 

@@ -31,10 +31,10 @@ def test_small_strip_uses_full_image_semantics():
 
 
 def test_real_capture_fixtures_are_non_blank_when_present():
-    # The 235 replay harness supplies these 4K captures; keep the test
+    # A local replay harness supplies these 4K captures; keep the test
     # self-contained in normal checkouts where the large files are absent.
     root = Path(__file__).resolve().parents[2] / "evidence"
-    shots = sorted(root.glob("235-shot*.png"))
+    shots = sorted(root.glob("shot*.png"))
     if not shots:
         return
     from PIL import Image

@@ -366,7 +366,7 @@ def test_engine_warm_up_builds_bank_on_first_run(store, tmp_path):
 
 
 def test_own_panel_over_other_program_hides_badges(monkeypatch):
-    """客户端被别的程序盖着、再点自己的浮窗：前台之前是别的程序，标注不能画到它上面（10-25 172 截图）；
+    """客户端被别的程序盖着、再点自己的浮窗：前台之前是别的程序，标注不能画到它上面；
     云控 companion_last_fg 关掉退回旧做法。"""
     from types import SimpleNamespace
     from lolhex import cloud

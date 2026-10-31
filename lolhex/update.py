@@ -60,7 +60,7 @@ def pan_links(timeout: float = 6) -> dict:
 
 
 def check_site(current: str, timeout: float = 6, url: str = SITE_LATEST) -> dict | None:
-    """官网镜像上的最新版本（DMIT 从 GitHub Release 同步：版本、说明、安装包名、SHA-256、GitHub 下载地址）。"""
+    """官网镜像上的最新版本（从 GitHub Release 同步：版本、说明、安装包名、SHA-256、GitHub 下载地址）。"""
     r = requests.get(url, headers=cloud.headers(url), timeout=timeout)
     r.raise_for_status()
     j = r.json()

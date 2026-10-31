@@ -100,7 +100,7 @@ def test_online_refresh_replaces_bundled(tmp_path, monkeypatch):
 
 
 def test_chain_reaction_is_gold():
-    """2078 连锁反应：腾讯标棱彩，游戏里是金色（Gitea #34）。内置资料和解析腾讯原始数据都按金色。"""
+    """2078 连锁反应：腾讯标棱彩，游戏里是金色。内置资料和解析腾讯原始数据都按金色。"""
     from lolhex.data.store import BUNDLED_HEROES
     assert json.loads(BUNDLED_STATIC.read_text(encoding="utf-8"))["augments"]["2078"]["rarity"] == "gold"
     rows = [a for h in json.loads(BUNDLED_HEROES.read_text(encoding="utf-8"))["heroes"].values()

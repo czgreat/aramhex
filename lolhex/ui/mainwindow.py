@@ -83,7 +83,7 @@ def _card() -> QFrame:
 
 def hard_exit_later(seconds: float = 5.0, reason: str = "退出超时，强制结束以便更新") -> None:
     """更新要替换文件：正常退出卡住（后台线程、网络请求没结束）时，几秒后强制结束本进程。
-    1.0.9 之前在 172 上出现过：旧助手没退出，文件被占用，更新被还原。"""
+    1.0.9 之前出现过：旧助手没退出，文件被占用，更新被还原。"""
     import threading
 
     def go():
@@ -100,7 +100,7 @@ QUIT_TIMEOUT_S = 3.0
 
 def quit_app(engine) -> None:
     """托盘「退出」和浮窗「退出」：停后台线程、结束事件循环；几秒内没退干净就强制结束进程。
-    1.0.91 在 172 上出现过：点了退出，后台线程都停了，界面事件循环却没结束，进程一直留着、文件删不掉。"""
+    1.0.91 出现过：点了退出，后台线程都停了，界面事件循环却没结束，进程一直留着、文件删不掉。"""
     logging.getLogger(__name__).info("退出")
     app = QApplication.instance()
     if app is not None:

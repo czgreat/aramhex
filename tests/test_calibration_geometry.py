@@ -1,4 +1,4 @@
-"""Replay the malformed 3840x2160 calibration recorded on 172 at 17:34."""
+"""Replay a malformed 3840x2160 calibration seen in a real log."""
 import json
 import numpy as np
 import pytest

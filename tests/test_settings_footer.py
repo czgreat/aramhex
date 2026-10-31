@@ -122,7 +122,7 @@ def test_other_pages_keep_long_content_scrollable(mw):
 
 @pytest.mark.parametrize("size", [(700, 720), (700, 526), (667, 424)])
 def test_update_visible_with_real_hero_selected(mw, size):
-    """选了英雄（格温，用内置的真实出装资料）后，设置页的「检查更新」不能被出装页撑到窗口外（Codex 10-26 复现）。"""
+    """选了英雄（格温，用内置的真实出装资料）后，设置页的「检查更新」不能被出装页撑到窗口外。"""
     mw.resize(*size)
     mw.engine.set_hero("887")
     mw.refresh()

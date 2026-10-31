@@ -1,4 +1,4 @@
-"""标题条读卡：名字完全对上时颜色冲突也信文字（Gitea #36）；读的时候被别的线程清空不报错（Gitea #37）。"""
+"""标题条读卡：名字完全对上时颜色冲突也信文字；读的时候被别的线程清空不报错。"""
 import numpy as np
 
 import lolhex.vision.cardframe as cardframe

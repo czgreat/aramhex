@@ -104,7 +104,7 @@ def test_group_confirm_off_keeps_per_column_confirmation(monkeypatch):
 
 
 def test_group_pending_when_offer_closes_is_not_carried_to_next_offer(monkeypatch):
-    # Gitea #62 问题一：整组换牌等确认时三选一关了，下一次三选一第二轮不能整组变成未识别
+    # 整组换牌等确认时三选一关了，下一次三选一第二轮不能整组变成未识别
     det, ocr, clock, rect, strip = group_detector(monkeypatch)
     change_columns(det, rect, strip, 0, 1, 2)
     assert run(det, ocr, clock, rect, strip, ["丁丁", "戊戊", "己己"], 1)[0][0] == [None] * 3
@@ -117,7 +117,7 @@ def test_group_pending_when_offer_closes_is_not_carried_to_next_offer(monkeypatc
 
 
 def test_group_timeout_does_not_reuse_a_single_name_from_the_animation(monkeypatch):
-    # Gitea #67：后续一直读空，不能复活动画中只读到过一次的旧名字。
+    # 后续一直读空，不能复活动画中只读到过一次的旧名字。
     det, ocr, clock, rect, strip = group_detector(monkeypatch)
     change_columns(det, rect, strip, 0, 1, 2)
     first = run(det, ocr, clock, rect, strip, ["丁丁", "戊戊", "己己"], 1)

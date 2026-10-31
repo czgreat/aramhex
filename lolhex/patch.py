@@ -344,7 +344,7 @@ RANK_MIN_BYTES = 3 * 1024 * 1024  # 要下载的超过这么多才测速挑线�
 
 def rank_by_speed(sources: list[str], rel: str, sample: int = 256 * 1024, timeout: float = 6) -> list[str]:
     """几条线路同时下载同一个文件的前 256KB，按速度从快到慢排。连不上的排最后。
-    实测 172 上：GitHub 32KB/s，jsDelivr 的 gcore 节点 207KB/s——不能"GitHub 能连上就一直用它"。"""
+    国内实测：GitHub 32KB/s，jsDelivr 的 gcore 节点 207KB/s——不能"GitHub 能连上就一直用它"。"""
     import time
     from concurrent.futures import ThreadPoolExecutor
 
