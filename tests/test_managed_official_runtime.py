@@ -48,7 +48,6 @@ def test_player_ignores_old_individual_cache_and_never_contacts_tencent(tmp_path
 def test_engine_uses_managed_data_and_local_icons(tmp_path, monkeypatch):
     from lolhex.data.icons import IconCache
     from lolhex.vision import portraits
-    monkeypatch.setattr(Engine, "_apply_rec_model", lambda self: None)
     def fail(*a, **kw):
         pytest.fail("Player portraits and item icons must not download")
     monkeypatch.setattr(portraits, "ensure_icons", fail)

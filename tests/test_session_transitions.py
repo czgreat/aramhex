@@ -10,7 +10,7 @@ def test_same_cards_after_window_move_publish_new_positions(store, tmp_path, mon
     eng._set(hero_id="17", phase="ingame")
     evaluations = []
     original = eng._reevaluate
-    monkeypatch.setattr(eng, "_reevaluate", lambda: (evaluations.append(True), original())[1])
+    monkeypatch.setattr(eng, "_reevaluate", lambda *args: (evaluations.append(True), original(*args))[1])
     first = Offer(["2128", "1029", "1373"], ["a", "b", "c"], [100]*3,
                   [(100, 430, 300, 470), (500, 430, 700, 470), (900, 430, 1100, 470)])
     eng._on_offer(first)

@@ -64,6 +64,7 @@ class Memo:
     一小块；以前压成 12×12 再比平均差，同字数的两个名字（如寒冰射手→暗夜猎手）会被当成没变。"""
     ROWS = 24    # 缩略图行高；宽按原比例，最多 8 倍
     TOL = 12.0   # 逐像素差 99 分位在这以内算没变（换一个字也有 90 以上，截图噪声约 1）
+    LIMIT = 200  # 一种尺寸约 20 个位置；超过就是窗口大小换过很多次
 
     def __init__(self):
         self._d: dict = {}
@@ -84,6 +85,8 @@ class Memo:
         if same and hit[2] and (keep is None or keep(hit[1])):
             return hit[1]
         val = fn(crop)
+        if len(self._d) >= self.LIMIT and key not in self._d:
+            self._d.clear()  # 选人中途反复拖窗口大小：每个尺寸一套缓存，到上限就从头存
         self._d[key] = (sig, val, same)  # 和上次画面一样才算静止，下次可以直接复用
         return val
 

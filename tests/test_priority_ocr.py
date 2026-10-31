@@ -222,15 +222,3 @@ def test_wrong_calibration_body_names_cannot_replace_earlier_real_titles():
     assert all(offer.slots==['0','1','2'] for offer in offers)
     assert offers[0].boxes==offers[1].boxes
     assert calls==[list(range(6))] and det.cost['full_early']==1
-
-
-def test_unvalidated_custom_language_model_keeps_existing_full_call():
-    from lolhex.vision.detector import AugmentDetector
-    from lolhex.vision.matcher import NameMatcher
-    calls=[]
-    class Adapter:
-        rec_model='custom-korean.onnx'
-        def detect(self,image):calls.append('full');return []
-        def detect_prioritized(self,*args):raise AssertionError('custom model must keep its existing path')
-    assert AugmentDetector(NameMatcher({}),ocr=Adapter()).scan_full(np.zeros((1080,1920,3),np.uint8)) is None
-    assert calls==['full']

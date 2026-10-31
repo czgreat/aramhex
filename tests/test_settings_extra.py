@@ -65,7 +65,7 @@ def test_load_config_with_bom(tmp_path):
     p = tmp_path / "config.json"
     p.write_bytes(b"\xef\xbb\xbf" + '{"game_lang": "ko_KR", "send_usage": false, "install_id": "0123456789abcdef"}'.encode())
     s = Settings.load(p)
-    assert s.game_lang == "ko_KR" and s.send_usage is False and s.install_id == "0123456789abcdef"
+    assert s.game_lang == "zh_CN" and s.send_usage is False  # 韩服 1.1.4 起不支持，按中文 and s.install_id == "0123456789abcdef"
 
 
 def test_unwritable_or_broken_config_never_crashes(tmp_path, monkeypatch):

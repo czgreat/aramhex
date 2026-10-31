@@ -101,3 +101,27 @@ def test_group_confirm_off_keeps_per_column_confirmation(monkeypatch):
     new = replace(det._stable, slots=["3", "4", "5"])
     first = det._stabilize(new, [True] * 3)
     assert not first.group_changed and det._group_target is None
+
+
+def test_group_pending_when_offer_closes_is_not_carried_to_next_offer(monkeypatch):
+    # Gitea #62 问题一：整组换牌等确认时三选一关了，下一次三选一第二轮不能整组变成未识别
+    det, ocr, clock, rect, strip = group_detector(monkeypatch)
+    change_columns(det, rect, strip, 0, 1, 2)
+    assert run(det, ocr, clock, rect, strip, ["丁丁", "戊戊", "己己"], 1)[0][0] == [None] * 3
+    run(det, ocr, clock, rect, strip, ["", "", ""], det.low_match_reads)
+    assert det._stable is None
+    clock[0] += 60
+    change_columns(det, rect, strip, 0, 1, 2, value=90)  # 下一次三选一，画面不同
+    out = run(det, ocr, clock, rect, strip, ["甲甲", "乙乙", "丙丙"], 4)
+    assert [s for s, _ in out] == [["0", "1", "2"]] * 4
+
+
+def test_group_timeout_does_not_reuse_a_single_name_from_the_animation(monkeypatch):
+    # Gitea #67：后续一直读空，不能复活动画中只读到过一次的旧名字。
+    det, ocr, clock, rect, strip = group_detector(monkeypatch)
+    change_columns(det, rect, strip, 0, 1, 2)
+    first = run(det, ocr, clock, rect, strip, ["丁丁", "戊戊", "己己"], 1)
+    assert first[0][0] == [None] * 3
+    out = run(det, ocr, clock, rect, strip, ["丁丁", "", "己己"], 8)
+    assert all(s is None or s[1] in (None, "4") for s, _ in out)
+    assert out[-1][0] == ["3", None, "5"]

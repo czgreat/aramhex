@@ -1,4 +1,4 @@
-"""外服用的名字表：海克斯名、英雄名和选英雄界面上的字，英文、韩文、日文、繁中（外加简中用来核对）。
+"""外服用的名字表：海克斯名、英雄名和选英雄界面上的字，英文、日文、繁中（外加简中用来核对）。
 
     python scripts/update_i18n.py [--out lolhex/data/i18n.json]
 
@@ -22,8 +22,8 @@ import requests
 ROOT = Path(__file__).resolve().parent.parent
 CD = "https://raw.communitydragon.org"
 DD = "https://ddragon.leagueoflegends.com"
-# 程序里的语言代码 → CommunityDragon 目录名
-LANGS = {"zh_CN": "zh_cn", "zh_TW": "zh_tw", "en_US": "en_us", "ja_JP": "ja_jp", "ko_KR": "ko_kr"}
+# 程序里的语言代码 → CommunityDragon 目录名。zh_MY 是马来西亚服的简中，译名和腾讯不同（更接近台服），中文模式一起认
+LANGS = {"zh_CN": "zh_cn", "zh_TW": "zh_tw", "zh_MY": "zh_my", "en_US": "en_us", "ja_JP": "ja_jp"}
 UI_KEYS = {"bench": "champion_bench_label", "pick": "subset-champions-grid-header"}
 
 
@@ -61,6 +61,28 @@ def augments(branch: str) -> dict[str, dict[str, str]]:
     return out
 
 
+def drop_my_duplicates(aug: dict[str, dict[str, str]], live: set[str]) -> list[tuple]:
+    """zh_MY 里两个海克斯同名（2076「保持坚定」和已下线的 1327「坚若磐石」都叫「坚定不移」）时，
+    只给内置统计里还在玩的那个留 zh_MY 名字；分不出来就都不留。返回去掉的 [(名字, [ID...], 留下的 ID)]。"""
+    sys.path.insert(0, str(ROOT))
+    from lolhex.vision.matcher import normalize
+    by_name: dict[str, list[str]] = {}
+    for aid, names in aug.items():
+        if names.get("zh_MY"):
+            by_name.setdefault(normalize(names["zh_MY"]), []).append(aid)
+    dropped = []
+    for key, aids in by_name.items():
+        if len(aids) < 2:
+            continue
+        keep = [a for a in aids if a in live]
+        keep = keep if len(keep) == 1 else []
+        for a in aids:
+            if a not in keep:
+                aug[a].pop("zh_MY", None)
+        dropped.append((key, sorted(aids), keep[0] if keep else None))
+    return dropped
+
+
 def heroes() -> tuple[str, dict[str, dict[str, list[str]]]]:
     ver = get_json(f"{DD}/api/versions.json")[0]
     out: dict[str, dict[str, list[str]]] = {}
@@ -90,6 +112,8 @@ def main(argv=None) -> int:
 
     aug = augments("pbe")
     aug.update(augments("latest"))  # 正式服的名字优先
+    live = set(json.loads((ROOT / "lolhex/data/bundled/augments.json").read_text(encoding="utf-8")))
+    print("zh_MY 同名处理（名字, ID, 留给）：", drop_my_duplicates(aug, live))
     ver, hero = heroes()
     ui = ui_texts()
 

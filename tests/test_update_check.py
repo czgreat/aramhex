@@ -40,6 +40,9 @@ class FakeWorker:
     def wait(self, ms):
         return True
 
+    def deleteLater(self):
+        self.deleted = True
+
 
 class FakeButton:
     def __init__(self):
@@ -62,6 +65,7 @@ def _win():
         tray=SimpleNamespace(showMessage=lambda *a: shown.append(a[1])),
     )
     win.check_update = lambda manual=False: MainWindow.check_update(win, manual)
+    win._retire_when_done = lambda attr, worker: MainWindow._retire_when_done(win, attr, worker)
     win._sync_data_now = lambda: "统计数据已是最新。"
     win._data_line = lambda: MainWindow._data_line(win)
     win._apply_cloud = lambda cfg: None
@@ -110,8 +114,8 @@ def test_manual_check_reports_every_outcome(boxes, monkeypatch):
     w.uptodate.emit()
     w.finished.emit()
     assert "最新版本" in boxes[-1] and "统计数据已是最新" in boxes[-1] and win.btn_check.enabled
+    assert win._worker is None and w.deleted  # 查完就删线程对象，不留在主窗口下
 
-    win._worker.running = False
     win.check_update(manual=True)
     FakeWorker.started[-1].failed.emit("连接超时")
     assert shown[-1] == "失败：连接超时"
@@ -190,3 +194,15 @@ def test_no_popups_in_champ_select_or_stacked(monkeypatch):
     assert win._deferred_cloud == cfg and not win._asked_offers   # 别的对话框（设置已保存、检查更新…）开着：也不叠
     monkeypatch.setattr(mainwindow.QApplication, "activeModalWidget", staticmethod(lambda: None))
     win._popup_open = True
+
+
+@pytest.mark.parametrize("snap", [{"phase": "ingame"}, {"phase": "client", "champ_select": {"bench": []}}])
+def test_update_waits_while_in_game_or_champ_select(boxes, monkeypatch, snap):
+    """选英雄时点「立即更新」：重启那几十秒错过选英雄界面，这局就认不出英雄（1.1.4）。"""
+    monkeypatch.setattr(mainwindow.patch, "install_root", lambda: "C:/AramHex")
+    win, _ = _win()
+    win._update_info = {"version": "9.9.9", "url": "x"}
+    win.engine.snapshot = lambda: snap
+    win._busy = lambda: MainWindow._busy(win)
+    MainWindow._start_update(win)
+    assert boxes == ["正在选英雄或对局中，打完这局再更新。"] and not FakeWorker.started

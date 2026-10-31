@@ -46,7 +46,7 @@ def augment_aliases() -> dict[str, list[str]]:
 
 
 def augment_matcher(store, settings) -> NameMatcher:
-    """三选一认字用的名字表：中文用腾讯的名字，再加繁中（台服等）的名字；外服用那种语言的名字（ID 一样）。
+    """三选一认字用的名字表：中文用腾讯的名字，再加繁中（台服等）和马来西亚服简中的名字；外服用那种语言的名字（ID 一样）。
     外服名字表里没有的（刚上线、名字表还没更新），退回中文名。"""
     names: dict[str, str | list[str]] = {aid: a["name"] for aid, a in store.mayhem_augments().items()}
     foreign = i18n.augment_names(settings.game_lang)
@@ -54,8 +54,9 @@ def augment_matcher(store, settings) -> NameMatcher:
         names = {aid: foreign.get(aid) or n for aid, n in names.items()}
         names.update({aid: n for aid, n in foreign.items() if aid not in names})
     else:
-        tw = i18n.traditional_augment_names()
-        names = {aid: [n, tw[aid]] if tw.get(aid) and tw[aid] != n else n for aid, n in names.items()}
+        extra = i18n.chinese_extra_augment_names()
+        names = {aid: [n] + [x for x in extra.get(aid, []) if x != n] if extra.get(aid) else n
+                 for aid, n in names.items()}
     # OCR 常读错的写法（augment_aliases.json）：同一个 ID 多一个名字，和繁中名一样
     for aid, extra in augment_aliases().items():
         if aid in names:
@@ -109,7 +110,6 @@ class Engine:
                                      check_updates=settings.check_data_updates, managed_official=True)
         if hasattr(self.store, "set_band"):
             self.store.set_band(settings.data_band or None)
-        self._apply_rec_model()
         self._lock = threading.RLock()
         if getattr(self.store, "official", None) is not None:
             @contextmanager
@@ -217,24 +217,14 @@ class Engine:
         self._rescan.set()
 
     def set_game_lang(self, lang: str) -> None:
-        """设置里换了游戏语言：换认字用的名字表（韩服再换识别模型），选人界面的缓存作废。"""
+        """设置里换了游戏语言：换认字用的名字表，选人界面的缓存作废。"""
         self.settings.game_lang = i18n.normalize_lang(lang)
-        self._apply_rec_model()
         self._hm = None
         self._cs_memo = None
         if self._detector:
-            self._detector._ocr = None
             self._detector.set_matcher(self._augment_matcher())
         self.rescan()
         log.info("游戏语言：%s", self.settings.game_lang)
-
-    def _apply_rec_model(self) -> None:
-        from . import langpack
-        from .vision.ocr import OCR
-        path = langpack.installed() if self.settings.game_lang == "ko_KR" else None
-        if self.settings.game_lang == "ko_KR" and not path:
-            log.warning("选了韩服，但韩服识别数据还没下载，先用内置模型（认不出韩文）")
-        OCR.use_rec_model(path)
 
     def reset_calibration(self) -> None:
         with self._lock:
@@ -332,7 +322,7 @@ class Engine:
     def _build_hero_matcher(self) -> NameMatcher:
         names: dict[str, str | list[str]] = {}
         foreign = i18n.hero_names(self.settings.game_lang)
-        tw = {} if foreign else i18n.traditional_hero_names()
+        tw = {} if foreign else i18n.chinese_extra_hero_names()  # 繁中（台服等）+ 马来西亚服简中
         for hid, h in self.store.heroes.items():
             if foreign:  # 外服：只认那种语言的名字和称号（选人界面写的是名字，开局卡片可能是称号）
                 names[hid] = foreign.get(hid) or []
@@ -340,7 +330,7 @@ class Engine:
             names[hid] = h.get("name") or ""
             names[hid + "#nick"] = h.get("nick") or ""
             names[hid + "#full"] = f"{h.get('nick', '')} {h.get('name', '')}"
-            names[hid + "#tw"] = tw.get(hid) or []  # 繁中（台服等）
+            names[hid + "#tw"] = tw.get(hid) or []  # 繁中（台服等）、马来西亚服简中
         return NameMatcher(names, 86.0)
 
     def _load_icons(self, download: bool = True) -> None:
@@ -573,6 +563,7 @@ class Engine:
         self._clear_selection()
         if self._detector is not None:
             self._detector.clear_tracking()
+        self._cs_memo = None  # 选人缓存按截图尺寸分开存；改过窗口大小的旧尺寸不留到下一局
         log.info("对局结束")
         from .diagnostics import resource_summary
         log.info("运行资源：%s", resource_summary())
@@ -621,6 +612,7 @@ class Engine:
                     visible = False
                 if self._detector is not None:
                     self._log_vision_cost(self._detector)
+                capture.release()  # 不在局内就关掉截屏实例：它占着上次截图大小的位图（4K 约 33MB），挂托盘时不该一直留着
                 self.state["vision"]["status"] = "idle"
                 self._rescan.wait(1.0)
                 self._rescan.clear()
@@ -773,6 +765,11 @@ class Engine:
                     "reason": reason, "started": started, "captured": captured, "finished": finished,
                     "capture_ms": (captured-started)*1000, "work_ms": (finished-captured)*1000,
                     "context": context})
+            elif not blank:
+                # 低命中批次仍可能已经读到一列新名字；关闭宽限不能继续画该列旧分数。
+                pending = getattr(det, "pending_columns", (False, False, False))
+                if any(pending):
+                    self._mask_offer_columns(pending, context)
             return offer
         finally:
             if finished is None:
@@ -833,6 +830,18 @@ class Engine:
                 log.exception("截图保存失败")
         threading.Thread(target=save, daemon=True).start()
 
+    def _mask_offer_columns(self, pending, context=None) -> None:
+        with self._lock:
+            current = self.state.get("offer")
+            if (not current or self.state.get("phase") != "ingame"
+                    or (context and context[0] != getattr(self, "_scan_epoch", 0))):
+                return
+            before = current.get("pending_columns", (False, False, False))
+            masked = tuple(a or b for a, b in zip(before, pending))
+            if tuple(before) != masked:
+                self._evaluation_revision += 1  # 在途重算不能把旧可见状态带回来。
+                current["pending_columns"] = masked
+
     def _on_offer(self, offer) -> None:
         context = (offer.trace or {}).get("context") if offer is not None else None
         if context and (invalid := self._scan_invalid_reason(context)):
@@ -841,28 +850,43 @@ class Engine:
         with self._lock:
             prev = self.state.get("offer")
             if offer is None:
+                self._evaluation_revision += 1
                 self.state.update(offer=None, evaluation=None)
                 return
             if self.state["phase"] != "ingame" or (context and context[0] != getattr(self, "_scan_epoch", 0)):
                 return  # 这帧识别完成时已经退出对局，不再发布旧卡片。
             if getattr(offer, "group_changed", False):
+                self._evaluation_revision += 1
                 self.state.update(offer=None, evaluation=None)
                 return
             slots = list(offer.slots)
             if prev and prev.get("corrected"):
                 slots = [s or p for s, p in zip(slots, prev["slots"])]
             if prev and prev["slots"] == slots:
+                if tuple(prev.get("pending_columns", (False, False, False))) != offer.pending_columns:
+                    self._evaluation_revision += 1
                 # 卡片内容不变也可能移动或切换分辨率：保留评分，更新绘制坐标。
                 prev.update(texts=offer.texts, scores=offer.scores, boxes=offer.boxes, at=offer.at,
                             padded=offer.padded, source=offer.source, observation=offer.observation,
-                            _scan_context=context)
+                            pending_columns=offer.pending_columns, _scan_context=context)
                 return
-            self.state["offer"] = {"slots": slots, "texts": offer.texts, "scores": offer.scores,
-                                   "boxes": offer.boxes, "at": offer.at, "padded": offer.padded,
-                                   "source": offer.source, "observation": offer.observation,
-                                   "_scan_context": context}
-            self.state["evaluation"] = None  # 新卡片不能在后台重算期间沿用上一组评分。
-        evaluation = self._reevaluate()
+            if prev:
+                # 新分数尚未算好也先隐藏已换卡列，另外两列继续画原来的完整结果。
+                self._mask_offer_columns([p or old != new for p, old, new in
+                                          zip(offer.pending_columns, prev["slots"], slots)], context)
+            # 每列从什么时候开始没认出（浮窗前几秒写「识别中」，卡刚翻出来字没读全时不闪「未知」）
+            now = time.monotonic()
+            before = (prev or {}).get("unread_since") or [None] * len(slots)
+            unread_since = [None if s else (before[i] if i < len(before) and before[i] is not None
+                                            and prev and not prev["slots"][i] else now)
+                            for i, s in enumerate(slots)]
+            next_offer = {"slots": slots, "texts": offer.texts, "scores": offer.scores,
+                          "boxes": offer.boxes, "at": offer.at, "padded": offer.padded,
+                          "source": offer.source, "observation": offer.observation,
+                          "unread_since": unread_since, "pending_columns": offer.pending_columns,
+                          "_scan_context": context}
+        # 计算期间保留上一对完整结果；新卡片和新评分一起发布，避免定时刷新的界面读到空评分而整组隐藏。
+        evaluation = self._reevaluate(next_offer)
         trace = offer.trace
         if evaluation is not None and trace is not None:
             published = time.perf_counter()
@@ -871,11 +895,12 @@ class Engine:
                      trace["capture_ms"], trace["work_ms"], (published-trace["finished"])*1000,
                      (published-trace["started"])*1000, (published-trace["captured"])*1000)
 
-    def _reevaluate(self) -> dict | None:
+    def _reevaluate(self, next_offer: dict | None = None) -> dict | None:
         with self._lock:
             self._evaluation_revision += 1
             revision = self._evaluation_revision
-            offer = self.state.get("offer")
+            previous = self.state.get("offer")
+            offer = next_offer if next_offer is not None else previous
             hid = self.state.get("hero_id")
             slots = list(offer["slots"]) if offer else None
         if not offer:
@@ -889,11 +914,12 @@ class Engine:
         with self._lock:
             # 后台重算期间可能已结束对局、换英雄或刷新卡片，不能覆盖新状态。
             if (revision != self._evaluation_revision
-                    or self.state.get("offer") is not offer or self.state.get("hero_id") != hid
+                    or self.state.get("offer") is not previous or self.state.get("hero_id") != hid
+                    or (next_offer is not None and self.state["phase"] != "ingame")
                     or (context and context[0] != getattr(self, "_scan_epoch", 0))
                     or offer["slots"] != slots):
                 return None
-            self.state["evaluation"] = ev
+            self.state.update(offer=offer, evaluation=ev)
         key = (hid, tuple(slots))
         if key != self._last_eval_log:
             self._last_eval_log = key

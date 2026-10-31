@@ -61,17 +61,23 @@ class Calibration:
 
     def valid(self) -> bool:
         """标题区域须在客户区内、从左到右且互不重叠；不要求固定间距。"""
-        if len(self.boxes) != 3 or len(self.size) != 2 or any(not math.isfinite(v) or v <= 0 for v in self.size):
+        try:
+            if (not isinstance(self.boxes, (list, tuple)) or len(self.boxes) != 3
+                    or not isinstance(self.size, (list, tuple)) or len(self.size) != 2
+                    or any(type(v) not in (int, float) or not math.isfinite(v) or v <= 0 for v in self.size)):
+                return False
+            for box in self.boxes:
+                if (not isinstance(box, (list, tuple)) or len(box) != 4
+                        or any(type(v) not in (int, float) or not math.isfinite(v) for v in box)):
+                    return False
+                a,b,c,d = box
+                if not (0 <= a < c <= 1 and 0 <= b < d <= 1):
+                    return False
+                if int(c*self.size[0]) <= int(a*self.size[0]) or int(d*self.size[1]) <= int(b*self.size[1]):
+                    return False
+            return all(left[2] <= right[0] for left,right in zip(self.boxes,self.boxes[1:]))
+        except (TypeError, ValueError, OverflowError):
             return False
-        for box in self.boxes:
-            if len(box) != 4 or not all(math.isfinite(v) for v in box):
-                return False
-            a,b,c,d = box
-            if not (0 <= a < c <= 1 and 0 <= b < d <= 1):
-                return False
-            if int(c*self.size[0]) <= int(a*self.size[0]) or int(d*self.size[1]) <= int(b*self.size[1]):
-                return False
-        return all(left[2] <= right[0] for left,right in zip(self.boxes,self.boxes[1:]))
 
 
 @dataclass
@@ -86,6 +92,7 @@ class Offer:
     observation: int = 0  # 真实 OCR 批次；指纹缓存返回不增加。
     trace: dict | None = None  # 单调时钟诊断；不是卡片真实出现时刻，不进入 UI 状态。
     group_changed: bool = False  # 整组三选一正在换牌，暂不发布旧卡混合组
+    pending_columns: tuple[bool, bool, bool] = (False, False, False)  # 旧身份留作确认基准，界面不再画该列旧分数
 
     def key(self) -> tuple:
         return tuple(self.slots)
@@ -163,10 +170,11 @@ class AugmentDetector:
         try:
             d = json.loads(self.calib_path.read_text(encoding="utf-8"))
             calibration = Calibration([tuple(b) for b in d["boxes"]], tuple(d["size"]))
-        except (OSError, ValueError, KeyError, TypeError):
+        except (OSError, ValueError, KeyError, TypeError, OverflowError):
+            log.warning("忽略损坏三选一校准：文件无法解析或尺寸、坐标类型错误")
             return None
         if not calibration.valid():
-            log.warning("忽略无效三选一校准：标题区域越界、重叠或顺序错误")
+            log.warning("忽略无效三选一校准：尺寸、坐标类型错误，或标题区域越界、重叠、顺序错误")
             return None
         return calibration
 
@@ -291,8 +299,7 @@ class AugmentDetector:
         scale = min(1.0, DETECT_MAX_W / max(1, band.shape[1]))
         image = _resize(band, scale)
         priority = getattr(self.ocr, "detect_prioritized", None)
-        # Split recognition batches are validated with the bundled model only.
-        if getattr(self.ocr, "rec_model", None) or not cloud.feature("title_priority"):
+        if not cloud.feature("title_priority"):
             priority = None  # 云控 features.title_priority=false：退回 1.1.1 的整块全部认字
         if callable(priority):
             from .title_rows import title_groups, title_plan
@@ -533,7 +540,10 @@ class AugmentDetector:
             crop, fp = crops[i], fingerprints[i]
             old = cells[i]
             read = (old is None or changed[i] or self._pending[i] is not None or self._group_target is not None or i == maintenance
-                    or (confirming and old is not None and old["aid"] is None))
+                    # 低命中批次里读到的新名字还没走确认，恢复时必须重读；
+                    # 只重读空列会把它留在原始缓存中，继续发布旧卡直到定期复查。
+                    or (confirming and old is not None
+                        and (old["aid"] is None or old["aid"] != self._stable.slots[i])))
             if read:
                 scale = REC_HEIGHT / max(1, crop.shape[0])
                 txt, conf = self.ocr.recognize(_resize(crop, scale))
@@ -575,6 +585,7 @@ class AugmentDetector:
             if any(fresh):
                 self._observation += 1
             offer = Offer(slots, texts, scores, boxes, padded=True, source="strip", observation=self._observation)
+            self._mark_display_pending(offer, fresh)
             if self.calibration.guess and offer.matched() == 3:
                 self.calibration.guess = False  # 默认位置在本机对上了，存下来
                 self._save_calibration()
@@ -597,17 +608,40 @@ class AugmentDetector:
                 if self._stable is None or self._low_match_reads >= self.low_match_reads:
                     self._stable = None
                     self._pending = [None] * 3
+                    self._group_target = None  # 等确认时面板关了：不带到下一次三选一（Gitea #62 问题一）
+                    self._group_counts = [0] * 3
             return self._last_result
+
+    @property
+    def pending_columns(self) -> tuple[bool, bool, bool]:
+        return self._stable.pending_columns if self._stable else (False, False, False)
+
+    def _mark_display_pending(self, offer: Offer, fresh: list[bool]) -> None:
+        if self._stable is None:
+            return
+        pending = tuple(was or bool(read and new and new != old)
+                        for was, read, old, new in zip(self._stable.pending_columns, fresh,
+                                                      self._stable.slots, offer.slots))
+        if pending != self._stable.pending_columns:
+            self._stable = replace(self._stable, pending_columns=pending)
 
     def _stabilize(self, offer: Offer, fresh: list[bool]) -> Offer:
         """单列只采纳连续的新 OCR 观察，短暂读空不重排整组；不无限保留旧卡。"""
         if self._stable is None:
-            self._stable = offer
-            return offer
+            self._group_target = None  # 从头开始的卡组不沿用上一组的整组确认状态（Gitea #62 问题一）
+            self._group_counts = [0] * 3
+            self._stable = replace(offer, pending_columns=(False, False, False))
+            return self._stable
+        self._mark_display_pending(offer, fresh)
+        # 上一轮已进入单列待确认的同名读数，这轮是确认，不是又一次换牌。
+        # 连续点不同列刷新时，不能把前一列的确认和后一列的新卡合算成整组变化。
         changed = [i for i, (old, new) in enumerate(zip(self._stable.slots, offer.slots))
-                   if fresh[i] and new and old != new]
+                   if fresh[i] and new and old != new
+                   and not (self._pending[i] and self._pending[i]["aid"] == new)]
         now = time.monotonic()
         if self.group_confirm and self._group_target is None and len(changed) >= 2:
+            # 整组确认接管这批读数；上一组的单列候选不能跨组充当第二次确认。
+            self._pending = [None] * 3
             self._group_target = [None] * 3
             self._group_counts = [0] * 3
             self._group_since = now
@@ -623,22 +657,28 @@ class AugmentDetector:
                     self._group_counts[i] = 1
             done = [aid if count >= 2 else None for aid, count in zip(self._group_target, self._group_counts)]
             if all(done) or now - self._group_since >= 2 * self.pending_seconds:
-                # 超时（如一列是新卡、认不出）只发已确认的列，其余列回到单列确认，不再整组盯着读
+                # 超时：已确认的列正常发布；只读到一次的名字必须来自本轮新观察。
+                # 不能把动画中读到一次、后来一直读空的旧名字当作当前卡片（Gitea #67）。
+                accepted = [aid if count >= 2 or (fresh[i] and offer.slots[i] == aid) else None
+                            for i, (aid, count) in enumerate(zip(self._group_target, self._group_counts))]
                 if not all(done):
-                    log.info("三选一整组换牌超时：已确认=%s", done)
-                accepted = done
+                    log.info("三选一整组换牌超时：已确认=%s 采用=%s", done, accepted)
                 self._group_target = None
                 self._group_counts = [0] * 3
-                self._stable = replace(offer, slots=accepted)
+                self._stable = replace(offer, slots=accepted, pending_columns=(False, False, False))
                 return self._stable
-            self._stable = replace(offer, slots=[None] * 3, group_changed=True)
+            self._stable = replace(offer, slots=[None] * 3, group_changed=True,
+                                   pending_columns=(False, False, False))
             return self._stable
         accepted = list(self._stable.slots)
+        display_pending = list(self._stable.pending_columns)
         for i, aid in enumerate(offer.slots):
             if not fresh[i]:
                 continue
             if aid == accepted[i]:
                 self._pending[i] = None
+                if aid is not None:
+                    display_pending[i] = False
                 continue
             prior = self._pending[i]
             first = prior["first"] if prior else now
@@ -646,12 +686,13 @@ class AugmentDetector:
             if count >= 2:
                 accepted[i] = aid
                 self._pending[i] = None
+                display_pending[i] = False
             else:
                 self.cost["pending"] += 1
                 self._pending[i] = {"aid": aid, "count": count, "first": first}
                 if now-first >= self.pending_seconds:
                     accepted[i] = None
-        stable = replace(offer, slots=accepted)
+        stable = replace(offer, slots=accepted, pending_columns=tuple(display_pending))
         log.debug("海克斯确认 observation=%d raw_matches=%r published=%r pending=%r",
                   offer.observation, offer.slots, accepted, [p is not None for p in self._pending])
         self._stable = stable

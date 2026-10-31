@@ -1,11 +1,10 @@
-"""外服：各语言名字表、认字匹配、选英雄界面的字、韩服识别数据下载。"""
-import hashlib
+"""外服：各语言名字表、认字匹配、选英雄界面的字。"""
 from types import SimpleNamespace
 
 import numpy as np
 import pytest
 
-from lolhex import i18n, langpack
+from lolhex import i18n
 from lolhex.engine import augment_matcher
 from lolhex.vision import champselect
 from lolhex.vision.matcher import NameMatcher
@@ -16,12 +15,66 @@ def test_names_by_language():
     assert i18n.augment_names("en_US")["1305"] == "Leg Day"
     assert i18n.traditional_augment_names()["1305"] == "腿部訓練日"   # 繁中是另一套译名，不是简转繁
     assert i18n.normalize_lang("zh_TW") == "zh_CN" and i18n.augment_names("zh_TW") == {}  # 繁中并进了中文
-    assert i18n.augment_names("ko_KR")["1305"] == "하체 운동의 날"
+    assert i18n.normalize_lang("ko_KR") == "zh_CN" and i18n.augment_names("ko_KR") == {}  # 1.1.4 起不支持韩服
     assert i18n.hero_names("ja_JP")["157"][0] == "ヤスオ"
     assert i18n.ui_text("bench", "zh_CN") == "可用"
     assert i18n.ui_text("bench", "en_US") == "Available Champions"
     assert i18n.normalize_lang("xx") == "zh_CN"
     assert i18n.ui_texts("bench", "zh_CN") == ["可用", "可使用的英雄"] and i18n.ui_texts("bench", "en_US") == ["Available Champions"]
+    assert i18n.normalize_lang("zh_MY") == "zh_CN" and i18n.augment_names("zh_MY") == {}  # 马来西亚服并进了中文
+    assert "马来西亚" in dict(i18n.LANGS)["zh_CN"]
+
+
+def test_chinese_mode_reads_malaysia_names():
+    """马来西亚服（拳头 zh_MY 简中）译名和腾讯八成不同：中文模式一起认（GitHub czgreat/aramhex#6）。"""
+    extra = i18n.chinese_extra_augment_names()
+    assert extra["1305"][0] == "腿部訓練日"                  # 繁中在前
+    assert "扳机炼狱" not in extra.get("2005", []) and "狂袭地狱火" in extra["2005"]
+    store = SimpleNamespace(mayhem_augments=lambda: {"2005": {"name": "扳机炼狱"}, "1322": {"name": "罪恶快感"},
+                                                     "2076": {"name": "保持坚定"}, "1327": {"name": "坚若磐石"}})
+    cn = augment_matcher(store, SimpleNamespace(game_lang="zh_CN", match_threshold=72.0))
+    assert cn.match("狂袭地狱火")[0] == "2005" and cn.match("扳机炼狱")[0] == "2005"
+    assert cn.match("狂躁！")[0] == "1322" and cn.match("罪恶快感")[0] == "1322"
+    # zh_MY 里 2076 和已下线的 1327 同名「坚定不移」：名字表只给还在玩的 2076
+    assert cn.match("坚定不移")[0] == "2076" and cn.match("坚若磐石")[0] == "1327"
+    heroes = i18n.chinese_extra_hero_names()
+    assert "厄萨斯" in heroes["266"] and "冥血剑魔" in heroes["266"]   # 亚托克斯在马来西亚服的名字、称号
+
+
+def test_malaysia_names_do_not_collide_or_change_existing_matches(tmp_path, no_network):
+    """内置真名单：zh_MY 名字不能和别的海克斯 / 英雄同名，每个都认成自己；并进来以后，现有名字（腾讯、繁中、OCR 别名）认出的结果一个不变。"""
+    from lolhex.data.store import DataStore
+    from lolhex.vision.matcher import normalize
+    store = DataStore(tmp_path)
+    assert len(store.mayhem_augments()) > 300 and len(store.heroes) > 170
+    settings = SimpleNamespace(game_lang="zh_CN", match_threshold=72.0)
+    with_my = augment_matcher(store, settings)
+    mp = pytest.MonkeyPatch()
+    mp.setattr(i18n, "EXTRA_ZH", (i18n.TW,))
+    try:
+        before = augment_matcher(store, settings)
+    finally:
+        mp.undo()
+    ids = set(store.mayhem_augments())
+    my = {aid: n for aid, n in i18n._augments(i18n.MY).items() if aid in ids}
+    assert len(my) > 200
+    owner: dict[str, set] = {}
+    for aid, key in zip(with_my._ids, with_my._keys):
+        owner.setdefault(key, set()).add(aid)
+    for aid, n in my.items():
+        assert owner[normalize(n)] == {aid}, (aid, n, owner[normalize(n)])
+        assert with_my.match(n)[0] == aid, (aid, n)
+    for key in before._keys:
+        assert with_my.match(key)[0] == before.match(key)[0], key
+    # 英雄：zh_MY 名字 / 称号不和别的英雄同名
+    hero_keys: dict[str, set] = {}
+    for hid, h in store.heroes.items():
+        for n in [h.get("name"), h.get("nick")] + i18n.chinese_extra_hero_names().get(hid, []):
+            if n:
+                hero_keys.setdefault(normalize(n), set()).add(hid)
+    for hid, ns in i18n._heroes(i18n.MY).items():
+        for n in ns:
+            assert hero_keys[normalize(n)] == {hid}, (hid, n, hero_keys[normalize(n)])
 
 
 def test_augment_matcher_uses_game_language():
@@ -31,8 +84,6 @@ def test_augment_matcher_uses_game_language():
     assert cn.match("腿部訓練日")[0] == "1305"      # 中文模式也认繁中（台服）的名字
     en = augment_matcher(store, SimpleNamespace(game_lang="en_US", match_threshold=72.0))
     assert en.match("Leg Day")[0] == "1305" and en.match("Giant Slayer")[0] == "1195"
-    ko = augment_matcher(store, SimpleNamespace(game_lang="ko_KR", match_threshold=72.0))
-    assert ko.match("하체 운동의 날")[0] == "1305"
 
 
 def test_matcher_several_names_and_short_english():
@@ -87,47 +138,6 @@ def test_wide_boxes_for_foreign_text():
     champselect.is_champ_select(img, lambda crop: seen.append(crop.shape) or ("", 0.0))
     champselect.is_champ_select(img, lambda crop: seen.append(crop.shape) or ("", 0.0), marker="Available Champions")
     assert seen[1][1] > seen[0][1] * 3              # 外服用更宽的框
-
-
-class _Resp:
-    def __init__(self, data):
-        self.data = data
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *a):
-        return False
-
-    def raise_for_status(self):
-        pass
-
-    def iter_content(self, n):
-        for i in range(0, len(self.data), n):
-            yield self.data[i:i + n]
-
-
-def test_langpack_download_verifies(tmp_path, monkeypatch):
-    monkeypatch.setenv("ARAMHEX_HOME", str(tmp_path))
-    data = b"x" * 1000
-    pack = {"file": "k.onnx", "size": len(data), "sha256": hashlib.sha256(data).hexdigest(),
-            "urls": ["https://a.invalid/k", "https://b.invalid/k"]}
-    calls = []
-
-    def fake_get(url, **kw):
-        calls.append(url)
-        return _Resp(b"bad" if url.startswith("https://a.") else data)  # 第一个地址给了坏文件
-    monkeypatch.setattr(langpack.requests, "get", fake_get)
-    seen = []
-    assert langpack.installed(pack) is None
-    path = langpack.download(pack, progress=lambda d, t: seen.append(d))
-    assert calls == pack["urls"] and path.read_bytes() == data and langpack.installed(pack) == path
-    assert seen[-1] == len(data) and not path.with_name("k.onnx.part").exists()
-    monkeypatch.setattr(langpack.requests, "get", lambda url, **kw: _Resp(b"bad"))
-    path.unlink()
-    with pytest.raises(ValueError):
-        langpack.download(pack)
-    assert langpack.installed(pack) is None
 
 
 def test_same_name_except_bang():

@@ -24,6 +24,14 @@ def _mss():
     return inst
 
 
+def release() -> None:
+    """关掉本线程的截屏实例。一次性线程用完必须调：mss 不会自己释放，每个线程会留下一块 GDI 位图（4K 约 33MB）。"""
+    inst = getattr(_local, "mss", None)
+    if inst is not None:
+        _local.mss = None
+        inst.close()
+
+
 def grab(rect: Rect, mask: bool = True) -> np.ndarray:
     """截 rect 这块屏幕。mask=True（识别用）时把本程序浮窗画着的地方涂黑，不认自己画的字；
     自动截图要看浮窗摆得对不对，用 mask=False。"""

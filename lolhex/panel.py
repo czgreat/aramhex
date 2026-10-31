@@ -87,6 +87,8 @@ def hero_panel(store, hero_key, k: int = 300, *, allow_network: bool = True) -> 
         item_stats = [{**r, "item": item(r["item"])} for r in rows[:6]]
     rank = (store.ranks.get("heroes") or {}).get(hid, {})
     n_heroes = len(store.ranks.get("heroes") or {}) or None
+    status = store.status()
+    official = status.get("official") or {}
     return {
         "hero": store.heroes.get(hid),
         "rank": {**rank, "total": n_heroes},
@@ -94,7 +96,8 @@ def hero_panel(store, hero_key, k: int = 300, *, allow_network: bool = True) -> 
         "partners": [{**p, "hero": store.heroes.get(p["hero"], {"id": p["hero"]})}
                      for p in data.get("partners", [])],
         "date": data.get("date"), "patch": store.static.get("patch"),
-        "data_patch": ag.get("patch"), "data_revision": (store.status().get("dataset_revision")),
+        "data_patch": ag.get("patch"), "data_revision": status.get("dataset_revision"),
+        "official_revision": official.get("official_revision"), "official_origin": official.get("official_origin"),
         "splash": data.get("splash"),
         "win_source": ag.get("label") or "暂无统计数据", "summoners": summoners,
         "summoner_source": sum_src if summoners else "", "summoner_source_date": str(getattr(getattr(store, "dataset", None), "snapshot_at", "") or "")[:10] or None,

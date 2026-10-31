@@ -12,7 +12,6 @@ lolhex/
   recommend.py         三选一评分
   panel.py             单英雄面板（胜率、出装、加点、海克斯表）
   i18n.py              外服：按游戏语言认海克斯名、英雄名、选人界面的字（名字表 data/i18n.json）
-  langpack.py          韩服识别数据（韩文识别模型，选了韩文再下载，不进安装包）
   data/
     store.py           官方资料（英雄、海克斯、装备）的读取和缓存；1.1.2 起运行时不连腾讯
     official.py        官方资料整包：内置优先，按云控从自己的服务器更新，对局外切换（见 docs/OFFICIAL-DATA.md）
@@ -76,6 +75,8 @@ pwsh -NoProfile -File packaginguild.ps1 -PortableOnly -TestTag test.1   # 每�
 ```
 
 版本号会变成 `1.1.3-test.1`，比正式版 `1.1.3` 旧，正式版发布后能收到更新提示。不带测试号的包和正式版同号，装了的人收不到正式版（1.1.2 时有 32 台这样）。
+
+带 `-TestTag` 的测试包会在程序目录附带空的 `debug.txt`，默认开启详细日志和自动截图，便携版与安装版均适用。需要关闭时删除该文件并重启助手。
 
 ### 正式版
 

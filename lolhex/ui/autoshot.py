@@ -9,6 +9,7 @@ import logging
 import time
 from datetime import datetime
 from pathlib import Path
+from threading import Thread
 
 from PySide6.QtCore import QTimer
 
@@ -41,9 +42,9 @@ class AutoShot:
         ev, offer = snap.get("evaluation"), snap.get("offer")
         if game_rect and ev and offer:
             key = tuple(offer.get("slots") or [])
-            if key != self._offer_key and any(key):
-                self._offer_key = key
-                self._schedule(game_rect, "三选一")
+            if key != self._offer_key and any(key) and not any(offer.get("pending_columns") or ()):
+                if self._schedule(game_rect, "三选一"):
+                    self._offer_key = key
         elif not offer:
             self._offer_key = None
         cs = snap.get("champ_select")
@@ -53,19 +54,25 @@ class AutoShot:
             if n != self._cs_seen[0]:
                 self._cs_seen = (n, now)
             elif n > self._cs_shot and now - self._cs_seen[1] >= CS_STABLE_S:
-                self._cs_shot = n  # 后面又多标出英雄时再截一张
-                self._schedule(client_rect, "选英雄")
+                if self._schedule(client_rect, "选英雄"):
+                    self._cs_shot = n  # 后面又多标出英雄时再截一张
         elif not cs:
             self._cs_shot, self._cs_seen = 0, (0, 0.0)
 
-    def _schedule(self, rect, kind: str) -> None:
+    def _schedule(self, rect, kind: str) -> bool:
         if self._busy:
-            return
+            return False
         self._busy = True
         QTimer.singleShot(SETTLE_MS[kind], lambda: self._open(rect, kind))
+        return True
 
     def _open(self, rect, kind: str) -> None:
-        self._grab(rect, kind)
+        # mss 使用线程本地实例；截屏、PNG 编码和写盘都不占 Qt 主线程。
+        try:
+            Thread(target=self._grab, args=(rect, kind), name="debug-screenshot", daemon=True).start()
+        except Exception:
+            self._busy = False
+            log.exception("自动截图启动失败")
 
     def _grab(self, rect, kind: str) -> None:
         try:
@@ -73,10 +80,10 @@ class AutoShot:
 
             from ..vision import capture
             img = capture.grab(rect, mask=False)
+            stamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")[:-3]  # 采集完成时刻，PNG 编码之前
             if not capture.is_blank(img):
                 ok, buf = cv2.imencode(".png", img)
                 if ok:
-                    stamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")[:-3]  # 带毫秒：连着刷新也不会互相覆盖
                     path = shots_dir() / f"{stamp}-{kind}.png"
                     n = 1
                     while path.exists():  # 同一毫秒里截了两张（测试里会遇到）：加序号，不覆盖
@@ -88,6 +95,11 @@ class AutoShot:
         except Exception:
             log.exception("自动截图失败")
         finally:
+            try:
+                from ..vision import capture
+                capture.release()  # 每张截图都是新线程：用完就关，不留 GDI 位图
+            except Exception:
+                log.exception("释放截屏资源失败")
             self._busy = False
 
     @staticmethod

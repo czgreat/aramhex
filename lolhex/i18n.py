@@ -2,7 +2,7 @@
 
 名字表 data/i18n.json 由 scripts/update_i18n.py 从拳头公开数据生成，ID 和腾讯同一套，
 所以统计数据、界面显示（中文名）都不用改，只是认字时多一套名字。
-韩文要另外的文字识别模型（vision/models/ 下，打包时下载），其他语言内置模型就认得。
+这几种语言内置的识别模型都认得。韩服（ko_KR）1.1.4 起不再支持，以前选过的按中文处理。
 """
 
 from __future__ import annotations
@@ -16,12 +16,15 @@ log = logging.getLogger(__name__)
 
 PATH = Path(__file__).resolve().parent / "data" / "i18n.json"
 # 设置里的选项：(代码, 显示名)。中文是 zh_CN：简体名字用腾讯的（和拳头简中一致），
-# 繁中（台服等）的名字也一起认——繁中是另一套译名，台服玩家多半不会去改设置。
-# 以前单独有过繁中选项（zh_TW），存着这个值的当中文
-LANGS = [("zh_CN", "中文 简-繁（国服、台服）"), ("en_US", "English（美服、欧服等）"),
-         ("ja_JP", "日本語（日服）"), ("ko_KR", "한국어（韩服）")]
+# 繁中（台服等）、马来西亚服简中（zh_MY，拳头另一套译名，和腾讯八成不同）的名字也一起认——
+# 这些玩家多半不会去改设置。1.1.4 查过：并进来后不同海克斯 / 英雄没有同名，现有名字的识别结果不变。
+# 以前单独有过繁中选项（zh_TW）和韩服（ko_KR），存着这两个值的当中文
+LANGS = [("zh_CN", "中文 简-繁（国服、台服、马来西亚服）"), ("en_US", "English（美服、欧服等）"),
+         ("ja_JP", "日本語（日服）")]
 LANG_CODES = {code for code, _ in LANGS}
 TW = "zh_TW"
+MY = "zh_MY"
+EXTRA_ZH = (TW, MY)  # 中文模式额外认的名字
 # 国服客户端选英雄界面上的字（i18n.json 里也有，这里写死，名字表缺失时国服照常能用）
 UI_CN = {"bench": "可用", "pick": "选择你的英雄"}
 
@@ -70,6 +73,25 @@ def traditional_hero_names() -> dict[str, list[str]]:
     return _heroes(TW)
 
 
+def chinese_extra_augment_names() -> dict[str, list[str]]:
+    """中文模式下额外认的海克斯名：{ID: [繁中, 马来西亚服简中]}（有哪个放哪个，去重）。"""
+    out: dict[str, list[str]] = {}
+    for lang in EXTRA_ZH:
+        for aid, n in _augments(lang).items():
+            if n not in out.setdefault(aid, []):
+                out[aid].append(n)
+    return out
+
+
+def chinese_extra_hero_names() -> dict[str, list[str]]:
+    """中文模式下额外认的英雄名和称号（繁中 + 马来西亚服简中）。"""
+    out: dict[str, list[str]] = {}
+    for lang in EXTRA_ZH:
+        for hid, ns in _heroes(lang).items():
+            out.setdefault(hid, []).extend(n for n in ns if n not in out[hid])
+    return out
+
+
 def ui_text(key: str, lang: str) -> str:
     """选英雄界面上的字：bench=预选栏左边的「可用」，pick=开局选卡的「选择你的英雄」。"""
     lang = normalize_lang(lang)
@@ -79,10 +101,11 @@ def ui_text(key: str, lang: str) -> str:
 
 
 def ui_texts(key: str, lang: str) -> list[str]:
-    """同上，中文模式是 [简体, 繁中] 两种写法，先试简体。"""
+    """同上，中文模式是 [简体, 繁中, 马来西亚服] 几种写法（去重），先试简体。"""
     out = [ui_text(key, lang)]
     if normalize_lang(lang) == "zh_CN":
-        tw = ((_table().get("ui") or {}).get(key) or {}).get(TW)
-        if tw and tw not in out:
-            out.append(tw)
+        for extra in EXTRA_ZH:
+            t = ((_table().get("ui") or {}).get(key) or {}).get(extra)
+            if t and t not in out:
+                out.append(t)
     return out

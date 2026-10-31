@@ -255,6 +255,96 @@ def test_failed_check_uses_memory_backoff_without_persisting_check_time(setup):
     assert not client.sync(force=True)
 
 
+def test_failed_check_backoff_survives_clock_rollback(setup, monkeypatch):
+    create, server, now, _ = setup
+    client = create()
+    get = server.get
+    monkeypatch.setattr(server, "get", lambda url, **kwargs: (_ for _ in ()).throw(OSError("offline")))
+    assert not client.sync(force=True)
+    now[0] -= 86400
+    assert client.seconds_until_check() == 0.0
+    monkeypatch.setattr(server, "get", get)
+    assert client.sync()
+    assert client.seconds_until_check() == 3600
+
+
+@pytest.mark.parametrize("initial,updated,elapsed,expected", [
+    (60, 2, 30, 90), (2, 60, 30, 570), (60, 1, 61, 0), (60, 43200, 30, 570),
+])
+def test_failed_check_backoff_uses_current_cloud_interval(setup, initial, updated, elapsed, expected):
+    create, server, now, config = setup
+    config["minutes"] = initial
+    client = create()
+    server.get = lambda url, **kwargs: (_ for _ in ()).throw(OSError("offline"))
+    assert not client.sync()
+    now[0] += elapsed
+    config["minutes"] = updated
+    assert client.seconds_until_check() == expected
+
+
+def test_failed_check_backoff_blocks_polling_but_force_can_recover(setup, monkeypatch):
+    create, server, now, _ = setup
+    client = create()
+    assert client.sync()
+    state_path = client.root / "check-state.json"
+    state = state_path.read_bytes()
+    now[0] += 3600
+    get = server.get
+    attempts = []
+
+    def offline(url, **kwargs):
+        attempts.append(url)
+        raise OSError("offline")
+
+    monkeypatch.setattr(server, "get", offline)
+    assert not client.sync()
+    assert len(attempts) == 1
+    now[0] += 1
+    assert not client.sync()
+    assert len(attempts) == 1
+    assert state_path.read_bytes() == state
+    monkeypatch.setattr(server, "get", get)
+    assert not client.sync(force=True)
+    assert len(server.calls) == 3
+    assert client.last_error is None
+    assert client.seconds_until_check() == 3600
+
+
+def test_failed_check_backoff_starts_when_request_finishes(setup):
+    create, server, now, _ = setup
+    client = create()
+
+    def offline(url, **kwargs):
+        now[0] += 120
+        raise OSError("offline")
+
+    server.get = offline
+    assert not client.sync()
+    assert client.seconds_until_check() == 600
+
+
+def test_local_activation_failure_records_backoff_before_config_is_read(setup, monkeypatch):
+    create, server, now, config = setup
+    client = create()
+    config["hold"] = True
+    assert not client.sync()
+    state_path = client.root / "check-state.json"
+    state = state_path.read_bytes()
+    config["hold"] = False
+
+    def cannot_activate():
+        raise OSError("active.json unavailable")
+
+    monkeypatch.setattr(client, "_activate", cannot_activate)
+    assert not client.sync()
+    assert client.last_error == "active.json unavailable"
+    assert client.seconds_until_check() == 600
+    now[0] -= 86400
+    assert client.seconds_until_check() == 0
+    assert state_path.read_bytes() == state
+    assert len(server.calls) == 2
+
+
 def test_incompatible_client_is_rejected_before_package_download(setup):
     create, server, _, _ = setup
     server.manifest["min_client"] = "99.0.0"

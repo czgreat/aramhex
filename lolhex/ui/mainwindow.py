@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QFormLayout, 
                                QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMenu, QMessageBox, QProgressBar, QScrollArea,
                                QPushButton, QSizePolicy, QSystemTrayIcon, QTabWidget, QVBoxLayout, QWidget)
 
-from .. import DATA_HOMEPAGE, HOMEPAGE, __version__, cloud, cloudsettings, i18n, langpack, logupload, patch, rank, recommend, update
+from .. import DATA_HOMEPAGE, HOMEPAGE, __version__, cloud, cloudsettings, i18n, logupload, patch, rank, recommend, update
 from ..config import SPEEDS, is_portable
 from ..vision import window as win
 from ..data.public import BANDS, norm_band
@@ -422,21 +422,15 @@ class MainWindow(QMainWindow):
         self.set_usage.setToolTip("开着时：联网时带一个随机编号（和账号、硬件无关），用来统计有多少人在用；\n"
                                   "排查问题时开发者可能请这台电脑上传运行日志，上传前去掉游戏账号名和电脑用户名。\n"
                                   "关掉就都不发。")
-        # 外服：游戏客户端的语言。韩文要另外下载识别数据（安装包里不带）
+        # 外服：游戏客户端的语言
         self.set_lang = QComboBox()
         for code, label in i18n.LANGS:
             self.set_lang.addItem(label, code)
         self.set_lang.setCurrentIndex(max(0, self.set_lang.findData(i18n.normalize_lang(s.game_lang))))
         self.lang_hint = QLabel()
         self.lang_hint.setStyleSheet("color:#555")
-        self.btn_langpack = QPushButton(f"下载韩服识别数据（约 {langpack.KOREAN['size'] / 2 ** 20:.0f}MB）")
-        self.btn_langpack.clicked.connect(self._download_langpack)
         lang_row = QHBoxLayout()
         lang_row.addWidget(self.lang_hint, 1)
-        lang_row.addWidget(self.btn_langpack)
-        self._langpack_state: dict | None = None  # 下载中 {done, total}；失败 {error}
-        self._langpack_timer = QTimer(self)
-        self._langpack_timer.timeout.connect(self._update_lang_hint)
         self.set_lang.currentIndexChanged.connect(self._update_lang_hint)
         self._update_lang_hint()
         f.addRow("游戏语言", self.set_lang)
@@ -520,6 +514,14 @@ class MainWindow(QMainWindow):
         if hasattr(self, "my_rank_label"):
             self.my_rank_label.setText(f"你：{r[0]['band_name']}（前 {r[0]['top'] * 100:.1f}%）" if r else "")
 
+    def _retire_when_done(self, attr: str, worker) -> None:
+        """查询/更新线程跑完就删掉：父对象是主窗口，不删的话每查一次留一个 QThread（助手常驻托盘好几天）。"""
+        def done():
+            if getattr(self, attr) is worker:
+                setattr(self, attr, None)
+            worker.deleteLater()
+        worker.finished.connect(done)
+
     def _query_rank(self, silent: bool = False):
         if self._rank_worker and self._rank_worker.isRunning():
             return
@@ -531,6 +533,7 @@ class MainWindow(QMainWindow):
         self._rank_worker.done.connect(lambda res: self._rank_done(rid, res, silent))
         self._rank_worker.failed.connect(lambda msg: self._rank_failed(msg, silent))
         self._rank_worker.finished.connect(lambda: (self.btn_rank.setEnabled(True), self.btn_rank.setText("查询")))
+        self._retire_when_done("_rank_worker", self._rank_worker)
         self._rank_worker.start()
 
     def _rank_done(self, rid: str, res: dict, silent: bool):
@@ -794,12 +797,6 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, "设置", "这几项现在按官方临时设置，撤掉后会改回你选的："
                                     + "、".join(SETTING_NAMES.get(k, k) for k in held))
         saved = s.save()
-        if lang == "ko_KR" and langpack.installed() is None and not (
-                self._langpack_state and "error" not in self._langpack_state):
-            ask = QMessageBox.question(self, "韩服识别数据",
-                                       f"认韩文海克斯要先下载韩服识别数据（约 {langpack.KOREAN['size'] / 2 ** 20:.0f}MB），现在下载吗？")
-            if ask == QMessageBox.Yes:
-                self._download_langpack()
         self.overlay.set_visible(s.overlay)
         self.overlay.panel.corner = s.overlay_corner
         try:
@@ -812,44 +809,10 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "设置", "设置文件写不进去，这次的改动关掉助手后会丢失。")
 
     def _update_lang_hint(self):
-        """游戏语言下面那一行：只有选了韩文才显示（识别数据下没下好、下载进度）。"""
-        korean = self.set_lang.currentData() == "ko_KR"
-        st = self._langpack_state
-        busy = bool(st and "error" not in st)
-        ready = langpack.installed() is not None
-        if not korean:
-            text = "国服选简体中文；外服按游戏客户端的语言选" if self.set_lang.currentData() == "zh_CN" else ""
-        elif busy:
-            text = f"正在下载韩服识别数据 {st['done'] / 2 ** 20:.1f} / {st['total'] / 2 ** 20:.1f} MB"
-        elif st and "error" in st:
-            text = f"下载失败：{st['error']}"
-        elif ready:
-            text = "韩服识别数据已下载"
-        else:
-            text = "韩服要先下载韩文识别数据才能认出海克斯"
+        """游戏语言下面那一行提示：选中文时提醒国服、外服怎么选。"""
+        text = "国服选简体中文；外服按游戏客户端的语言选" if self.set_lang.currentData() == "zh_CN" else ""
         self.lang_hint.setText(text)
         self.lang_hint.setVisible(bool(text))
-        self.btn_langpack.setVisible(korean and not ready and not busy)
-        if not busy:
-            self._langpack_timer.stop()
-
-    def _download_langpack(self):
-        if self._langpack_state and "error" not in self._langpack_state:
-            return
-        state = {"done": 0, "total": langpack.KOREAN["size"]}
-        self._langpack_state = state
-
-        def run():
-            try:
-                langpack.download(progress=lambda done, total: state.update(done=done, total=total))
-                self._langpack_state = None
-                if self.engine.settings.game_lang == "ko_KR":
-                    self.engine.set_game_lang("ko_KR")  # 已经选了韩文：马上换上韩文模型
-            except Exception as e:
-                self._langpack_state = {"error": str(e)[:80]}
-        threading.Thread(target=run, name="langpack", daemon=True).start()
-        self._langpack_timer.start(300)
-        self._update_lang_hint()
 
     def _recalibrate(self):
         self.engine.reset_calibration()
@@ -879,6 +842,7 @@ class MainWindow(QMainWindow):
             self._worker.failed.connect(self._check_failed)
             self._worker.finished.connect(lambda: (self.btn_check.setEnabled(True),
                                                    self.btn_check.setText("检查更新")))
+        self._retire_when_done("_worker", self._worker)
         self._worker.start()
 
     def _sync_data_now(self) -> str:
@@ -960,8 +924,9 @@ class MainWindow(QMainWindow):
         if patch.install_root() is None and (is_portable() or not self._update_info.get("url")):
             webbrowser.open(cloud.site())
             return
-        if self.engine.snapshot().get("phase") == "ingame":
-            QMessageBox.information(self, "更新", "正在对局中，打完这局再更新。")
+        if self._busy():
+            # 选英雄时也不更新：重启那几十秒正好错过选英雄界面，这局就认不出英雄（10-29 日志：1.1.2→1.1.3 更新后 48 局）
+            QMessageBox.information(self, "更新", "正在选英雄或对局中，打完这局再更新。")
             return
         self.btn_update.setEnabled(False)
         self.btn_update.setText("更新中…")
@@ -975,6 +940,7 @@ class MainWindow(QMainWindow):
         self._worker.patched.connect(self._apply_patch)
         self._worker.manual.connect(self._offer_manual)
         self._worker.failed.connect(self._update_failed)
+        self._retire_when_done("_worker", self._worker)
         self._worker.start()
 
     def _update_phase(self, text: str):
@@ -1104,14 +1070,16 @@ class MainWindow(QMainWindow):
             self.cs_label.hide()
         self._set_candidates(snap.get("candidates") or [])
 
-        key = (hid, d.get("date"), d.get("data_revision"), self.engine.icons.version, dd.get("band_effective")) if d else None
+        key = (hid, d.get("date"), d.get("data_revision"), d.get("official_revision"),
+               d.get("official_origin"), self.engine.icons.version, dd.get("band_effective"), show_win) if d else None
         if d and self._panel_hero != key:
             self._panel_hero = key
             self.tab_hero.setText(self._hero_html(d, show_win))
         elif not d:
             self._panel_hero = None
             self.tab_hero.setText("<span style='color:#777'>还没有选英雄</span>")
-        self._render_offer(snap.get("evaluation"), show_win)
+        self._render_offer(snap.get("evaluation"), show_win,
+                           (snap.get("offer") or {}).get("pending_columns"))
 
     def _hero_html(self, d, show_win) -> str:
         out = buildview.lines(d, self.engine.icons, show_win, size=28)
@@ -1127,16 +1095,21 @@ class MainWindow(QMainWindow):
                            f" {a.get('tier') or ''}</span> <b style='color:#2e9d5b'>{a['delta']:+.1f}</b>")
         return "<br>".join(out)
 
-    def _render_offer(self, ev, show_win):
+    def _render_offer(self, ev, show_win, pending=None):
         if not ev:
             self.offer_advice.setText("<span style='color:#777'>未在选海克斯</span>")
             for lab in self.offer_cards:
                 lab.setText("")
             return
-        pk = recommend.pentakill_text(ev.get("pentakill"))
-        self.offer_advice.setText(f"<b style='font-size:15px'>{ev['advice']}</b>"
+        waiting = any(pending or ())
+        pk = recommend.pentakill_text(ev.get("pentakill")) if not waiting else ""
+        advice = "卡片更新中，等待识别确认" if waiting else ev['advice']
+        self.offer_advice.setText(f"<b style='font-size:15px'>{advice}</b>"
                                   + (f"<br><span style='color:#c9a0ff'>{escape(pk)}</span>" if pk else ""))
         for lab, r in zip(self.offer_cards, ev["slots"]):
+            if pending and pending[r["index"]]:
+                lab.setText("<span style='color:#777'>识别中…</span>")
+                continue
             v, col = VERDICT_CN.get(r["verdict"], VERDICT_CN["unknown"])
             if r["verdict"] == "best" and r.get("sample_warning"):
                 v = "相对较好，仅供参考"

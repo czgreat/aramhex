@@ -2,6 +2,7 @@
 # 用法（PowerShell 7）：pwsh -NoProfile -File packaging/build.ps1 [-PythonExe <python>] [-InnoCompiler <ISCC.exe>] [-PortableOnly] [-TestTag test.1]
 # -PortableOnly：只出便携版（测试版自己用，不需要 Inno Setup）
 # -TestTag：发到群里、局域网测试的包一定要带，版本号变成「1.1.3-test.1」，比正式版 1.1.3 旧，正式版一发就会提示更新。
+#           测试包自动附带空的 debug.txt，解压运行即开启详细日志和自动截图。
 #           以前测试包和正式版同号，测过的人收不到正式版的更新提示（1.1.2 正式发布时有 32 台）
 # 输出：build/release/AramHex-Setup-<版本>.exe、AramHex-Portable-<版本>.zip、SHA256SUMS.txt
 param([string]$PythonExe, [string]$InnoCompiler, [switch]$PortableOnly, [string]$TestTag)
@@ -61,6 +62,11 @@ if ($smoke.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $report)) { throw 'Qt
 $gui = Get-Content -Raw -Encoding UTF8 -LiteralPath $report | ConvertFrom-Json
 if (-not $gui.success -or $gui.version -ne $version -or $gui.platform -ne 'windows' -or -not $gui.ocr_ok) { throw "自检结果不对（界面或文字识别）：$($gui | ConvertTo-Json -Compress)" }
 Write-Host "自检通过：Qt $($gui.qt)，文字识别读到「$($gui.ocr_text)」"
+
+if ($TestTag) {
+    # 放进同一份程序目录，测试安装版和便携版都默认开启调试；运行时已经支持这个标记。
+    [IO.File]::WriteAllBytes((Join-Path $dist 'debug.txt'), [byte[]]@())
+}
 
 $setup = $null
 if (-not $PortableOnly) {

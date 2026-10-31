@@ -43,7 +43,6 @@ def make_detector(monkeypatch, *, origin=(0, 0), path=None, words=None, centers=
     crops = [np.full((2, 3, 3), i, np.uint8) for i in range(len(raw))]
     ocr = OCR.__new__(OCR)
     ocr._lock = threading.Lock()
-    ocr.rec_model = None
     ocr._engine = SimpleNamespace(load_img=lambda value: value, preprocess_img=lambda value: value,
                                  detect_and_crop=lambda *args: None, recognize_txt=lambda value: value,
                                  text_score=.5)
@@ -167,7 +166,7 @@ def test_4k_priority_scan_during_window_move_cannot_save_or_publish_old_position
     engine._scan_epoch = 0
     engine._detector = detector
     engine.state = {"phase": "ingame", "vision": {}, "offer": None, "evaluation": None}
-    engine._reevaluate = lambda: {"ok": True}
+    engine._reevaluate = lambda next_offer: engine.state.update(offer=next_offer) or {"ok": True}
     monkeypatch.setattr(window, "find_game_window", lambda: 7)
     monkeypatch.setattr(window, "client_rect", lambda hwnd: current["rect"])
     monkeypatch.setattr(window, "is_foreground", lambda hwnd: True)

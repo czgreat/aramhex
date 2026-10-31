@@ -14,9 +14,9 @@ from __future__ import annotations
 
 import base64
 import json
+import re
 import sys
 import tempfile
-import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -49,7 +49,6 @@ def _png(url: str) -> bytes | None:
 
 
 def main() -> int:
-    today = time.strftime("%Y-%m-%d")
     with tempfile.TemporaryDirectory() as tmp:
         store = DataStore(Path(tmp))
         store._refresh_static()
@@ -59,10 +58,8 @@ def main() -> int:
                   file=sys.stderr)
             return 1
         out = {k: static.get(k) for k in KEYS}
-        out["generated"] = today
         print(f"{out['patch']} 版本：英雄 {len(out['heroes'])}、海克斯 {len(out['augments'])}、装备 {len(out['items'])}、"
               f"召唤师技能 {len(out['spells'])}")
-        _dump(STATIC_OUT, out)
 
         # 单英雄：和软件里一样走 official_hero（腾讯接口全局限速，173 个约两分钟）
         heroes, missing = {}, []
@@ -76,7 +73,15 @@ def main() -> int:
             print(f"单英雄只取到 {len(heroes)} 个，不写 {HEROES_OUT.name}", file=sys.stderr)
             return 1
         print(f"单英雄官方数据 {len(heroes)} 个" + (f"，没取到：{missing}" if missing else ""))
-        _dump(HEROES_OUT, {"patch": out["patch"], "generated": today, "heroes": heroes})
+        # generated 写腾讯的统计日期，不写运行当天：客户端校验每个英雄的 date 都等于它（data/official.py）
+        dates = {str(d.get("date", "")) for d in heroes.values()}
+        if len(dates) != 1 or not re.fullmatch(r"\d{8}", next(iter(dates))):
+            print(f"单英雄统计日期不一致：{sorted(dates)}，不写", file=sys.stderr)
+            return 1
+        d = next(iter(dates))
+        out["generated"] = f"{d[:4]}-{d[4:6]}-{d[6:]}"
+        _dump(STATIC_OUT, out)
+        _dump(HEROES_OUT, {"patch": out["patch"], "generated": out["generated"], "heroes": heroes})
 
     todo = [("item", k, v["icon"]) for k, v in sorted(out["items"].items()) if v.get("icon")]
     todo += [("spell", k, v["icon"]) for k, v in sorted(out["spells"].items()) if v.get("icon")]
@@ -88,7 +93,7 @@ def main() -> int:
             icons.setdefault(kind, {})[key] = base64.b64encode(b).decode("ascii")
     print(f"图标：装备 {len(icons.get('item', {}))}/{sum(t[0] == 'item' for t in todo)}、"
           f"召唤师技能 {len(icons.get('spell', {}))}/{sum(t[0] == 'spell' for t in todo)}")
-    _dump(ICONS_OUT, {"generated": today, "icons": icons})
+    _dump(ICONS_OUT, {"generated": out["generated"], "icons": icons})
     return 0
 
 

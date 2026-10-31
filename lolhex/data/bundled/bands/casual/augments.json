@@ -587,18 +587,6 @@
   "name": "杀意翻涌",
   "rarity": "silver"
  },
- "2032": {
-  "name": "鲨鱼诱饵",
-  "rarity": "gold"
- },
- "2034": {
-  "name": "鲨鱼暴风",
-  "rarity": "gold"
- },
- "2043": {
-  "name": "自然即是治愈",
-  "rarity": "gold"
- },
  "2054": {
   "name": "三重射击",
   "rarity": "prismatic"
@@ -637,14 +625,6 @@
  },
  "2078": {
   "name": "连锁反应",
-  "rarity": "prismatic"
- },
- "2080": {
-  "name": "冰雪爆裂",
-  "rarity": "gold"
- },
- "2083": {
-  "name": "牙仙子",
   "rarity": "gold"
  },
  "2087": {
@@ -654,10 +634,6 @@
  "2088": {
   "name": "下雪天",
   "rarity": "silver"
- },
- "2091": {
-  "name": "无尽大杀四方",
-  "rarity": "gold"
  },
  "2096": {
   "name": "小小的额外帮助",
@@ -683,21 +659,9 @@
   "name": "狙神飞星",
   "rarity": "gold"
  },
- "2104": {
-  "name": "灵魄炸弹",
-  "rarity": "prismatic"
- },
- "2107": {
-  "name": "濒死悟道",
-  "rarity": "prismatic"
- },
  "2111": {
   "name": "邦！",
   "rarity": "gold"
- },
- "2115": {
-  "name": "软弹啪叽抓",
-  "rarity": "prismatic"
  },
  "2116": {
   "name": "威能之追求",
@@ -709,10 +673,6 @@
  },
  "2125": {
   "name": "前进时间到",
-  "rarity": "silver"
- },
- "2127": {
-  "name": "大师铸就",
   "rarity": "silver"
  },
  "2129": {
@@ -731,10 +691,6 @@
   "name": "仁慈打击",
   "rarity": "gold"
  },
- "2134": {
-  "name": "电涌力场",
-  "rarity": "prismatic"
- },
  "2135": {
   "name": "针插垫",
   "rarity": "prismatic"
@@ -742,10 +698,6 @@
  "2136": {
   "name": "可靠武器",
   "rarity": "silver"
- },
- "2137": {
-  "name": "轻拍背部",
-  "rarity": "gold"
  },
  "2138": {
   "name": "自适应防护",

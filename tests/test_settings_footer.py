@@ -100,23 +100,10 @@ def test_common_hero_controls_stay_visible(mw, page):
     fully_visible(mw.band_box)
 
 
-@pytest.mark.parametrize("state,ready,download_visible", [
-    (None, False, True),
-    ({"done": 1024, "total": 2048}, False, False),
-    ({"error": "连接超时"}, False, True),
-    (None, True, False),
-])
-def test_korean_states_preserved(mw, monkeypatch, state, ready, download_visible):
-    from lolhex.ui import mainwindow
-    monkeypatch.setattr(mainwindow.langpack, "installed", lambda: "model" if ready else None)
-    mw.tabs.setCurrentIndex(2)
-    mw._langpack_state = state
-    mw.set_lang.setCurrentIndex(mw.set_lang.findData("ko_KR"))
-    mw._update_lang_hint()
-    settle()
-    assert mw.lang_hint.text()
-    assert mw.btn_langpack.isVisibleTo(mw) == download_visible
-    fully_visible(mw.btn_check)
+def test_korean_option_removed(mw):
+    """1.1.4 起不支持韩服：设置里没有韩语，也没有下载韩服识别数据的按钮。"""
+    codes = [mw.set_lang.itemData(i) for i in range(mw.set_lang.count())]
+    assert codes == ["zh_CN", "en_US", "ja_JP"] and not hasattr(mw, "btn_langpack")
 
 
 def test_other_pages_keep_long_content_scrollable(mw):

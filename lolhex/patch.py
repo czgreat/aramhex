@@ -29,6 +29,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from urllib.parse import unquote
 
 import requests
 
@@ -102,13 +103,33 @@ def build_manifest(root: Path, version: str) -> dict:
             "patchable": [rel for rel in files if is_patchable(rel)]}
 
 
+def _relative_path(rel: str) -> str:
+    """Only canonical POSIX paths; Windows also treats backslashes/drives as paths."""
+    if (not isinstance(rel, str) or not rel or unquote(rel) != rel
+            or any(c in rel for c in '\\:?#<>"|*') or any(ord(c) < 32 for c in rel)
+            or any(part in ("", ".", "..") or part.endswith((" ", ".")) for part in rel.split("/"))
+            or rel.split("/", 1)[0].lower() in (STAGING, BACKUP)):
+        raise NeedFullInstall(f"更新清单里有不合法的路径：{rel!r}")
+    return rel
+
+
+def _contained_path(root: Path, rel: str) -> Path:
+    """Check resolved paths as well, so an existing junction cannot redirect writes."""
+    target = root / rel
+    if not target.resolve().is_relative_to(root.resolve()):
+        raise NeedFullInstall(f"更新文件路径超出目录：{rel!r}")
+    return target
+
+
 def check_manifest(m: dict, version: str) -> dict:
     if not isinstance(m, dict) or m.get("schema_version") != 1 or m.get("version") != version:
         raise NeedFullInstall(f"更新清单不是 {version} 的")
-    for rel in m.get("files") or {}:
-        if rel.startswith(("/", "\\")) or ".." in rel.split("/") or rel.startswith((STAGING, BACKUP)):
-            raise NeedFullInstall(f"更新清单里有不合法的路径：{rel}")
-    if not set(m.get("patchable") or []) <= set(m.get("files") or {}):
+    files, patchable = m.get("files"), m.get("patchable")
+    if not isinstance(files, dict) or not isinstance(patchable, list):
+        raise NeedFullInstall("更新清单不完整")
+    for rel in files:
+        _relative_path(rel)
+    if any(not isinstance(rel, str) for rel in patchable) or not set(patchable) <= set(files):
         raise NeedFullInstall("更新清单不完整")
     return m
 
@@ -129,10 +150,11 @@ def fetch_manifest(version: str, sources=SOURCES, timeout: float = 15) -> tuple[
 def plan(manifest: dict, root: Path) -> tuple[list[str], list[str]]:
     """和本机文件比较，返回 (要下载的文件, 要删掉的文件)。有第三方库变了就抛 NeedFullInstall。"""
     root = Path(root)
+    check_manifest(manifest, manifest.get("version"))
     files, patchable = manifest["files"], set(manifest["patchable"])
     changed = []
     for rel, f in files.items():
-        p = root / rel
+        p = _contained_path(root, rel)
         if p.is_file() and p.stat().st_size == f["size"] and sha256_file(p) == f["sha256"]:
             continue
         if rel not in patchable:
@@ -147,7 +169,13 @@ def download(manifest: dict, changed: list[str], root: Path, sources=SOURCES, pr
              timeout: float = 30) -> Path:
     """下载变了的文件到 <root>/_update_new，逐个校验 SHA-256。返回暂存目录。"""
     from .data import http
-    staging = Path(root) / STAGING
+    check_manifest(manifest, manifest.get("version"))
+    staging = _contained_path(Path(root), STAGING)
+    for rel in changed:
+        _relative_path(rel)
+        if rel not in manifest["files"] or rel not in manifest["patchable"]:
+            raise NeedFullInstall("更新文件不在可更新清单中")
+        _contained_path(staging, rel)
     shutil.rmtree(staging, ignore_errors=True)
     gz = manifest.get("encoding") == "gzip"
     packed = manifest.get("packed") or {}
@@ -187,7 +215,7 @@ def download(manifest: dict, changed: list[str], root: Path, sources=SOURCES, pr
                     break
             if body is None:
                 raise NeedFullInstall(f"{rel} 下载失败：" + "；".join(errors))
-            out = staging / rel
+            out = _contained_path(staging, rel)
             out.parent.mkdir(parents=True, exist_ok=True)
             out.write_bytes(body)
             report(0)
@@ -201,6 +229,16 @@ def apply_script(root: Path, changed: list[str], stale: list[str], pid: int, ver
                  relaunch: str | None) -> str:
     """生成替换文件的 PowerShell 脚本：等助手退出 → 旧文件挪到 _update_old → 新文件挪进来 →
     删掉新版本里没有的旧文件；任何一步失败就全部挪回去。最后重新打开助手。"""
+    root = Path(root)
+    staging = _contained_path(root, STAGING)
+    backup = _contained_path(root, BACKUP)
+    for rel in changed + stale:
+        _relative_path(rel)
+        _contained_path(root, rel)
+        _contained_path(backup, rel)
+    for rel in changed:
+        _contained_path(staging, rel)
+
     def q(s: str) -> str:
         return "'" + str(s).replace("'", "''") + "'"
     lines = [

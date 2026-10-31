@@ -20,4 +20,4 @@
 - `lolhex/data/bundled/`：自采统计数据，来自 [czgreat/aramhex-data](https://github.com/czgreat/aramhex-data)，协议为 CC BY-NC 4.0。
 - `lolhex/data/hero_aliases.json`：英雄别名，整理自 Hexdata（hexdata.com.cn）。
 - `lolhex/data/hero_nicknames.json`：网上常见的英雄外号，人工整理。
-- 运行时从腾讯官方公开接口（game.gtimg.cn、mlol.qt.qq.com）获取英雄、海克斯、装备资料以及官方出装和加点，从 CommunityDragon 补全个别海克斯的中文名。这些数据不随程序分发，版权归原权利人所有。
+- `lolhex/data/static_bundled.json`、`hero_bundled.json` 及内置图标包含来自腾讯官方公开接口（game.gtimg.cn、mlol.qt.qq.com）的英雄、海克斯、装备、出装和加点资料，个别海克斯中文名由 CommunityDragon 补全；这些资料和图像随程序分发，版权归原权利人所有。玩家模式从内置快照读取，并可通过自有资料源更新，不直接向上述第三方接口回源；显式资料采集工具仍可访问第三方接口。

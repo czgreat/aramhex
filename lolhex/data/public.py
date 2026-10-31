@@ -24,6 +24,7 @@ import threading
 import time
 import math
 from pathlib import Path
+from urllib.parse import unquote
 
 import requests
 
@@ -64,6 +65,29 @@ def _sha256(path: Path) -> str:
     return h.hexdigest()
 
 
+def _relative_json(name: str) -> str:
+    # Use the same path spelling on Windows and on the data server. In
+    # particular, pathlib on Windows discards the root for drive-qualified paths.
+    if (not isinstance(name, str) or not name or not name.endswith(".json")
+            or unquote(name) != name or any(c in name for c in '\\:?#<>"|*')
+            or any(ord(c) < 32 for c in name)):
+        raise DatasetError(f"数据清单里有不合法的文件名：{name!r}")
+    for part in name.split("/"):
+        stem = part.split(".", 1)[0].upper()
+        if (part in ("", ".", "..") or part.endswith((" ", "."))
+                or stem in {"CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$"}
+                or stem in {f"{p}{n}" for p in ("COM", "LPT") for n in "123456789¹²³"}):
+            raise DatasetError(f"数据清单里有不合法的文件名：{name!r}")
+    return name
+
+
+def _dataset_file(root: Path, name: str) -> Path:
+    target = root / _relative_json(name)
+    if not target.resolve().is_relative_to(root.resolve()):
+        raise DatasetError(f"数据文件路径超出目录：{name!r}")
+    return target
+
+
 def check_manifest(manifest: dict) -> dict:
     if not isinstance(manifest, dict) or manifest.get("schema_version") != SCHEMA_VERSION:
         raise DatasetError("数据清单版本不支持")
@@ -72,8 +96,7 @@ def check_manifest(manifest: dict) -> dict:
             or "hero_augments.json" not in files:
         raise DatasetError("数据清单缺文件")
     for name, f in files.items():
-        if ".." in name or name.startswith(("/", "\\")) or not name.endswith(".json"):
-            raise DatasetError(f"数据清单里有不合法的文件名：{name}")
+        _relative_json(name)
         if not isinstance(f, dict) or len(str(f.get("sha256", ""))) != 64:
             raise DatasetError(f"数据清单里 {name} 没有 SHA-256")
     return manifest
@@ -84,7 +107,11 @@ def _required_number(value, *, integer: bool = False, minimum=None, maximum=None
         return False
     if not integer and (type(value) not in (int, float) or isinstance(value, bool)):
         return False
-    if not math.isfinite(value):
+    try:
+        finite = math.isfinite(value)
+    except OverflowError:
+        return False
+    if not finite:
         return False
     return ((minimum is None or value >= minimum) and
             (maximum is None or value <= maximum))
@@ -159,7 +186,7 @@ class Dataset:
             raise DatasetError(f"{folder} 没有 latest.json")
         self.manifest = check_manifest(manifest)
         for name, f in self.manifest["files"].items():
-            p = self.folder / name
+            p = _dataset_file(self.folder, name)
             if not p.is_file() or _sha256(p) != f["sha256"]:
                 raise DatasetError(f"{name} 缺失或校验不对")
         _validate_dataset_shape(self.folder, self.manifest)
@@ -265,7 +292,7 @@ def make_pack(folder: Path, manifest: dict) -> bytes:
     import lzma
     files = {}
     for name in manifest["files"]:
-        obj = json.loads((Path(folder) / name).read_text(encoding="utf-8"))
+        obj = json.loads(_dataset_file(Path(folder), name).read_text(encoding="utf-8"))
         if name.endswith("hero_augments.json"):
             obj = {h: [[int(a), s["games"], s["wins"], 1 if s.get("low_sample") else 0] for a, s in sorted(d.items())]
                    for h, d in obj.items()}
@@ -325,7 +352,7 @@ def download(base_url: str, manifest: dict, dest: Path, timeout: float = 30, pro
                                   on_bytes=on_bytes)
             if hashlib.sha256(body).hexdigest() != f["sha256"] or ("size" in f and len(body) != f["size"]):
                 raise DatasetError(f"{name} 校验不对（下载不完整或文件被改过）")
-            out = tmp / name
+            out = _dataset_file(tmp, name)
             out.parent.mkdir(parents=True, exist_ok=True)
             out.write_bytes(body)
         (tmp / "latest.json").write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")

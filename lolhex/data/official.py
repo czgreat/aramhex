@@ -284,7 +284,7 @@ class ManagedOfficial:
         self._lock = threading.Lock()
         self._last_check: float | None = None
         self._last_sources: tuple[str, ...] | None = None
-        self._retry_at: float | None = None
+        self._failed_at: float | None = None
         self._pending: tuple[str, OfficialSnapshot] | None = None
         self.activation_guard = nullcontext
         payload = check_payload({"static": _json(Path(static_path).read_bytes()),
@@ -373,13 +373,12 @@ class ManagedOfficial:
         if sources != self._last_sources:
             return 0.0
         now = self.clock()
-        if self._retry_at is not None:
-            return max(0.0, self._retry_at - now)
-        if self._last_check is None:
-            return 0.0
-        if now < self._last_check:
-            return 0.0  # 系统时钟回拨后重新查一次，不能无限等未来时间。
-        return max(0.0, self._last_check + minutes * 60 - now)
+        failed = self._failed_at is not None
+        since = self._failed_at if failed else self._last_check
+        if since is None or now < since:
+            return 0.0  # 首次检查或系统时钟回拨后重新查一次，不能无限等未来时间。
+        wait = min(minutes, 10) if failed else minutes
+        return max(0.0, since + wait * 60 - now)
 
     def _get(self, url: str, maximum: int) -> bytes:
         response = self.session.get(url, timeout=(5, 15), stream=True, allow_redirects=False,
@@ -446,12 +445,17 @@ class ManagedOfficial:
 
     def _record_check(self, checked_at: float, sources: tuple[str, ...]) -> None:
         self._last_check, self._last_sources = checked_at, sources
-        self._retry_at = None
+        self._failed_at = None
         try:
             _atomic_json(self.root / "check-state.json", {"last_check": checked_at,
                                                           "sources": list(sources)})
         except OSError:
             log.info("官方资料检查时间暂未保存")
+
+    def _record_failure(self, sources: tuple[str, ...] | None = None) -> None:
+        if sources is not None:
+            self._last_sources = sources
+        self._failed_at = self.clock()
 
     def sync(self, force: bool = False) -> bool:
         """有新版才下载；返回 True 表示可安全切换的快照已激活。"""
@@ -496,13 +500,11 @@ class ManagedOfficial:
                     self.last_error = str(e)
                     log.info("官方资料更新失败，继续使用本地资料：%s", e)
             # 网络或资料格式失败时不要把持久检查时间写成“成功”；但也不能每秒重试。
-            self._last_sources = sources
-            self._retry_at = checked_at + min(minutes, 10) * 60
+            self._record_failure(sources)
             return changed
         except (OSError, ValueError, TypeError) as e:
             self.last_error = str(e)
-            self._last_sources = sources if 'sources' in locals() else self._last_sources
-            self._retry_at = self.clock() + min(minutes, 10) * 60 if 'minutes' in locals() else None
+            self._record_failure()
             return changed
         finally:
             self._lock.release()

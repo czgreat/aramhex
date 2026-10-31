@@ -1,5 +1,4 @@
 import pytest
-import numpy as np
 from conftest import fixture
 
 from lolhex.data.tencent import parse_kiwi_augments
@@ -96,11 +95,9 @@ def test_ocr_uses_one_thread(monkeypatch):
     seen = []
     monkeypatch.setattr(rapidocr, "RapidOCR", lambda params=None: seen.append(params))
     OCR()
-    OCR(rec_model="k.onnx")
     for p in seen:
         assert p["EngineConfig.onnxruntime.intra_op_num_threads"] == 1
         assert p["EngineConfig.onnxruntime.inter_op_num_threads"] == 1
-    assert seen[1]["Rec.model_path"] == "k.onnx"
 
 
 def test_ocr_sessions_really_single_thread():
@@ -108,13 +105,12 @@ def test_ocr_sessions_really_single_thread():
     pytest.importorskip("rapidocr")
     from lolhex.vision.ocr import OCR
     ocr = OCR()
+    # RapidOCR 3.10 loads models on first use. Exercise the product's actual path
+    # before inspecting sessions; orientation classification is disabled in it.
+    image = synth.render_offer(["炽燃利息", "虚幻武器", "泰坦的坚决"], (1920, 1080))
+    assert ocr.detect(image)
     eng = ocr._engine
-    # RapidOCR creates detector/recognizer sessions lazily; run one real read first.
-    image = np.zeros((96, 320, 3), np.uint8)
-    ocr.recognize(image)
     for part in (eng.text_det, eng.text_rec):
-        if part is None:
-            continue
         opts = part.session.session.get_session_options()
         assert opts.intra_op_num_threads == 1 and opts.inter_op_num_threads == 1
 

@@ -125,22 +125,24 @@ def test_changed_window_before_capture_does_no_ocr_or_capture(monkeypatch, store
     assert captures == [] and cleared == [True]
 
 
-def test_new_cards_do_not_expose_previous_evaluation_while_recomputing(monkeypatch, store):
+def test_new_cards_and_scores_are_published_together_after_recomputing(monkeypatch, store):
     import lolhex.engine as module
     engine, detector, current, captures, cleared = setup_scan(monkeypatch, store)
     engine.state.update(offer={"slots": ["old", "old", "old"]}, evaluation={"advice": "old score"})
+    previous = (engine.state["offer"], engine.state["evaluation"])
     result = engine._observed_scan(detector, current["rect"], full=True, reason="test", hwnd=7)
     original = module.recommend.evaluate
     observed = []
 
     def inspect_during_evaluation(*args):
         with engine._lock:
-            observed.append(engine.state["evaluation"])
+            observed.append((engine.state["offer"], engine.state["evaluation"]))
         return original(*args)
 
     monkeypatch.setattr(module.recommend, "evaluate", inspect_during_evaluation)
     engine._on_offer(result)
-    assert observed == [None]
+    assert observed == [previous]
+    assert engine.state["offer"]["slots"] == result.slots
     assert engine.state["evaluation"]["best_index"] == 1
 
 

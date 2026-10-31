@@ -36,6 +36,9 @@ RARITY_CN = {"silver": "白银", "gold": "黄金", "prismatic": "棱彩"}
 VERDICT = {"best": ("首选", QColor(95, 211, 141)), "ok": ("可选", QColor(98, 168, 255)),
            "reroll": ("可考虑刷新", QColor(255, 122, 107)), "unknown": ("未知", QColor(150, 150, 150)),
            "nodata": ("无数据", QColor(150, 150, 150))}
+# 某张卡没认出的前几秒写「识别中」：多是三选一刚弹出、卡还在翻，字没读全，1–2 秒内就能认出（1.1.4）。
+# 过了这个时间还认不出（新卡、被挡住）才写「未知」
+READING_S = 2.0
 
 
 AUTO_HIDE_SECONDS = 5
@@ -263,6 +266,8 @@ class BadgeLayer(_Layer):
         items = []
         for r in ev["slots"]:
             i = r["index"]
+            if (offer.get("pending_columns") or (False, False, False))[i]:
+                continue  # 不画待确认列的旧分数、评级及装备提示；另外两列保持可见。
             box = boxes[i] if i < len(boxes) else None
             if box is None and len(known) >= 2:
                 continue
@@ -273,6 +278,9 @@ class BadgeLayer(_Layer):
             y0 = (box[1] - oy) / unit
             cx = (x0 + x1) / 2
             label, color = VERDICT.get(r["verdict"], VERDICT["unknown"])
+            since = (offer.get("unread_since") or [None] * 3)[i] if not r.get("augment_id") else None
+            if since is not None and time.monotonic() - since < READING_S:
+                label = "识别中…"
             if r["verdict"] == "best" and r.get("sample_warning"):
                 label = "相对较好 · 仅供参考"
             if r.get("basis") == "excluded":  # 尊我为王这类：写明原因，免得以为是助手没数据
@@ -927,8 +935,10 @@ class ControlPanel(QWidget):
             parts.append(champ_select_summary(cs, show_win))
         ev = snap.get("evaluation")
         if ev:
-            parts.append(f"<b>{ev['advice']}</b>")
-            pk = recommend.pentakill_text(ev.get("pentakill"))
+            waiting = any((snap.get("offer") or {}).get("pending_columns") or ())
+            advice = "卡片更新中，等待识别确认" if waiting else ev['advice']
+            parts.append(f"<b>{advice}</b>")
+            pk = recommend.pentakill_text(ev.get("pentakill")) if not waiting else ""
             if pk:
                 parts.append(f"<span style='color:#c9a0ff'>{escape(pk)}</span>")
         if d:
@@ -1081,6 +1091,8 @@ def run(make_engine, minimized: bool = False) -> int:
         conn = server.nextPendingConnection()
         if conn:
             conn.readAll()
+            conn.disconnectFromServer()
+            conn.deleteLater()  # 父对象是 server：不删的话每次双击图标留一个连接
         main_win.show_and_raise()
         main_win.check_update()  # 用户再点一次图标：顺便查更新，不用退出重开
 

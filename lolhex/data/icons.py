@@ -48,6 +48,9 @@ class IconCache:
         self.allow_network = allow_network
         self._pending: set[str] = set()
         self._failed: dict[str, float] = {}
+        # Only successfully decoded bundled keys enter this set (bounded by the
+        # reviewed snapshot). Compare cached bytes once per process, not per paint.
+        self._bundled_ready: set[tuple[str, str]] = set()
         self._lock = threading.Lock()
         self._pool = ThreadPoolExecutor(max_workers=workers, thread_name_prefix="icons")
 
@@ -56,6 +59,13 @@ class IconCache:
         if not key:
             return None
         path = self.folder / kind / f"{key}.png"
+        bundled_key = (kind, str(key))
+        if not self.allow_network and bundled_key not in self._bundled_ready:
+            changed = self._unpack(kind, str(key), path)
+            if changed is not None:
+                self._bundled_ready.add(bundled_key)
+                if changed:
+                    self.version += 1
         if not path.exists():
             self._unpack(kind, str(key), path)
         fresh = path.exists() and time.time() - path.stat().st_mtime < MAX_AGE_S
@@ -64,19 +74,24 @@ class IconCache:
         return path.as_posix() if path.exists() else None
 
     @staticmethod
-    def _unpack(kind: str, key: str, path: Path) -> None:
+    def _unpack(kind: str, key: str, path: Path) -> bool | None:
         blob = (bundled_icons().get(kind) or {}).get(key)
         if not blob:
-            return
+            return None
         try:
+            body = base64.b64decode(blob)
+            if path.is_file() and path.read_bytes() == body:
+                return False
             path.parent.mkdir(parents=True, exist_ok=True)
             tmp = path.with_suffix(".tmp")
-            tmp.write_bytes(base64.b64decode(blob))
+            tmp.write_bytes(body)
             tmp.replace(path)
             old = time.time() - MAX_AGE_S - 1
             os.utime(path, (old, old))  # 记成过期：能联网时照样下最新的
+            return True
         except (OSError, ValueError) as e:
             log.info("内置图标解不出 %s/%s：%s", kind, key, e)
+            return None
 
     def _fetch(self, path: Path, url: str) -> None:
         tag = str(path)

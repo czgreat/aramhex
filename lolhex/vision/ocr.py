@@ -4,7 +4,6 @@
 - detect(img)：检测+识别，找出画面中所有文字行；
 - recognize(img)：已知文字区域时只做识别。
 模型首次使用时加载，之后常驻；耗时随输入和机器变化，以运行计时为准。
-韩服：识别模型换成韩文的（use_rec_model，见 langpack.py），检测模型不变。
 只用一个线程：onnxruntime 默认把所有核都拉来算，对局中每次认字都会和游戏抢 CPU，玩家会掉帧、卡顿。
 线程策略须同时考虑游戏负载与识别延迟，不能用开发机耗时外推所有用户。
 """
@@ -55,18 +54,12 @@ class ReadPlan:
 class OCR:
     _inst = None
     _inst_lock = threading.Lock()
-    _rec_model: str | None = None  # 换用的识别模型（韩文）；None 为内置
 
-    def __init__(self, rec_model: str | None = None):
+    def __init__(self):
         from rapidocr import RapidOCR
         logging.getLogger("RapidOCR").setLevel(logging.ERROR)
         params = dict(THREADS)
-        if rec_model:
-            from rapidocr.utils.typings import LangRec, ModelType, OCRVersion
-            params.update({"Rec.lang_type": LangRec.KOREAN, "Rec.model_type": ModelType.MOBILE,
-                           "Rec.ocr_version": OCRVersion.PPOCRV5, "Rec.model_path": rec_model})
         self._engine = RapidOCR(params=params)
-        self.rec_model = rec_model
         self._lock = threading.Lock()
         versions = []
         for package in ("rapidocr", "onnxruntime"):
@@ -83,8 +76,7 @@ class OCR:
                     sessions.append(f"{name}:threads={opts.intra_op_num_threads}/{opts.inter_op_num_threads},providers={session.get_providers()}")
                 except (AttributeError, RuntimeError):
                     pass
-        log.info("OCR运行配置：%s 识别模型=%s %s", " ".join(versions),
-                 "韩文" if rec_model else "内置", "; ".join(sessions) or "会话信息不可用")
+        log.info("OCR运行配置：%s %s", " ".join(versions), "; ".join(sessions) or "会话信息不可用")
         cfg = getattr(self._engine, "cfg", None)
         if cfg is not None:
             def setting(section, key):
@@ -99,15 +91,9 @@ class OCR:
     @classmethod
     def get(cls) -> "OCR":
         with cls._inst_lock:
-            if cls._inst is None or cls._inst.rec_model != cls._rec_model:
-                cls._inst = cls(cls._rec_model)
+            if cls._inst is None:
+                cls._inst = cls()
             return cls._inst
-
-    @classmethod
-    def use_rec_model(cls, path: str | None) -> None:
-        """换识别模型（None 换回内置）；下次 get() 时重新加载。"""
-        with cls._inst_lock:
-            cls._rec_model = str(path) if path else None
 
     def detect(self, img: np.ndarray) -> list[TextLine]:
         started = time.perf_counter()
