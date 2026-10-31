@@ -1,0 +1,109 @@
+{
+ "bands": true,
+ "files": {
+  "augments.json": {
+   "sha256": "1864f84a246efab8e08e5c8c44a14e89dbd4f6b8ba52a718b394e3021cc96245",
+   "size": 13632
+  },
+  "bands/casual/augments.json": {
+   "sha256": "1864f84a246efab8e08e5c8c44a14e89dbd4f6b8ba52a718b394e3021cc96245",
+   "size": 13632
+  },
+  "bands/casual/hero_augments.json": {
+   "sha256": "bd6efac9405bcfcc760e24c7b277402be4b6a1d235ac530cd64b7620dfcbeba2",
+   "size": 2165847
+  },
+  "bands/casual/hero_spells.json": {
+   "sha256": "a996391c290f980c369d099e5b015961f1882d641afd46549b4b3bcd0e15c8e3",
+   "size": 223340
+  },
+  "bands/casual/heroes.json": {
+   "sha256": "608730b795813b1f9df430da53ea696dc9cef6455f17d1d804d80e41eab3f64c",
+   "size": 28067
+  },
+  "bands/high/augments.json": {
+   "sha256": "1864f84a246efab8e08e5c8c44a14e89dbd4f6b8ba52a718b394e3021cc96245",
+   "size": 13632
+  },
+  "bands/high/hero_augments.json": {
+   "sha256": "444a655760e81c6b84fd4adfa1f9fd969f5fd908c4caee4e85de1e7097436202",
+   "size": 2114591
+  },
+  "bands/high/hero_spells.json": {
+   "sha256": "aa3b07c7d8d0049eba8a2f45e6d0eac921e36788377af6c3b6b616d53c8b417e",
+   "size": 130116
+  },
+  "bands/high/heroes.json": {
+   "sha256": "bea0713b9dae40437ed34f270663a22e89bc15b8457d94e8cbe995184224f53d",
+   "size": 27795
+  },
+  "bands/mid/augments.json": {
+   "sha256": "1864f84a246efab8e08e5c8c44a14e89dbd4f6b8ba52a718b394e3021cc96245",
+   "size": 13632
+  },
+  "bands/mid/hero_augments.json": {
+   "sha256": "19b89ac71bdc2a780b29ecb382a294e0ebf8d3658c52acf3d99d1da7e509f4ab",
+   "size": 2156531
+  },
+  "bands/mid/hero_spells.json": {
+   "sha256": "cabebbb6b30a3181254a91a7cd2c052d7ac7e3accd34259f1bbd5c7388be75ef",
+   "size": 187134
+  },
+  "bands/mid/heroes.json": {
+   "sha256": "175f111fcb957732c7a64f2fe43912274db8a499a2cd7d063d9994a23868b7d4",
+   "size": 28023
+  },
+  "bands/top/augments.json": {
+   "sha256": "1864f84a246efab8e08e5c8c44a14e89dbd4f6b8ba52a718b394e3021cc96245",
+   "size": 13632
+  },
+  "bands/top/hero_augments.json": {
+   "sha256": "444a655760e81c6b84fd4adfa1f9fd969f5fd908c4caee4e85de1e7097436202",
+   "size": 2114591
+  },
+  "bands/top/hero_spells.json": {
+   "sha256": "aa3b07c7d8d0049eba8a2f45e6d0eac921e36788377af6c3b6b616d53c8b417e",
+   "size": 130116
+  },
+  "bands/top/heroes.json": {
+   "sha256": "bea0713b9dae40437ed34f270663a22e89bc15b8457d94e8cbe995184224f53d",
+   "size": 27795
+  },
+  "hero_augments.json": {
+   "sha256": "a3d7fec5f83d3b8ac4fba8366bb22f0998afd9c5663a3ce84653fe016559fff6",
+   "size": 2180408
+  },
+  "hero_spells.json": {
+   "sha256": "ee0c5d1a0d4128cf1cc0fc0a874ab0bdc1445cc32c00cfd7a313865a930619ef",
+   "size": 227411
+  },
+  "heroes.json": {
+   "sha256": "21a33b02046045baee2f51ceb5f816c438cd8f92bb2a6659122b2cd1f2025644",
+   "size": 28171
+  },
+  "meta.json": {
+   "sha256": "4c92e6334087f84efd7c550a14a49c0812e316903c1662ed424d1a275c3acfdc",
+   "size": 7377
+  }
+ },
+ "matches": 21169946,
+ "matches_detail": {
+  "collected": 21854976,
+  "excluded": 685030,
+  "valid": 21169946,
+  "validity_rule": "对局时长不少于 4 分钟（240 秒）、10 名玩家齐全且正好 5 胜 5 负、正常结束（GameComplete）；重开、提前解散、数据不全的对局不计"
+ },
+ "mode": "normal",
+ "mode_label": "常规",
+ "patch": "16.21",
+ "path": "patches/16.21/normal",
+ "schema_version": 1,
+ "seq": 11,
+ "snapshot_at": "2026-10-31T02:25:44.658064+08:00",
+ "window": {
+  "end_exclusive": "2026-10-30T18:00:00+08:00",
+  "periods": null,
+  "start": "2026-10-26T00:00:00+08:00",
+  "time_field": "对局创建时间（北京时间）"
+ }
+}
