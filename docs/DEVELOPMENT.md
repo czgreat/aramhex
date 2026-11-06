@@ -77,6 +77,7 @@ pwsh -NoProfile -File packaging\build.ps1
 | `features.same_name_once` | `true` | 同一行同名海克斯只算一张 |
 | `features.overlay_fit` | `true` | 分数缩放时浮层收回多出的 1 像素、不反复重摆 |
 | `features.cards_drop_early` | `true` | 选完英雄卡马上撤掉卡下胜率 |
+| `features.crash_log` | `true` | 闪退时记调用栈，下次启动写进日志；`false` 不开，下次启动生效。文件超过 1 MB 这次运行就不再记录 |
 | `features.companion_last_fg` | `true` | 客户端被别的程序盖着时点浮窗，选人标注跟着隐藏；`false` 退回点浮窗一律按客户端在前台算 |
 
 `features` 是应急开关：对所有认识它的版本（1.1.2 起）一起生效，不能按比例分批；新做法出问题时先关掉，修好发版后再开。

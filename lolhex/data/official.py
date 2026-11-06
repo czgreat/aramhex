@@ -181,10 +181,14 @@ def check_payload(payload: dict, manifest: dict | None = None) -> dict:
             stats(row, "英雄海克斯")
         for key in ("full", "core", "first", "shoes", "start"):
             for row in rows(d["builds"].get(key, []), f"出装.{key}"):
+                if key == "core" and "ordered" in row and type(row["ordered"]) is not bool:
+                    raise OfficialDataError("出装.core.ordered 必须是布尔值")
                 if key in ("first", "shoes"):
                     identifier(row.get("item"), f"出装.{key}.item")
                 else:
                     strings(row.get("items"), f"出装.{key}.items")
+                    if key == "core" and "ordered" in row and len(row["items"]) != 3:
+                        raise OfficialDataError("出装.core 必须包含三件装备")
                     for item in row["items"]:
                         identifier(item, f"出装.{key}.items")
                 stats(row, f"出装.{key}")

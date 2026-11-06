@@ -442,6 +442,10 @@ BAD_SEMANTICS = [
     (("heroes", "heroes", "17", "builds", "core", 0, "items"), [{}]),
     (("heroes", "heroes", "17", "builds", "core", 0, "pick"), "0.1"),
     (("heroes", "heroes", "17", "builds", "core", 0, "win"), float("inf")),
+    (("heroes", "heroes", "17", "builds", "core", 0, "ordered"), "false"),
+    (("heroes", "heroes", "17", "builds", "core", 0, "ordered"), 1),
+    (("heroes", "heroes", "17", "builds", "core", 0, "ordered"), None),
+    (("heroes", "heroes", "17", "builds", "core", 0, "ordered"), True),  # 显式三件套不能只有一件。
     (("heroes", "heroes", "17", "builds", "first", 0, "item"), {}),
     (("heroes", "heroes", "17", "builds", "first", 0, "games"), float("nan")),
     (("heroes", "heroes", "17", "builds", "first", 0, "games"), True),

@@ -21,8 +21,10 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from lolhex.data.official import check_manifest, check_payload  # noqa: E402
+from scripts.mix_recommendations import recommendation_residue  # noqa: E402
 
 STORE_MARKER = ".official-publication.json"
+OVERRIDES = Path(__file__).with_name("official_overrides.json")
 MAX_PACKED = 16 * 1024 * 1024
 MAX_UNPACKED = 64 * 1024 * 1024
 
@@ -80,10 +82,49 @@ def _store(root: Path) -> Path:
     return root
 
 
+def apply_overrides(static: dict, overrides: dict | None = None) -> dict:
+    """Apply manual corrections from official_overrides.json; upstream values win except `new`."""
+    data = _read(OVERRIDES) if overrides is None else overrides
+    for aid in data.get("augments_remove", []):
+        static["augments"].pop(aid, None)
+    for aid, row in data.get("augments", {}).items():
+        current = static["augments"].setdefault(aid, {"id": aid})
+        for key, value in row.items():
+            if key == "new" or not current.get(key):
+                current[key] = value
+    for iid in data.get("items_exclude", {}):
+        static["items"].pop(iid, None)
+    return static
+
+
+def _check_unique_names(static: dict) -> None:
+    """Two recognizable augments with one name would resolve to whichever is listed first."""
+    from lolhex.vision.matcher import _has_bang, normalize
+
+    seen: dict[tuple[str, bool], str] = {}
+    for aid, row in static["augments"].items():
+        modes = row.get("modes") or []
+        if not row.get("name") or (modes and not any(m.startswith("KIWI") for m in modes)):
+            continue
+        key = normalize(row["name"]), _has_bang(row["name"])
+        if key in seen:
+            raise ValueError(f"Augments {seen[key]} and {aid} share the name {row['name']}")
+        seen[key] = aid
+
+
+def _min_client(payload: dict) -> str:
+    # 显式声明组合语义的资料依赖 1.1.5 的原序展示和 ordered 标记。
+    # 老客户端会重排，并把无序组合也画成购买顺序，不能向它们下发这种资料。
+    return "1.1.5" if any("ordered" in row
+                          for hero in payload["heroes"]["heroes"].values()
+                          for row in hero["builds"].get("core", [])) else "1.1.2"
+
+
 def create_candidate(static_path: Path, heroes_path: Path, destination: Path) -> dict:
     """Validate supplied source files and create a new, deterministic candidate."""
     payload = {"static": _read(Path(static_path)), "heroes": _read(Path(heroes_path))}
     check_payload(payload)
+    _check_unique_names(payload["static"])
     raw = _json_bytes(payload)
     packed = gzip.compress(raw, mtime=0)
     if len(raw) > MAX_UNPACKED or len(packed) > MAX_PACKED:
@@ -98,7 +139,7 @@ def create_candidate(static_path: Path, heroes_path: Path, destination: Path) ->
     meta = {
         "schema_version": 1, "kind": "official-candidate", "created_at": _now(),
         "patch": payload["static"]["patch"], "source_date": payload["heroes"]["generated"],
-        "min_client": "1.1.2", "sha256": _sha(packed), "size": len(packed),
+        "min_client": _min_client(payload), "sha256": _sha(packed), "size": len(packed),
         "unpacked_size": len(raw),
         "counts": {key: len(payload["static"][key]) for key in ("heroes", "augments", "items", "spells")},
     }
@@ -129,7 +170,7 @@ def read_candidate(directory: Path) -> tuple[dict, dict, bytes]:
     if meta.get("patch") != payload["static"]["patch"] or meta.get("source_date") != payload["heroes"]["generated"]:
         raise ValueError("Candidate metadata differs from its payload")
     counts = {key: len(payload["static"][key]) for key in ("heroes", "augments", "items", "spells")}
-    if meta.get("counts") != counts or meta.get("min_client") != "1.1.2":
+    if meta.get("counts") != counts or meta.get("min_client") != _min_client(payload):
         raise ValueError("Candidate description differs from its reviewed protocol")
     return meta, payload, packed
 
@@ -166,7 +207,10 @@ def _patch(value: str) -> tuple[int, ...]:
 def candidate_report(directory: Path, publication: Path | None = None) -> dict:
     meta, payload, _ = read_candidate(directory)
     report = {"candidate_sha256": meta["sha256"], "patch": meta["patch"],
-              "source_date": meta["source_date"], "counts": meta["counts"], "published": False}
+              "source_date": meta["source_date"], "counts": meta["counts"], "published": False,
+              "recommendation_residue": recommendation_residue(payload["heroes"]["heroes"]),
+              "items_ask_user": sorted(row["name"] for row in _read(OVERRIDES)["items_exclude"].values()
+                                       if row.get("ask_user"))}
     if publication is None:
         return report
     root = _store(publication)
@@ -277,6 +321,7 @@ def collect_candidate(destination: Path) -> dict:
         "spells": tencent.parse_summoner_spells(tencent.fetch_summoner_spells()),
     }
     DataStore._merge_cdragon(static["augments"])
+    apply_overrides(static)
     heroes = {}
     for hid in sorted(static["heroes"], key=int):
         # No offline/bundled fallback: an incomplete collection must fail.

@@ -88,6 +88,40 @@ def test_missing_hero_panel_stays_open_until_hero_chosen(store, tmp_path, monkey
     app.processEvents()
 
 
+def test_missing_hero_panel_already_open_stays_until_hero_or_manual(store, tmp_path, monkeypatch):
+    """进游戏时浮窗本来就开着（比如选英雄时点开的）：没认出英雄也要留着，不能按时收起。"""
+    import time
+    from PySide6.QtWidgets import QApplication
+    from lolhex.config import Settings
+    from lolhex.engine import Engine
+    from lolhex.ui import overlay
+    from lolhex.ui.overlay import ControlPanel
+    app = QApplication.instance() or QApplication([])
+    monkeypatch.setattr(Engine, "_prefetch_hero", lambda *a: None)
+    engine = Engine(Settings(), home=tmp_path, store=store)
+    panel = ControlPanel(engine)
+    monkeypatch.setattr(panel, "_place_body", lambda: None)
+    monkeypatch.setattr(panel, "give_back_focus", lambda: None)
+    monkeypatch.setattr(panel, "isVisible", lambda: True)
+    monkeypatch.setattr(panel, "_typing", lambda: False)
+    monkeypatch.setattr(overlay.QCursor, "pos", staticmethod(lambda: overlay.QPoint(-9999, -9999)))
+    panel.toggle()
+    assert panel.expanded
+    engine._set(phase="ingame")
+    panel.update_from(engine.snapshot())
+    assert panel.expanded and panel._hold_for_hero
+    panel._away_since = time.monotonic() - 60
+    panel.auto_hide("ingame", False)
+    assert panel.expanded  # 还没选英雄：不收
+    panel.toggle()  # 玩家点图标收起
+    assert not panel.expanded and not panel._hold_for_hero
+    panel.update_from(engine.snapshot())
+    assert not panel.expanded  # 不再弹
+    panel.close()
+    panel.body_win.close()
+    app.processEvents()
+
+
 def test_missing_hero_panel_manual_collapse_releases_hold(store, tmp_path, monkeypatch):
     from PySide6.QtWidgets import QApplication
     from lolhex.config import Settings

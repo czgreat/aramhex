@@ -63,11 +63,20 @@ SOURCES = sources_for("0")  # 只用作默认值的形状；实际按要更新�
 # 会随我们发版变化的文件；其余都是第三方库（Qt、OpenCV、识别模型……），变了就要完整安装包
 PATCHABLE_PREFIXES = ("AramHex.exe", "_internal/base_library.zip", "_internal/lolhex/")
 STAGING, BACKUP = "_update_new", "_update_old"
+ROLLBACK_INCOMPLETE = "update-rollback-incomplete.txt"  # 有这个文件就说明旧文件没全部还原，_update_old 不能删
 UNINSTALL_KEY = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\{1107079E-6C48-46FD-938D-04B1C3EA9A72}_is1"
+
+
+class NotWritable(Exception):
+    """软件所在的文件夹不能写入（比如装在 Program Files）：增量更新放不了文件，只能手动下载安装。"""
 
 
 class NeedFullInstall(Exception):
     """这次更新不能增量完成（第三方库变了、清单拿不到等），要下载完整安装包。"""
+
+
+class IncompleteRollback(NeedFullInstall):
+    """保留未完成回滚的备份，交由完整安装恢复。"""
 
 
 # _internal 下的 VC++ 运行库是打包时从打包机的系统目录收进来的（1.0.0 的 msvcp140.dll 是 14.51），
@@ -254,15 +263,34 @@ def apply_script(root: Path, changed: list[str], stale: list[str], pid: int, ver
         "if (Get-Process -Id $pid0 -ErrorAction SilentlyContinue) {"
         " Stop-Process -Id $pid0 -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 2 }",
         "Start-Sleep -Milliseconds 500",
-        # 文件刚释放时偶尔还被占着（杀毒软件扫描等）：每次挪文件最多重试 10 次
-        "function Move-Retry($from, $to) { for ($i = 0; $i -lt 10; $i++) {"
-        " try { Move-Item -LiteralPath $from $to -Force -ErrorAction Stop; return } catch { if ($i -eq 9) { throw }"
-        " Start-Sleep -Seconds 1 } } }",
-        "if (Test-Path $old) { Remove-Item -Recurse -Force $old }",
+        # 文件刚释放时常被占着（杀毒软件扫描等）：每次挪文件最多等约 1 分钟；文件本来就没有的不用等
+        "function Move-Retry($from, $to) {"
+        " if (-not (Test-Path -LiteralPath $from)) { throw 'file not found' }"
+        " for ($i = 0; $i -lt 30; $i++) {"
+        " try { Move-Item -LiteralPath $from $to -Force -ErrorAction Stop; return } catch { if ($i -eq 29) { throw }"
+        " Start-Sleep -Seconds 2 } } }",
+        # 还原：源文件被占着（挪不动但读得了）就复制回去；目标被占着就等一会儿，最多约 18 秒
+        "function Restore-File($from, $to) {"
+        " for ($i = 0; $i -lt 10; $i++) {"
+        " try { Move-Item -LiteralPath $from $to -Force -ErrorAction Stop; return } catch {"
+        " try { Copy-Item -LiteralPath $from $to -Force -ErrorAction Stop; return } catch { if ($i -eq 9) { throw }"
+        " Start-Sleep -Seconds 2 } } } }",
+        # 删除：刚放下的文件也可能在被扫描，同样等一会儿，最多约 18 秒；本来就没有的不用等
+        "function Remove-Retry($path) {"
+        " for ($i = 0; $i -lt 10; $i++) {"
+        " if (-not (Test-Path -LiteralPath $path)) { return }"
+        " try { Remove-Item -LiteralPath $path -Recurse -Force -ErrorAction Stop; return } catch { if ($i -eq 9) { throw }"
+        " Start-Sleep -Seconds 2 } } }",
         "$moved = @()",
         "$placed = @()",
+        "$current = ''",
         "try {",
+        f"  if (Test-Path -LiteralPath (Join-Path $root {q(ROLLBACK_INCOMPLETE)})) {{ throw 'Previous rollback incomplete; reinstall required' }}",
+        # 上次留下的备份删不掉就不更新：不能和这次的备份混在一起；走下面的失败分支，记下原因并重新打开助手
+        f"  $current = {q(BACKUP)}",
+        "  Remove-Retry $old",
         "  foreach ($rel in $changed + $stale) {",
+        "    $current = $rel",
         "    $dst = Join-Path $root $rel",
         "    if (Test-Path -LiteralPath $dst) {",
         "      $bak = Join-Path $old $rel",
@@ -272,23 +300,33 @@ def apply_script(root: Path, changed: list[str], stale: list[str], pid: int, ver
         "    }",
         "  }",
         "  foreach ($rel in $changed) {",
+        "    $current = $rel",
         "    $dst = Join-Path $root $rel",
         "    New-Item -ItemType Directory -Force (Split-Path $dst) | Out-Null",
         "    Move-Retry (Join-Path $new $rel) $dst",
         "    $placed += $rel",
         "  }",
-        # 「应用」列表里的版本号：现在的安装包只装给当前用户（HKCU）；早期可能选过"所有用户"（HKLM，没管理员权限改不了，忽略）
-        f"  foreach ($hive in 'HKCU:\\', 'HKLM:\\') {{ try {{ $k = $hive + {q(UNINSTALL_KEY)}; "
-        f"if (Test-Path $k) {{ Set-ItemProperty -Path $k -Name DisplayVersion -Value {q(version)} -ErrorAction Stop }} }} "
+        # 只改本目录的安装信息；便携版与其他目录里的安装版互不影响。
+        "  if (-not (Test-Path -LiteralPath (Join-Path $root 'portable.txt'))) {",
+        f"    foreach ($hive in 'HKCU:\\', 'HKLM:\\') {{ try {{ $k = $hive + {q(UNINSTALL_KEY)}; "
+        "if (Test-Path -LiteralPath $k) { $location = (Get-ItemProperty -LiteralPath $k -ErrorAction Stop).InstallLocation; "
+        "if ($location -and ([IO.Path]::GetFullPath($location).TrimEnd('\\') -ieq [IO.Path]::GetFullPath($root).TrimEnd('\\'))) { "
+        f"Set-ItemProperty -LiteralPath $k -Name DisplayVersion -Value {q(version)} -ErrorAction Stop }} }} }} "
         "catch { } }",
+        "  }",
         "  Remove-Item -Recurse -Force $old -ErrorAction SilentlyContinue",
+        f"  Remove-Item -LiteralPath (Join-Path $root {q(ROLLBACK_INCOMPLETE)}) -Force -ErrorAction SilentlyContinue",
         "} catch {",
-        "  foreach ($rel in $placed) { $dst = Join-Path $root $rel; if (Test-Path -LiteralPath $dst) {"
-        " Remove-Item -LiteralPath $dst -Force -ErrorAction SilentlyContinue } }",
-        "  foreach ($rel in $moved) { $dst = Join-Path $root $rel;"
+        "  $reason = $current + ': ' + $_.ToString()",  # 写明卡在哪个文件，下次启动记进日志
+        # 有旧文件的会被直接覆盖，这里只删新版本新增的文件
+        "  $restored = $true",
+        "  foreach ($rel in $placed) { if ($moved -notcontains $rel) { try {"
+        " Remove-Retry (Join-Path $root $rel) } catch { $restored = $false } } }",
+        "  foreach ($rel in $moved) { $dst = Join-Path $root $rel; try {"
         " New-Item -ItemType Directory -Force (Split-Path $dst) | Out-Null;"
-        " Move-Item -LiteralPath (Join-Path $old $rel) $dst -Force -ErrorAction SilentlyContinue }",
-        "  Set-Content -LiteralPath (Join-Path $root 'update-failed.txt') -Value $_.ToString() -Encoding UTF8",
+        " Restore-File (Join-Path $old $rel) $dst } catch { $restored = $false } }",
+        f"  if (-not $restored) {{ Set-Content -LiteralPath (Join-Path $root {q(ROLLBACK_INCOMPLETE)}) -Value $reason -Encoding UTF8 }}",
+        "  Set-Content -LiteralPath (Join-Path $root 'update-failed.txt') -Value $reason -Encoding UTF8",
         "}",
         "Remove-Item -Recurse -Force $new -ErrorAction SilentlyContinue",
     ]
@@ -296,6 +334,16 @@ def apply_script(root: Path, changed: list[str], stale: list[str], pid: int, ver
         lines.append(f"Start-Process -FilePath {q(relaunch)} -WorkingDirectory $root")
     lines.append("Remove-Item -LiteralPath $PSCommandPath -Force -ErrorAction SilentlyContinue")
     return "\n".join(lines) + "\n"
+
+
+def _powershell_fallback() -> str | None:
+    """个别电脑的 PATH 里找不到 powershell.exe（WinError 2）时，改用系统目录里的完整路径。"""
+    system_root = os.environ.get("SystemRoot") or os.environ.get("WINDIR")
+    if system_root:
+        path = Path(system_root) / "System32" / "WindowsPowerShell" / "v1.0" / "powershell.exe"
+        if path.is_file():
+            return str(path)
+    return None
 
 
 def launch_apply(root: Path, changed: list[str], stale: list[str], version: str,
@@ -306,24 +354,37 @@ def launch_apply(root: Path, changed: list[str], stale: list[str], version: str,
     script.write_text(body, encoding="utf-8-sig")  # Windows PowerShell 5.1 要 BOM 才按 UTF-8 读中文路径
     args = ["powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
             "-File", str(script)]
-    if wait:
-        subprocess.run(args, check=False, timeout=180)
-    else:
-        # 不能用 DETACHED_PROCESS：PowerShell 没有控制台时会直接退出。用 CREATE_NO_WINDOW 隐藏窗口，
-        # 新进程组让它在助手退出后继续运行
-        flags = getattr(subprocess, "CREATE_NO_WINDOW", 0) | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
-        subprocess.Popen(args, close_fds=True, creationflags=flags, stdin=subprocess.DEVNULL,
-                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    def start(command):
+        if wait:
+            subprocess.run(command, check=False, timeout=180)
+        else:
+            # 不能用 DETACHED_PROCESS：PowerShell 没有控制台时会直接退出。用 CREATE_NO_WINDOW 隐藏窗口，
+            # 新进程组让它在助手退出后继续运行
+            flags = getattr(subprocess, "CREATE_NO_WINDOW", 0) | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+            subprocess.Popen(command, close_fds=True, creationflags=flags, stdin=subprocess.DEVNULL,
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    try:
+        start(args)  # 绝大多数电脑走这里，和以前完全一样
+    except FileNotFoundError:
+        fallback = _powershell_fallback()
+        if not fallback:
+            raise
+        log.info("PATH 里找不到 powershell.exe，改用系统目录里的")
+        start([fallback] + args[1:])
     return script
 
 
 def take_failure(root: Path | None = None) -> str | None:
-    """上次增量更新没装上（已还原成旧版本）时返回原因，并清理留下的临时目录；没有返回 None。"""
+    """上次增量更新没装上时返回原因，并清理留下的临时目录；没有返回 None。
+    旧文件没全部还原时保留 _update_old，见 rollback_incomplete。"""
     root = root or install_root()
     if root is None:
         return None
-    for d in (STAGING, BACKUP):
-        shutil.rmtree(Path(root) / d, ignore_errors=True)
+    shutil.rmtree(Path(root) / STAGING, ignore_errors=True)
+    if not rollback_incomplete(root):
+        shutil.rmtree(Path(root) / BACKUP, ignore_errors=True)
     f = Path(root) / "update-failed.txt"
     if not f.exists():
         return None
@@ -332,6 +393,12 @@ def take_failure(root: Path | None = None) -> str | None:
     finally:
         f.unlink(missing_ok=True)
     return reason or "未知原因"
+
+
+def rollback_incomplete(root: Path | None = None) -> bool:
+    """上次更新未完整还原：保留备份，必须完整安装；便携版需解压到新目录。"""
+    root = root or install_root()
+    return root is not None and (Path(root) / ROLLBACK_INCOMPLETE).exists()
 
 
 def install_root() -> Path | None:
@@ -371,6 +438,15 @@ def rank_by_speed(sources: list[str], rel: str, sample: int = 256 * 1024, timeou
     return [sources[i] for i in order]
 
 
+def _check_writable(root: Path) -> None:
+    probe = Path(root) / f".aramhex-write-test-{os.getpid()}"
+    try:
+        probe.write_bytes(b"")
+        probe.unlink()
+    except OSError as e:
+        raise NotWritable(f"{root}：{e}") from e
+
+
 def prepare(version: str, progress=None, root: Path | None = None, sources=None,
             phase=None) -> tuple[list[str], list[str]]:
     """查清单、比较、下载。成功返回 (变了的文件, 要删的文件)，下一步调 launch_apply；不能增量就抛 NeedFullInstall。"""
@@ -378,6 +454,9 @@ def prepare(version: str, progress=None, root: Path | None = None, sources=None,
     root = root or install_root()
     if root is None:
         raise NeedFullInstall("源码运行，不做增量更新")
+    if rollback_incomplete(root):
+        raise IncompleteRollback("上次更新未能完整还原，请重新下载安装包（便携版解压到新目录）；已保留旧文件备份")
+    _check_writable(root)  # 下载前就查，不让玩家白等，也不误报成下载失败
     say = phase or (lambda text: None)  # 界面显示当前在做什么
     say("检查更新文件…")
     manifest, base = fetch_manifest(version, sources)

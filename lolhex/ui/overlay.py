@@ -20,7 +20,7 @@ from PySide6.QtGui import QColor, QCursor, QFont, QFontMetrics, QGuiApplication,
 from PySide6.QtWidgets import (QApplication, QHBoxLayout, QLabel, QLineEdit, QPushButton,
                                QVBoxLayout, QWidget)
 
-from .. import cloud, recommend
+from .. import cloud, crashlog, recommend
 from ..recommend import NODATA_NOTE
 from ..vision import window as win
 from .. import patch
@@ -90,6 +90,10 @@ def _rect_text(r) -> str:
 
 # 标签放在卡片下方时，标签底边在标题中心往下多少（1080P 像素）：卡片内框底边约在 248
 BOTTOM_EDGE = 236
+HINT_HEAD_H, HINT_ROW_H, HINT_NOTE_H = 24, 30, 28  # 命运之武器装备提示：标题行、每件装备、没有够格装备时那一行
+HINT_ICON, HINT_PAD = 22, 8
+HINT_TITLE = "首件传说装备"
+HINT_BG = QColor(16, 20, 28, 170)  # 半透明：只是浮在卡片空白处，不当遮罩用
 
 
 class _Layer(QWidget):
@@ -177,7 +181,7 @@ class BadgeLayer(_Layer):
 
     name = "三选一标签"
     # 标签和装备提示最远画到标题框外多少（1080P 像素）：左右按最宽的装备提示 340 的一半再留余量，
-    # 上方是标签 84 + 装备提示 126 叠起来，下方是 BOTTOM_EDGE
+    # 上方留够标签（可能两行），下方到卡片底边 BOTTOM_EDGE；装备提示都在卡片说明那块
     BAND_SIDE, BAND_ABOVE, BAND_BELOW = 200, 300, BOTTOM_EDGE + 40
     EDGE = 4  # 离游戏画面边缘至少留几个物理像素
 
@@ -231,7 +235,9 @@ class BadgeLayer(_Layer):
                     logical = QRectF(bounds.x()*factor, bounds.y()*factor,
                                      bounds.width()*factor, bounds.height()*factor)
                     region |= logical.toAlignedRect().adjusted(-2, -2, 2, 2)
-            visual = (label, color.rgba(), lines, r.get("item_hint"), badge, hint_rect)
+            hint = r.get("item_hint")
+            hint_win = snap.get("settings", {}).get("show_winrate", True) if hint else None
+            visual = (label, color.rgba(), lines, hint, hint_win, badge, hint_rect)
             cards[r["index"]] = (copy.deepcopy(visual), region)
         previous = self._painted
         self._painted = (copy.deepcopy(geometry), cards)
@@ -326,7 +332,7 @@ class BadgeLayer(_Layer):
                 shift = min(12.0, max(0.0, title_pad)) if offer.get("padded") else 0.0
                 rect = QRect(int(cx - w / 2), int(y0 - 4 + shift - h), int(w), int(h))
             hint = r.get("item_hint")
-            hr = self._item_hint_rect(hint, cx, y0, yc, not below, fm_small, show_win) if hint else None
+            hr = self._item_hint_rect(hint, cx, y0, yc, rect, below, snap.get("settings", {}).get("show_winrate", True)) if hint else None
             result.append((r, label, color, lines, rect, hr, cx, y0, yc))
         return result
 
@@ -362,53 +368,77 @@ class BadgeLayer(_Layer):
                 p.drawText(QRect(rect.x() + 4, rect.y() + 28 + 18 * k, rect.width() - 8, 18), Qt.AlignHCenter, ln)
             hint = r.get("item_hint")
             if hint:
-                hr = self._paint_item_hint(p, hint, cx, y0, yc, not below, fm_small, show_win)
+                self._paint_item_hint(p, hint, hr, fm_small, show_win)
                 drawn.append(hr)
         p.end()
         self._publish(drawn, unit)
 
-    def _item_hint_rect(self, hint, cx, y0, yc, below, fm, show_win):
-        rows = hint["items"][:3]
-        texts = []
-        for row in rows:
-            text = row["name"]
-            if show_win and row.get("win") is not None:
-                text += f"  {_pct(row['win'])}（{row['games']}局）"
-            texts.append(text)
-        width = min(340, max(240, max((fm.horizontalAdvance(t) + 46 for t in texts), default=240)))
-        height = 42 + 28 * len(rows)
-        rect = QRect(int(cx - width / 2), int(yc + BOTTOM_EDGE - height if below else y0 - 4 - height), width, height)
-        return rect
+    @staticmethod
+    def _item_hint_stat(row, hint, show_win):
+        """装备右侧那段数字：默认只有相对英雄基准的加减，其余字段由数据决定。"""
+        parts = ["样本偏少"] if row.get("low_sample") else []
+        if show_win and row.get("win") is not None:
+            if hint.get("show_rate", True) is True:
+                parts.append(f"胜率 {_pct(row['win'])}")
+            if row.get("delta") is not None:
+                parts.append(f"{round(row['delta'], 1) or 0.0:+.1f}")  # or 0.0：避免显示 -0.0
+        if hint.get("show_pick_rate") is True and row.get("pick") is not None:
+            parts.append(f"选取 {'<1%' if row['pick'] < 0.01 else f'{row['pick'] * 100:.0f}%'}")
+        if hint.get("show_sample_size") is True and row.get("games"):
+            parts.append(f"{row['games']:,}局")
+        return " · ".join(parts)
 
-    def _paint_item_hint(self, p, hint, cx, y0, yc, below, fm, show_win):
+    def _item_hint_rect(self, hint, cx, y0, yc, badge, badge_below, show_win=True):
+        """命运之武器的装备提示：大小只包住内容，不盖说明文字。
+        标签在标题上方时，提示放卡片底部空白处；标签在底部时，那块空白放不下，提示改放标题上方的图标区域。"""
+        title_bottom = int(2 * yc - y0 + 4)  # 标题框下沿
+        bottom = badge.y() - 6 if badge_below else int(yc + BOTTOM_EDGE - 8)
+        fm = QFontMetrics(QFont("Microsoft YaHei UI", 9), self)
         rows = hint["items"][:3]
-        source = {"stats": "统计参考", "community": "社区推荐", "manual": "人工推荐"}[hint["source"]]
-        texts = []
-        for row in rows:
-            text = row["name"]
-            if show_win and row.get("win") is not None:
-                text += f"  {_pct(row['win'])}（{row['games']}局）"
-            texts.append(text)
-        rect = self._item_hint_rect(hint, cx, y0, yc, below, fm, show_win)
-        width, height = rect.width(), rect.height()
+        if not rows:  # 没有够格的装备：说明照常显示，只在底部写一行
+            width = min(badge.width(), fm.horizontalAdvance(hint.get("note") or "") + 2 * HINT_PAD)
+            return QRect(int(cx - width / 2), bottom - HINT_NOTE_H, width, HINT_NOTE_H)
+        widest = max(fm.horizontalAdvance(HINT_TITLE), *(
+            HINT_ICON + 6 + fm.horizontalAdvance(row["name"]) + 12 + fm.horizontalAdvance(self._item_hint_stat(row, hint, show_win))
+            for row in rows))
+        width = min(badge.width(), widest + 2 * HINT_PAD)
+        height = HINT_HEAD_H + HINT_ROW_H * len(rows) + 4
+        top = int(y0 - 4 - height) if badge_below else max(title_bottom, bottom - height)
+        return QRect(int(cx - width / 2), top, width, height)
+
+    def _paint_item_hint(self, p, hint, rect, fm, show_win):
         p.setPen(Qt.NoPen)
-        p.setBrush(QColor(10, 12, 16, 230))
+        p.setBrush(HINT_BG)
         p.drawRoundedRect(rect, 6, 6)
+        rows = hint["items"][:3]
+        if not rows:
+            p.setPen(QColor(170, 176, 190))
+            p.drawText(rect, Qt.AlignCenter, hint.get("note") or "")
+            return
+        x, width = rect.x() + HINT_PAD, rect.width() - 2 * HINT_PAD
         p.setPen(QColor(231, 195, 90))
-        p.drawText(QRect(rect.x() + 8, rect.y() + 3, width - 16, 18), Qt.AlignLeft, "首件传说装备 · " + source)
-        p.setPen(QColor(225, 228, 235))
-        for i, (row, text) in enumerate(zip(rows, texts)):
-            y = rect.y() + 23 + i * 28
+        p.drawText(QRect(x, rect.y() + 4, width, 18), Qt.AlignLeft, HINT_TITLE)
+        row_h = min(HINT_ROW_H, (rect.height() - HINT_HEAD_H - 4) // len(rows))
+        for i, row in enumerate(rows):
+            y = rect.y() + HINT_HEAD_H + i * row_h
+            size = min(HINT_ICON, row_h - 4)
             path = self.icons.local("item", row["item"], row.get("icon")) if self.icons else None
             image = QPixmap(path) if path else QPixmap()
             if not image.isNull():
-                p.drawPixmap(QRect(rect.x() + 8, y, 24, 24), image)
-            p.drawText(QRect(rect.x() + 38, y, width - 46, 24), Qt.AlignVCenter,
-                       fm.elidedText(text, Qt.ElideRight, width - 46))
-        p.setPen(QColor(170, 176, 190))
-        p.drawText(QRect(rect.x() + 8, rect.bottom() - 17, width - 16, 16), Qt.AlignLeft,
-                   "还没出首件传说装备的话，可以考虑")
-        return rect
+                p.drawPixmap(QRect(x, y, size, size), image)
+            text_x = x + size + 6
+            text_w = x + width - text_x
+            stat = self._item_hint_stat(row, hint, show_win)
+            stat_w = min(fm.horizontalAdvance(stat), text_w)
+            p.setPen(QColor(240, 240, 245))
+            name_w = max(0, text_w - stat_w - 12)
+            p.drawText(QRect(text_x, y + 2, name_w, 18), Qt.AlignLeft,
+                       fm.elidedText(row["name"], Qt.ElideRight, name_w))
+            delta = row.get("delta") if show_win else None
+            p.setPen(QColor(190, 196, 208) if delta is None or round(delta, 1) == 0
+                     else QColor(95, 211, 141) if delta > 0 else QColor(255, 122, 107))
+            p.drawText(QRect(x + width - stat_w, y + 2, stat_w, 18), Qt.AlignRight,
+                       fm.elidedText(stat, Qt.ElideRight, stat_w))
 
 
 GRADE_COLOR = {"S": QColor(240, 200, 90), "A": QColor(95, 211, 141), "B": QColor(98, 168, 255),
@@ -892,7 +922,7 @@ class ControlPanel(QWidget):
             self._missing_hero_notified = True
             if not self.expanded:
                 self.toggle()
-                self._hold_for_hero = True
+            self._hold_for_hero = True  # 本来就开着的也要留住，不然几秒后按时收起
             log.info("未识别到英雄，请手动选择")
         if hid or snap.get("phase") != "ingame":
             self._hold_for_hero = False  # 选好了（手动或补认出）、对局结束：照常按时收起
@@ -985,6 +1015,7 @@ class Overlay:
             self.champ.hide()
 
     def _tick(self):
+        crashlog.enforce_limit()
         if not getattr(self, "visible", True):
             return
         snap = self.engine.snapshot()
@@ -1077,6 +1108,9 @@ def run(make_engine, minimized: bool = False) -> int:
     QLocalServer.removeServer(name)
     server = QLocalServer()
     server.listen(name)
+    from ..config import app_home
+    if cloud.feature("crash_log"):  # 确认是唯一实例后再开：第二个实例不能清掉正在用的记录
+        crashlog.enable(app_home())
 
     engine = make_engine()
     engine.start()
@@ -1111,8 +1145,11 @@ def run(make_engine, minimized: bool = False) -> int:
         QTimer.singleShot(1200, welcome)
     failed = patch.take_failure()
     if failed:
-        log.warning("上次更新没装上：%s", failed)
-        tray.showMessage("海克斯大乱斗助手", "上次更新没有装上，已恢复原版本。打开主界面点「立即更新」再试一次。",
+        incomplete = patch.rollback_incomplete()
+        log.warning("上次更新没装上%s：%s", "，旧文件没有全部还原" if incomplete else "", failed)
+        tray.showMessage("海克斯大乱斗助手",
+                         "上次更新没有装上，也没能完全恢复原版本。请到官网重新下载安装。" if incomplete
+                         else "上次更新没有装上，已恢复原版本。打开主界面点「立即更新」再试一次。",
                          app_icon(), 10000)
     main_win.check_update()
     main_win.refresh_rank_if_stale()

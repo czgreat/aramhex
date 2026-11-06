@@ -32,12 +32,13 @@ jobs:
           if ("v$version" -ne "${{ github.ref_name }}") { throw "tag ${{ github.ref_name }} 和 __version__ $version 不一致" }
 
       - name: 更新内置统计数据
-        env:
-          GITHUB_TOKEN: ${{ secrets.DATA_REPO_TOKEN }}
         run: |
-          # 取最新的统计数据；取不到就用仓库里已提交的内置数据
+          # 只从自有服务器取统计包；取不到就用仓库里已审核的内置数据。
           try { python scripts/update_data.py } catch { Write-Warning "取不到最新数据，用已提交的内置数据：$_" }
           if ($LASTEXITCODE) { Write-Warning "取不到最新数据，用已提交的内置数据"; $global:LASTEXITCODE = 0 }
+
+      - name: 检查内置资料
+        run: python scripts/check_release_data.py
 
       # 内置官方资料（static_bundled.json 等）不在这里现抓：1.1.2 起只发审核过的那份。
       # 现抓的总表日期是当天、单英雄日期是腾讯的，对不上时程序启动就报错

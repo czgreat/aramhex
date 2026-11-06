@@ -66,7 +66,8 @@ def lines(d: dict, icons, show_win: bool, size: int = 24, compact: bool = False)
         out.append("<b>常出装备</b>　" + "　".join(item(icons, x["item"], size) + wr(x.get("win")) for x in its))
 
     def core(c):
-        return " → ".join(item(icons, x, size) for x in c.get("items") or []) + wr(c.get("win"))
+        separator = " → " if c.get("ordered") is True else " + "
+        return separator.join(item(icons, x, size) for x in c.get("items") or []) + wr(c.get("win"))
     cores = b.get("core") or []
     if cores:
         out.append("<b>核心三件</b>")

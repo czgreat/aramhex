@@ -94,6 +94,10 @@ def test_worker_offers_netdisk_on_failures(monkeypatch):
     def slow(*a, **k):
         raise update.SlowDownload("慢")
 
+    def not_writable(*a, **k):
+        raise patch.NotWritable("C:/Program Files/AramHex")
+
+    assert "不能写入" in run(not_writable)[0][0]
     assert run(net_down) == [("更新文件下载失败。", {"setup": "https://pan/s"})]
     assert run(need_full, slow)[0][0] == "从 GitHub 下载太慢。"
     assert run(need_full, net_down)[0][0] == "从 GitHub 下载安装包失败。"

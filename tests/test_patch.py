@@ -5,6 +5,7 @@ import json
 import subprocess
 import sys
 import threading
+import time
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -174,6 +175,78 @@ def test_place_failure_removes_only_new_files_and_restores_old_files(tmp_path):
     assert (root / "old.txt").read_bytes() == b"old"
     assert (root / "stale.txt").read_bytes() == b"stale"
     assert (root / "update-failed.txt").is_file()
+
+
+def _run_with_file_held(root, anchor, target):
+    """让替换脚本在指定位置打开文件并一直占着（拒绝共享删除），模拟扫描软件；时机确定，不靠抢。"""
+    body = patch.apply_script(root, ["AramHex.exe", "b.txt"], [], _done_pid(), "9.9.9", None)
+    assert anchor in body
+    hold = f"$global:held = [IO.File]::Open({target}, 'Open', 'Read', 'Read')"
+    script = root.parent / "apply.ps1"
+    script.write_text(body.replace(anchor, f"{anchor}\nif ($rel -eq 'AramHex.exe') {{ {hold} }}"), encoding="utf-8-sig")
+    subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+                    "-File", str(script)], check=True, timeout=120)
+
+
+@win
+def test_rollback_copies_back_when_backup_is_held(tmp_path):
+    """旧 EXE 刚进备份就被占着，挪不回去：不能让安装目录里没有 EXE。"""
+    root = _tree(tmp_path / "app", {"AramHex.exe": b"exe-old", "b.txt": b"b-old"})
+    _tree(root, {f"{patch.STAGING}/AramHex.exe": b"exe-new"})  # b.txt 的新文件缺了：替换到一半失败
+    _run_with_file_held(root, "$moved += $rel", "$bak")
+    assert (root / "AramHex.exe").read_bytes() == b"exe-old"
+    assert (root / "b.txt").read_bytes() == b"b-old"
+    assert (root / "update-failed.txt").is_file() and not patch.rollback_incomplete(root)
+    patch.take_failure(root)
+    assert not (root / patch.BACKUP).exists()
+
+
+@win
+def test_rollback_keeps_backup_when_new_file_cannot_be_replaced(tmp_path):
+    """新 EXE 被占着换不回去：保留备份、如实报告，并拒绝再次增量覆盖唯一备份。"""
+    root = _tree(tmp_path / "app", {"AramHex.exe": b"exe-old", "b.txt": b"b-old"})
+    _tree(root, {f"{patch.STAGING}/AramHex.exe": b"exe-new"})
+    _run_with_file_held(root, "$placed += $rel", "$dst")
+    assert patch.rollback_incomplete(root)
+    assert patch.take_failure(root)
+    assert (root / patch.BACKUP / "AramHex.exe").read_bytes() == b"exe-old"
+    assert patch.take_failure(root) is None  # 只报一次，备份还在
+    assert (root / patch.BACKUP / "AramHex.exe").is_file()
+    _tree(root, {f"{patch.STAGING}/AramHex.exe": b"exe-new2"})
+    patch.launch_apply(root, ["AramHex.exe"], [], "9.9.9", pid=_done_pid(), wait=True)
+    assert (root / "AramHex.exe").read_bytes() == b"exe-new"
+    assert patch.rollback_incomplete(root)
+    assert (root / patch.BACKUP / "AramHex.exe").read_bytes() == b"exe-old"
+
+
+@win
+def test_old_backup_held_records_failure_and_relaunches(tmp_path):
+    """上次留下的备份删不掉：这次不更新，但要记下原因并重新打开助手，不能让助手直接消失。"""
+    root = _tree(tmp_path / "app", {"AramHex.exe": b"exe-old"})
+    _tree(root, {f"{patch.STAGING}/AramHex.exe": b"exe-new", f"{patch.BACKUP}/left.txt": b"left"})
+    relaunch = tmp_path / "relaunch.cmd"
+    relaunch.write_text("echo ok> relaunched.txt\n")
+    with open(root / patch.BACKUP / "left.txt", "rb"):  # 不允许删除
+        patch.launch_apply(root, ["AramHex.exe"], [], "9.9.9", relaunch=str(relaunch), pid=_done_pid(), wait=True)
+    deadline = time.time() + 10
+    while not (root / "relaunched.txt").exists() and time.time() < deadline:
+        time.sleep(0.1)
+    assert (root / "relaunched.txt").exists()
+    assert (root / "AramHex.exe").read_bytes() == b"exe-old"
+    assert (root / patch.BACKUP / "left.txt").read_bytes() == b"left"
+    assert not patch.rollback_incomplete(root)
+    assert patch.BACKUP in patch.take_failure(root)
+
+
+@win
+def test_rollback_reports_incomplete_when_new_file_cannot_be_removed(tmp_path):
+    """这次新增的文件被占着删不掉：不能说已恢复原版本。"""
+    root = _tree(tmp_path / "app", {"b.txt": b"b-old"})
+    _tree(root, {f"{patch.STAGING}/AramHex.exe": b"added"})  # 旧版本没有 AramHex.exe；b.txt 的新文件缺了，替换到一半失败
+    _run_with_file_held(root, "$placed += $rel", "$dst")
+    assert (root / "b.txt").read_bytes() == b"b-old"
+    assert (root / "AramHex.exe").exists()
+    assert (root / "update-failed.txt").is_file() and patch.rollback_incomplete(root)
 
 
 def test_gz_preferred_and_plain_fallback(tmp_path, server):

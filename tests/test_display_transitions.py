@@ -55,7 +55,10 @@ def test_badges_follow_physical_pixels_at_current_qt_scale(size, position, tmp_p
                 yellow.append((x, y))
     assert yellow, (size, position, layer.devicePixelRatioF(), layer.size())
     icon_y = sum(y for _, y in yellow)/len(yellow)
-    assert (icon_y < 430*factor) == (position == "bottom")
+    # 标签在标题上方时提示在标题下面；标签在底部时提示放到标题上方。
+    assert icon_y > 470*factor if position == "top" else icon_y < 430*factor
+    if position == "bottom":  # 三件时也不压标签（遮罩四周多留 2 像素）
+        assert regions[1].top + regions[1].height <= regions[0].top + 6
     assert all(origin[0]-3 <= r.left and r.left+r.width <= origin[0]+width+3
                and origin[1]-3 <= r.top and r.top+r.height <= origin[1]+height+3 for r in regions)
     folder = os.environ.get("ARAMHEX_QA_IMAGES")

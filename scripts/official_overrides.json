@@ -1,0 +1,22 @@
+{
+  "_说明": "腾讯资料缺的或不对的，按 16.22 游戏文件人工补。重新抓取时自动套用（official_data.py、update_static.py）；上游有内容的字段以上游为准，只有 new 总是用这里的。items_exclude 不进装备表；ask_user 的每次做数据源都要问用户，没确认就不放（规则见 docs/AUGMENT-ITEMS.md）。",
+  "augments_remove": ["393", "1064", "1066", "1327", "1334", "1346", "2007", "2097", "2108", "2148"],
+  "augments": {
+    "1343": {"desc": "即刻：随机获得一双升级后的靴子。需求：完成其任务，以更换为另一双。奖励：嘉文一世之靴。", "icon": "https://game.gtimg.cn/images/lol/act/img/rune/sneakerhead_small.png", "new": true},
+    "1361": {"desc": "即刻：获得1个【斑比的熔渣】。任务：持有日炎圣盾和璀璨回响。奖励：将【日炎圣盾】和【璀璨回响】合成为【虚空献祭】。", "icon": "https://game.gtimg.cn/images/lol/act/img/rune/quest_voidimmolation_small.png", "new": true},
+    "2109": {"desc": "再次施放【技能】技能时会产生爆炸，并回到你的原本位置。", "icon": "https://game.gtimg.cn/images/lol/act/img/rune/genericabilityaugmenticon_gold.png", "new": true},
+    "2119": {"desc": "你的加农炮发射器的距离、飞行速度和伤害已经得到显著提升。回城并进入到你的加农炮发射器。", "icon": "https://game.gtimg.cn/images/lol/act/img/rune/overextender_small.png", "new": true},
+    "2126": {"name": "装填", "en": "KeepGoing", "rarity": "gold", "modes": ["KIWI"], "desc": "在【技能】技能期间的普攻命中会降低其冷却时间。", "icon": "https://game.gtimg.cn/images/lol/act/img/rune/lightningstrikes_small.png", "new": true},
+    "2140": {"desc": "你对敌人的技能命中会触发顺劈。提升【贪欲九头蛇】的生命偷取。获得金币。"},
+    "2143": {"desc": "将【焚天】对每个目标的冷却时间缩短，并且治疗你已损失生命值。获得金币。"}
+  },
+  "items_exclude": {
+    "3040": {"name": "炽天使之拥", "note": "大天使之杖在 360 法力时变成，商店不卖", "ask_user": true},
+    "3042": {"name": "魔切", "note": "魔宗在 360 法力时变成，商店不卖", "ask_user": true},
+    "3121": {"name": "末日寒冬", "note": "凛冬之临在 360 法力时变成，商店不卖", "ask_user": true},
+    "2530": {"name": "歌之权冠", "note": "耳语头环在 360 法力时变成，商店不卖", "ask_user": true},
+    "2052": {"name": "魄罗佳肴", "note": "不是装备，不放"},
+    "220013": {"name": "魄罗佳肴", "note": "不是装备，不放"},
+    "3400": {"name": "你也有份", "note": "不是装备，不放"}
+  }
+}

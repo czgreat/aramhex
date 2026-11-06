@@ -9,7 +9,7 @@
 两个来源，用样本更新的那份：
 - 安装包内置：lolhex/data/bundled/（发版时由 scripts/update_data.py 放进来）；
 - 下载的：<app_home>/data/public/（启动时查数据仓库的 latest.json，有新数据就下载，逐个文件校验 SHA-256）。
-  先试 GitHub，连不上或校验不过就换 jsDelivr 镜像（DATA_SOURCES）。
+  客户端只访问云控配置的自有服务器地址；服务器内部可以使用自采、腾讯或混合来源。
 
 官方资料（英雄、海克斯字典、出装、加点）仍由父类 DataStore 直接从腾讯取。
 """
@@ -42,12 +42,11 @@ BAND_ALIASES = {"top": "high"}  # 老设置文件、查分服务里的 top 当 h
 def norm_band(band):
     return BAND_ALIASES.get(band, band) if band else band
 BUNDLED_DIR = Path(__file__).with_name("bundled")
+# 保留常量名供旧测试/工具导入，但默认线路绝不访问外部代码托管或 CDN。
 RAW_BASE = f"https://raw.githubusercontent.com/{DATA_REPO}/main"
-# 先走官网镜像（定时从 GitHub 同步），不通再试 GitHub 和 jsDelivr。每个文件都按清单校验 SHA-256。
-DATA_SOURCES = [f"{MIRROR}/data", RAW_BASE] + [f"https://{host}/gh/{DATA_REPO}@main"
-                             for host in ("fastly.jsdelivr.net", "gcore.jsdelivr.net", "cdn.jsdelivr.net")]
-# jsDelivr 按分支（@main）取会缓存好几个小时；数据每更新一次打 tag data-v<序号>，按"下一个序号"试探，按 tag 取是即时的
-DATA_TAG_HOSTS = ("fastly.jsdelivr.net", "gcore.jsdelivr.net")
+DATA_SOURCES: list[str] = []
+# 旧版的 tag 探测只对显式传入的测试地址启用；正式默认配置没有外部 tag 主机。
+DATA_TAG_HOSTS: tuple[str, ...] = ()
 DATA_TAG_FMT = "https://{host}/gh/" + DATA_REPO + "@data-v{seq}"
 SYNC_EVERY_S = 6 * 3600
 SCHEMA_VERSION = 1
@@ -274,9 +273,24 @@ def load_best(folders: list[tuple[Path, str]]) -> Dataset | None:
             if (Path(folder) / "latest.json").exists():
                 log.warning("统计数据 %s 不能用：%s", folder, e)
             continue
-        if best is None or (ds.snapshot_at, ds.patch) > (best.snapshot_at, best.patch):
+        if best is None or (ds.snapshot_at, ds.patch, ds.seq) > (best.snapshot_at, best.patch, best.seq):
             best = ds
     return best
+
+
+def newer_manifest(remote: dict, current: Dataset | None) -> bool:
+    """样本时间优先；同快照按发布序号防回退，再兼容同序号内容修订。"""
+    if current is None:
+        return True
+    remote_time = (str(remote.get("snapshot_at") or ""), str(remote.get("patch") or ""))
+    current_time = (current.snapshot_at, current.patch)
+    if remote_time != current_time:
+        return remote_time > current_time
+    remote_seq = int(remote.get("seq") or 0)
+    if remote_seq != current.seq:
+        return remote_seq > current.seq
+    ident = json.dumps([remote_time[1], remote_time[0], remote["files"]], sort_keys=True)
+    return hashlib.sha256(ident.encode("utf-8")).hexdigest()[:12] != current.revision
 
 
 PACK_FORMAT = "aramhex-pack-1"
@@ -427,8 +441,9 @@ class PublicStore(DataStore):
             if self.hold():
                 return False
             changed = ds is not None and (self.dataset is None or ds.revision != self.dataset.revision)
+            # 内容不变但 seq 增加时，也更新已知序号，避免每次检查都重复下载。
+            self.dataset = ds
             if changed or ds is None:
-                self.dataset = ds
                 self._views.clear()
             self._apply_ranks()
         return changed
@@ -444,10 +459,17 @@ class PublicStore(DataStore):
                 if not (pending / "latest.json").is_file():
                     continue
                 try:
-                    Dataset(pending, "downloaded")  # 不完整的暂存目录不能进入使用状态。
+                    candidate = Dataset(pending, "downloaded")  # 不完整的暂存目录不能进入使用状态。
                 except (OSError, ValueError, KeyError, TypeError) as e:
                     # 坏的暂存目录删掉，下次重新下载；留着的话每次都卡在这里，再也换不了数据
                     log.warning("下载的统计数据不完整，删掉重下：%s", e)
+                    shutil.rmtree(pending, ignore_errors=True)
+                    continue
+                folders = [(dest, "downloaded")]
+                if dest == self.downloaded:
+                    folders.append((self.bundled, "bundled"))
+                current = load_best(folders)
+                if current is not None and candidate.mode == current.mode and not newer_manifest(candidate.manifest, current):
                     shutil.rmtree(pending, ignore_errors=True)
                     continue
                 backup = dest.with_name(dest.name + f".previous-{time.time_ns()}") if dest.exists() else None
@@ -547,8 +569,11 @@ class PublicStore(DataStore):
         return None
 
     def _newer(self, remote: dict) -> bool:
-        cur = self.dataset
-        return not cur or (str(remote.get("snapshot_at") or ""), str(remote.get("patch") or "")) > (cur.snapshot_at, cur.patch)
+        # 活动包和常规包的 seq 各自比较，不能拿活动序号判断常规包的新旧。
+        current = self.dataset
+        if current is not None and current.mode != "normal":
+            current = load_best([(self.downloaded, "downloaded"), (self.bundled, "bundled")])
+        return newer_manifest(remote, current)
 
     @staticmethod
     def _describe(remote: dict) -> str:
@@ -574,7 +599,8 @@ class PublicStore(DataStore):
                 continue
             if self._newer(remote):
                 log.info("发现新统计数据（%s），自动更新关着，等用户确认", self._describe(remote))
-                self.data_offer = {"id": f"{remote.get('patch')}|{remote.get('snapshot_at')}",
+                revision = hashlib.sha256(json.dumps(remote, sort_keys=True).encode("utf-8")).hexdigest()[:12]
+                self.data_offer = {"id": revision,
                                    "text": self._describe(remote)}
             return
 
@@ -602,10 +628,10 @@ class PublicStore(DataStore):
                  for d in idx.get("datasets") or [] if d.get("mode") == self.event["mode"]]
         if not cands:
             return False
-        remote = max(cands, key=lambda d: (str(d.get("snapshot_at") or ""), str(d.get("patch") or "")))
+        remote = max(cands, key=lambda d: (str(d.get("snapshot_at") or ""), str(d.get("patch") or ""),
+                                          int(d.get("seq") or 0)))
         cur = load_best([(self.event_dir, "downloaded")])
-        if cur and cur.mode == self.event["mode"] and \
-                (str(remote.get("snapshot_at") or ""), str(remote.get("patch") or "")) <= (cur.snapshot_at, cur.patch):
+        if cur and cur.mode == self.event["mode"] and not newer_manifest(remote, cur):
             return False
         log.info("下载活动数据：%s %s", self.event["label"], remote.get("patch"))
         download(base, remote, self.event_dir.with_name(self.event_dir.name + "-pending"))
@@ -736,6 +762,11 @@ class PublicStore(DataStore):
         raw = cfg.get("items")
         if not isinstance(raw, list):
             return None
+        total = cfg.get("total") if type(cfg.get("total")) is int and cfg.get("total") > 0 else None
+        # 基准由数据源提供（目前是该英雄基础统计），客户端不猜基准，也不做样本平滑。
+        baseline = cfg.get("baseline")
+        bg, bw = (baseline.get("games"), baseline.get("wins")) if isinstance(baseline, dict) else (None, None)
+        baseline_valid = type(bg) is int and bg > 0 and type(bw) is int and 0 <= bw <= bg
         rows, seen = [], set()
         for x in raw:
             if not isinstance(x, dict):
@@ -751,12 +782,25 @@ class PublicStore(DataStore):
             if (g is not None or w is not None) and not (type(g) is int and g > 0 and type(w) is int and 0 <= w <= g):
                 continue
             show = cfg.get("show_winrate", True) is True and x.get("show_winrate", True) is True
+            delta = None
+            if (show and g and baseline_valid and cfg.get("show_delta", True) is True
+                    and g <= bg and w <= bw and g - w <= bg - bw):
+                delta = (w / g - bw / bg) * 100
             rows.append({"item": iid, "name": name[:24], "icon": meta.get("icon"),
-                         "games": g, "win": w / g if show and g else None})
+                         "games": g, "win": w / g if show and g else None,
+                         "delta": delta,
+                         "pick": min(g / total, 1.0) if total and g else None,
+                         "low_sample": x.get("low_sample") is True})
             seen.add(iid)
             if len(rows) == 3:  # 卡片另一侧的空位只放三行；人工推荐的先后顺序不重排
                 break
-        return {"source": cfg["source"], "items": rows} if rows else None
+        if rows:
+            return {"source": cfg["source"], "items": rows,
+                    "show_rate": cfg.get("show_rate", True) is True,
+                    "show_sample_size": cfg.get("show_sample_size") is True,
+                    "show_pick_rate": cfg.get("show_pick_rate") is True}
+        note = cfg.get("note")  # 都不够格：门槛在数据里定，这里只显示写好的一句话
+        return {"source": cfg["source"], "items": [], "note": note[:30]} if isinstance(note, str) and note.strip() else None
 
     def hero(self, hero_id: str, allow_network: bool = True) -> dict | None:
         """官方出装、加点 + 海克斯列表（有统计的在前，带出场占比；官方层级一并保留）。"""

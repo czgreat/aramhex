@@ -100,6 +100,161 @@ def test_sync_downloads_newer_data(tmp_path, server):
     assert s.sync_data() is False  # 6 小时内不重复查
 
 
+def test_sync_downloads_same_snapshot_content_revision(tmp_path, server):
+    """同版本同样本时间只改文件内容时，也必须激活服务器的新修订。"""
+    root, base = server
+    make_dataset(tmp_path / "b", snapshot_at="2026-10-13T00:00:00+08:00")
+    s = PublicStore(tmp_path / "data", bundled=tmp_path / "b", base_url=base)
+    manifest = _publish(root, "2026-10-13T00:00:00+08:00")
+    folder = root / "patches" / "16.20"
+    body = json.loads((folder / "heroes.json").read_text(encoding="utf-8"))
+    body["17"]["win_rate"] = 0.501
+    encoded = public._dump_json(body)
+    (folder / "heroes.json").write_bytes(encoded)
+    manifest["files"]["heroes.json"] = {"sha256": public.hashlib.sha256(encoded).hexdigest(),
+                                          "size": len(encoded)}
+    (root / "latest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    assert s.sync_data(force=True) is True
+    assert s.dataset.revision != Dataset(tmp_path / "b", "bundled").revision
+    assert s.dataset.table(None)[0]["17"]["win_rate"] == 0.501
+
+
+def test_new_snapshot_can_remove_optional_equipment_without_bundled_fallback(tmp_path, server):
+    root, base = server
+    snapshot = "2026-10-13T00:00:00+08:00"
+    bundled = tmp_path / "bundled"
+    make_dataset(bundled, snapshot_at=snapshot, seq=1)
+    _add_file(bundled, "hero_items.json", {"17": {"3115": {"games": 1000, "wins": 550}}})
+    _add_file(bundled, "hero_augment_items.json", {"17": {"3081": {"source": "stats", "items": [
+        {"item": "3135", "name": "虚空之杖", "games": 1000, "wins": 550}]}}})
+    store = PublicStore(tmp_path / "data", bundled=bundled, base_url=base)
+    assert store.hero_items("17")[0]
+    assert store.augment_items("17", "3081")["items"]
+    before = store.win_data("17")
+    _revise_remote(root, _publish(root, snapshot), seq=2)
+    busy = [True]
+    store.hold = lambda: busy[0]
+    assert not store.sync_data(force=True)
+    assert store.hero_items("17")[0]  # 对局中继续使用完整旧快照。
+    busy[0] = False
+    assert store.sync_data(force=True)
+    assert store.dataset.seq == 2
+    assert store.hero_items("17")[0] == []
+    assert store.augment_items("17", "3081") is None
+    assert store.win_data("17")["sample_games"] == before["sample_games"]
+    assert store.win_data("17")["sample_win"] == before["sample_win"]
+
+
+def test_default_data_sources_are_owned_endpoints_only(monkeypatch, tmp_path):
+    monkeypatch.setattr(public.cloud, "mirrors", lambda kind: ["http://data.example/mirror"])
+    monkeypatch.setattr(public.cloud, "sites", lambda: ["http://data.example/site"])
+    s = PublicStore(tmp_path / "data", check_updates=False)
+    assert all("github.com" not in url and "jsdelivr.net" not in url for url in s.base_urls)
+    assert not s.tag_hosts
+
+
+def _revise_remote(root, manifest, *, seq, win_rate=None):
+    folder = root / manifest["path"]
+    if win_rate is not None:
+        body = json.loads((folder / "heroes.json").read_text(encoding="utf-8"))
+        body["17"]["win_rate"] = win_rate
+        encoded = public._dump_json(body)
+        (folder / "heroes.json").write_bytes(encoded)
+        manifest["files"]["heroes.json"] = {
+            "sha256": public.hashlib.sha256(encoded).hexdigest(), "size": len(encoded)}
+    manifest["seq"] = seq
+    (root / "latest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    return manifest
+
+
+def test_same_snapshot_stale_server_cannot_rollback_newer_seq(tmp_path, server):
+    root, base = server
+    snapshot = "2026-10-13T00:00:00+08:00"
+    make_dataset(tmp_path / "b", snapshot_at=snapshot, seq=12)
+    manifest = _publish(root, snapshot)
+    _revise_remote(root, manifest, seq=11, win_rate=.501)
+    store = PublicStore(tmp_path / "data", bundled=tmp_path / "b", base_url=base)
+    before = store.dataset.revision
+    assert store.sync_data(force=True) is False
+    assert store.dataset.seq == 12 and store.dataset.revision == before
+    assert not store.downloaded.exists()
+
+
+def test_same_content_seq_bump_is_recorded_without_repeated_download(tmp_path, server, monkeypatch):
+    root, base = server
+    snapshot = "2026-10-13T00:00:00+08:00"
+    make_dataset(tmp_path / "b", snapshot_at=snapshot, seq=11)
+    manifest = _revise_remote(root, _publish(root, snapshot), seq=12)
+    store = PublicStore(tmp_path / "data", bundled=tmp_path / "b", base_url=base)
+    assert store.sync_data(force=True) is False  # 内容未变，不弹数据变动提示。
+    assert store.dataset.seq == 12
+    assert json.loads((store.downloaded / "latest.json").read_text(encoding="utf-8"))["seq"] == 12
+    monkeypatch.setattr(public, "download", lambda *a, **kw: pytest.fail("same revision downloaded twice"))
+    assert store.sync_data(force=True) is False
+    assert not store._newer(manifest)
+
+
+def test_disabled_updates_offer_distinct_same_snapshot_revisions(tmp_path, server):
+    root, base = server
+    snapshot = "2026-10-13T00:00:00+08:00"
+    make_dataset(tmp_path / "b", snapshot_at=snapshot, seq=11)
+    manifest = _revise_remote(root, _publish(root, snapshot), seq=12, win_rate=.501)
+    store = PublicStore(tmp_path / "data", bundled=tmp_path / "b", base_url=base, check_updates=False)
+    assert store.sync_data(force=True) is False
+    first_offer = store.data_offer["id"]
+    _revise_remote(root, manifest, seq=13, win_rate=.502)
+    assert store.sync_data(force=True) is False
+    assert store.data_offer["id"] != first_offer
+    assert store.dataset.seq == 11 and not store.downloaded.exists()
+
+
+@pytest.mark.parametrize("downloaded_seq,bundled_seq,expected", [(11, 12, "bundled"), (13, 12, "downloaded")])
+def test_startup_chooses_highest_seq_within_same_snapshot(tmp_path, downloaded_seq, bundled_seq, expected):
+    make_dataset(tmp_path / "b", seq=bundled_seq)
+    make_dataset(tmp_path / "data" / "public", seq=downloaded_seq)
+    store = PublicStore(tmp_path / "data", bundled=tmp_path / "b", check_updates=False)
+    assert store.dataset.origin == expected
+    assert store.dataset.seq == max(downloaded_seq, bundled_seq)
+
+
+def test_stale_pending_revision_does_not_replace_current_files(tmp_path):
+    make_dataset(tmp_path / "b", seq=11)
+    dest = tmp_path / "data" / "public"
+    make_dataset(dest, seq=13)
+    pending = dest.with_name("public-pending")
+    make_dataset(pending, seq=12)
+    _add_file(pending, "hero_items.json", {"17": {"3115": {"games": 500, "wins": 270}}})
+    before = (dest / "latest.json").read_bytes()
+    store = PublicStore(tmp_path / "data", bundled=tmp_path / "b", check_updates=False)
+    assert store._activate_pending_data() is False
+    assert (dest / "latest.json").read_bytes() == before
+    assert store.dataset.seq == 13 and not pending.exists()
+
+
+def test_event_revision_uses_highest_seq_and_rejects_stale_mirror(tmp_path, server):
+    root, base = server
+    snapshot = "2026-10-13T00:00:00+08:00"
+    make_dataset(tmp_path / "b", snapshot_at=snapshot)
+    _publish(root, snapshot)
+    new = make_dataset(root / "patches" / "event-new", snapshot_at=snapshot, bands=False, seq=12)
+    new.update(mode="first-prismatic", path="patches/event-new")
+    old = make_dataset(root / "patches" / "event-old", snapshot_at=snapshot, bands=False, seq=11)
+    old.update(mode="first-prismatic", path="patches/event-old")
+    _revise_remote(root, old, seq=11, win_rate=.501)
+    _publish(root, snapshot)  # 恢复常规清单；活动清单只通过 index 提供。
+    index = root / "index.json"
+    index.write_text(json.dumps({"schema_version": 1, "datasets": [old, new]}), encoding="utf-8")
+    event = {"mode": "first-prismatic", "label": "首次必棱彩"}
+    store = PublicStore(tmp_path / "data", bundled=tmp_path / "b", base_url=base, event_source=lambda: event)
+    assert store.sync_data(force=True) is True
+    assert store.dataset.seq == 12
+    before = store.dataset.revision
+    assert store._newer(json.loads((root / "latest.json").read_text(encoding="utf-8"))) is False
+    index.write_text(json.dumps({"schema_version": 1, "datasets": [old]}), encoding="utf-8")
+    assert store._sync_event(base) is False
+    assert store.dataset.seq == 12 and store.dataset.revision == before
+
+
 def test_sync_rejects_tampered_download(tmp_path, server):
     root, base = server
     make_dataset(tmp_path / "b", snapshot_at="2026-10-13T00:00:00+08:00")

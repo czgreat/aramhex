@@ -241,15 +241,18 @@ class Engine:
             hid = self.store.resolve_hero(hero_key)
             official = getattr(self.store, "official", None)
             snapshot = official.snapshot if official is not None else None
+            dataset = getattr(self.store, "dataset", None)
             rarity_rules = cloud.get()["augments"]["rarity_fix"]
             if (self._panel_cache[0] == hid and self._panel_cache[1]
                     and getattr(self, "_panel_snapshot", None) is snapshot
+                    and getattr(self, "_panel_dataset", None) is dataset
                     and getattr(self, "_panel_rarity_rules", None) == rarity_rules):
                 return self._panel_cache[1]
             p = hero_panel(self.store, hid, self.settings.smoothing_games,
                            allow_network=False) if hid else None
             self._panel_cache = (hid, p)
             self._panel_snapshot = snapshot
+            self._panel_dataset = dataset
             self._panel_rarity_rules = rarity_rules
         return p
 

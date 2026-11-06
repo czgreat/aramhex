@@ -459,6 +459,14 @@
   "name": "升级：无尽之刃",
   "rarity": "gold"
  },
+ "1337": {
+  "name": "尊我为王",
+  "rarity": "prismatic"
+ },
+ "1343": {
+  "name": "王中王，靴中靴",
+  "rarity": "prismatic"
+ },
  "1344": {
   "name": "最终形态",
   "rarity": "prismatic"
@@ -482,6 +490,10 @@
  "1358": {
   "name": "弹球",
   "rarity": "gold"
+ },
+ "1361": {
+  "name": "艾卡西亚的陷落",
+  "rarity": "prismatic"
  },
  "1373": {
   "name": "缩小引擎",
@@ -587,6 +599,18 @@
   "name": "杀意翻涌",
   "rarity": "silver"
  },
+ "2032": {
+  "name": "鲨鱼诱饵",
+  "rarity": "gold"
+ },
+ "2034": {
+  "name": "鲨鱼暴风",
+  "rarity": "gold"
+ },
+ "2043": {
+  "name": "自然即是治愈",
+  "rarity": "gold"
+ },
  "2054": {
   "name": "三重射击",
   "rarity": "prismatic"
@@ -627,6 +651,14 @@
   "name": "连锁反应",
   "rarity": "gold"
  },
+ "2080": {
+  "name": "冰雪爆裂",
+  "rarity": "gold"
+ },
+ "2083": {
+  "name": "牙仙子",
+  "rarity": "gold"
+ },
  "2087": {
   "name": "大法师",
   "rarity": "prismatic"
@@ -634,6 +666,10 @@
  "2088": {
   "name": "下雪天",
   "rarity": "silver"
+ },
+ "2091": {
+  "name": "无尽大杀四方",
+  "rarity": "gold"
  },
  "2096": {
   "name": "小小的额外帮助",
@@ -659,12 +695,32 @@
   "name": "狙神飞星",
   "rarity": "gold"
  },
+ "2104": {
+  "name": "灵魄炸弹",
+  "rarity": "prismatic"
+ },
+ "2107": {
+  "name": "濒死悟道",
+  "rarity": "prismatic"
+ },
+ "2109": {
+  "name": "复位",
+  "rarity": "gold"
+ },
  "2111": {
   "name": "邦！",
   "rarity": "gold"
  },
+ "2115": {
+  "name": "软弹啪叽抓",
+  "rarity": "prismatic"
+ },
  "2116": {
   "name": "威能之追求",
+  "rarity": "gold"
+ },
+ "2119": {
+  "name": "过量延伸者",
   "rarity": "gold"
  },
  "2123": {
@@ -673,6 +729,14 @@
  },
  "2125": {
   "name": "前进时间到",
+  "rarity": "silver"
+ },
+ "2126": {
+  "name": "装填",
+  "rarity": "gold"
+ },
+ "2127": {
+  "name": "大师铸就",
   "rarity": "silver"
  },
  "2129": {
@@ -691,6 +755,10 @@
   "name": "仁慈打击",
   "rarity": "gold"
  },
+ "2134": {
+  "name": "电涌力场",
+  "rarity": "prismatic"
+ },
  "2135": {
   "name": "针插垫",
   "rarity": "prismatic"
@@ -698,6 +766,10 @@
  "2136": {
   "name": "可靠武器",
   "rarity": "silver"
+ },
+ "2137": {
+  "name": "轻拍背部",
+  "rarity": "gold"
  },
  "2138": {
   "name": "自适应防护",
@@ -747,6 +819,14 @@
   "name": "翻倍时间",
   "rarity": "gold"
  },
+ "3039": {
+  "name": "拯救",
+  "rarity": "gold"
+ },
+ "3048": {
+  "name": "弹跳蜜蜂",
+  "rarity": "prismatic"
+ },
  "3049": {
   "name": "装甲冲击",
   "rarity": "gold"
@@ -766,6 +846,18 @@
  "3055": {
   "name": "终极循环往复",
   "rarity": "silver"
+ },
+ "3058": {
+  "name": "嗡嗡怪兽",
+  "rarity": "gold"
+ },
+ "3059": {
+  "name": "没法力，没问题",
+  "rarity": "silver"
+ },
+ "3060": {
+  "name": "单曲红人",
+  "rarity": "gold"
  },
  "3063": {
   "name": "溺水之赠礼",
@@ -847,6 +939,10 @@
   "name": "升级：风暴狂涌",
   "rarity": "gold"
  },
+ "3159": {
+  "name": "登峰造极境",
+  "rarity": "prismatic"
+ },
  "3163": {
   "name": "迷人蝴蝶",
   "rarity": "gold"
@@ -865,6 +961,10 @@
  },
  "3173": {
   "name": "厄运",
+  "rarity": "gold"
+ },
+ "3176": {
+  "name": "赛季之星:五杀摇滚",
   "rarity": "gold"
  }
 }

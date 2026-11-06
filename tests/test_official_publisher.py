@@ -38,6 +38,27 @@ def approve(directory, meta, publication):
                                        approved_by="local simulation approval")
 
 
+@pytest.mark.parametrize("ordered", [False, True])
+def test_explicit_core_semantics_require_115_and_cannot_downgrade_metadata(tmp_path, ordered):
+    from lolhex.data.official import OfficialDataError, check_manifest
+    data = payload()
+    data["heroes"]["heroes"]["17"]["builds"]["core"] = [
+        {"items": ["1001", "1001", "1001"], "ordered": ordered}]
+    directory, meta = candidate(tmp_path, data)
+    assert meta["min_client"] == "1.1.5"
+    assert publisher.read_candidate(directory)[1] == data
+    publication = publisher.initialize_publication(tmp_path / "public")
+    approve(directory, meta, publication)
+    manifest = json.loads((publication / "latest.json").read_text(encoding="utf-8"))
+    with pytest.raises(OfficialDataError, match="较新的程序"):
+        check_manifest(manifest, "1.1.4")
+    assert check_manifest(manifest, "1.1.5-test.5") == manifest
+    meta["min_client"] = "1.1.2"
+    (directory / "candidate.json").write_text(json.dumps(meta), encoding="utf-8")
+    with pytest.raises(ValueError, match="reviewed protocol"):
+        publisher.read_candidate(directory)
+
+
 def test_candidate_is_isolated_and_deterministic(tmp_path):
     public = publisher.initialize_publication(tmp_path / "public")
     a, ma = candidate(tmp_path, label="a")

@@ -4,8 +4,93 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import json
 import threading
 
+from conftest import make_dataset
+
 from lolhex.data.official import ManagedOfficial
 from scripts import official_data as publisher
+
+
+def test_mixed_build_package_keeps_order_and_updates_same_date_after_game(tmp_path):
+    from lolhex.data.public import PublicStore
+    from lolhex.panel import hero_panel
+    from lolhex.ui import buildview
+
+    public = publisher.initialize_publication(tmp_path / "public")
+    bundled_static, bundled_heroes = _source(tmp_path, "2026-10-22", "bundled", "提莫")
+    static_path, heroes_path = _source(tmp_path, "2026-10-23", "source", "提莫")
+    static = json.loads(static_path.read_text(encoding="utf-8"))
+    static["items"] = {iid: {"name": name} for iid, name in
+                       (("1001", "装备甲"), ("2001", "装备乙"), ("3001", "装备丙"))}
+    static_path.write_text(json.dumps(static, ensure_ascii=False), encoding="utf-8")
+    heroes = json.loads(heroes_path.read_text(encoding="utf-8"))
+    hero = heroes["heroes"]["17"]
+    hero["builds"]["core"] = [
+        {"items": ["3001", "2001", "1001"], "ordered": True, "win": .4, "games": 1, "pick": .00001},
+        {"items": ["1001", "3001", "2001"], "ordered": False, "win": .9, "games": 10000, "pick": .9},
+        {"items": ["2001", "1001", "3001"], "ordered": False},
+    ]
+    hero["skills"] = [{"max": ["Q", "E", "W"], "win": .55}]
+    heroes_path.write_text(json.dumps(heroes, ensure_ascii=False), encoding="utf-8")
+    first = tmp_path / "candidate-1"
+    _publish(first, publisher.create_candidate(static_path, heroes_path, first), public)
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(SimpleHTTPRequestHandler, directory=str(public)))
+    worker = threading.Thread(target=server.serve_forever, daemon=True)
+    worker.start()
+    busy = [False]
+    try:
+        client = ManagedOfficial(tmp_path / "official", bundled_static, bundled_heroes,
+                                 minutes=lambda: 60, sources=lambda: [f"http://127.0.0.1:{server.server_port}"],
+                                 hold=lambda: busy[0], allow_http_local=True)
+        bundled = tmp_path / "stats-bundled"
+        make_dataset(bundled)
+        store = PublicStore(tmp_path / "store", bundled=bundled, base_url=[], tag_hosts=[],
+                            event_source=lambda: None, check_updates=False)
+        store.official = client
+        assert client.sync(force=True)
+        panel = hero_panel(store, "17", allow_network=False)
+        text = "".join(buildview.lines(panel, None, True))
+        assert text.index("装备丙 → 装备乙 → 装备甲") < text.index("装备甲 + 装备丙 + 装备乙")
+        assert "装备乙 + 装备甲 + 装备丙" in text  # 没有胜率也显示。
+        assert panel["skills"] == hero["skills"]
+        assert "主 Q · 副 E" in buildview.skills_line(panel, True)
+
+        # 只改最终推荐顺序：不伪造资料日期，通过新 revision 更新。
+        hero["builds"]["core"].reverse()
+        heroes_path.write_text(json.dumps(heroes, ensure_ascii=False), encoding="utf-8")
+        second = tmp_path / "candidate-2"
+        _publish(second, publisher.create_candidate(static_path, heroes_path, second), public)
+        busy[0] = True
+        assert not client.sync(force=True)
+        assert client.status()["official_pending"] == 2
+        assert hero_panel(store, "17", allow_network=False)["builds"]["core"][0]["ordered"] is True
+        busy[0] = False
+        assert client.activate_pending()
+        updated = hero_panel(store, "17", allow_network=False)
+        assert updated["official_revision"] == 2
+        assert updated["date"] == panel["date"]
+        assert [row["items"][0]["id"] for row in updated["builds"]["core"]] == ["2001", "1001", "3001"]
+        assert updated["skills"] == panel["skills"]
+
+        # 发布有效的空栏目可以撤下推荐，不从内置或上一份英雄资料补回。
+        hero["builds"] = {"core": [], "shoes": [], "start": []}
+        hero["skills"] = []
+        heroes_path.write_text(json.dumps(heroes, ensure_ascii=False), encoding="utf-8")
+        third = tmp_path / "candidate-3"
+        _publish(third, publisher.create_candidate(static_path, heroes_path, third), public)
+        assert client.sync(force=True)
+        cleared = hero_panel(store, "17", allow_network=False)
+        assert cleared["official_revision"] == 3
+        assert cleared["date"] == panel["date"]
+        assert all(cleared["builds"][key] == [] for key in ("core", "shoes", "start"))
+        assert cleared["skills"] == []
+        assert buildview.skills_line(cleared, True) is None
+        assert not any(title in "".join(buildview.lines(cleared, None, True))
+                       for title in ("核心三件", "鞋子", "出门装"))
+    finally:
+        server.shutdown()
+        worker.join(5)
+        server.server_close()
 
 
 def _source(tmp_path, day, label, name):

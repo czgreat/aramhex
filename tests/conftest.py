@@ -4,11 +4,16 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import sys
 import time
 from pathlib import Path
 
 import pytest
+
+# 绘制测试使用离屏 Qt，避免模拟三选一和悬浮窗闪到开发机桌面。
+# 手动验证真实窗口时，可在该测试进程启动前显式覆盖此变量。
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 ROOT = Path(__file__).resolve().parent.parent
 FIX = Path(__file__).resolve().parent / "fixtures"

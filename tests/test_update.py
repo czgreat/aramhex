@@ -228,9 +228,11 @@ def test_build_info_adds_test_tag(tmp_path):
     pkg = tmp_path / "lolhex"
     pkg.mkdir()
     (pkg / "__init__.py").write_text((root / "lolhex" / "__init__.py").read_text(encoding="utf-8"), encoding="utf-8")
-    plain = subprocess.run([sys.executable, "-c", "import lolhex; print(lolhex.__version__)"], cwd=tmp_path,
+    # 嵌入式 Python 的 ._pth 不自动包含 cwd，显式选择这个临时测试包。
+    command = "import sys; sys.path.insert(0, '.'); import lolhex; print(lolhex.__version__)"
+    plain = subprocess.run([sys.executable, "-c", command], cwd=tmp_path,
                            capture_output=True, text=True, check=True).stdout.strip()
     (pkg / "_build.py").write_text('TEST_TAG = "test.3"\n', encoding="utf-8")
-    tagged = subprocess.run([sys.executable, "-c", "import lolhex; print(lolhex.__version__)"], cwd=tmp_path,
+    tagged = subprocess.run([sys.executable, "-c", command], cwd=tmp_path,
                             capture_output=True, text=True, check=True).stdout.strip()
     assert tagged == plain + "-test.3" and update.is_newer(plain, tagged)

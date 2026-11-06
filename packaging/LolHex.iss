@@ -53,3 +53,16 @@ Filename: "{app}\AramHex.exe"; Flags: nowait; Check: WizardSilent
 
 [UninstallRun]
 Filename: "{cmd}"; Parameters: "/c taskkill /im AramHex.exe /f"; Flags: runhidden; RunOnceId: "KillAramHex"
+
+[Code]
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep = ssPostInstall then
+  begin
+    { Only a completed full installation can retire an incomplete rollback. }
+    DeleteFile(ExpandConstant('{app}\update-rollback-incomplete.txt'));
+    DeleteFile(ExpandConstant('{app}\update-failed.txt'));
+    DelTree(ExpandConstant('{app}\_update_old'), True, True, True);
+    DelTree(ExpandConstant('{app}\_update_new'), True, True, True);
+  end;
+end;

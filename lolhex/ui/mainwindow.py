@@ -169,9 +169,14 @@ class UpdateWorker(QThread):
                     changed, stale = patch.prepare(self.info["version"], self.progress.emit, phase=self.phase.emit)
                     self.patched.emit(changed, stale)
                     return
+                except patch.NotWritable as e:
+                    log.info("软件所在的文件夹不能写入：%s", e)
+                    self.manual.emit("软件所在的文件夹不能写入（比如装在 Program Files），这次需要手动下载安装。",
+                                     update.pan_links())
+                    return
                 except patch.NeedFullInstall as e:
                     log.info("要整包更新：%s", e)
-                    reason = "这次更新需要重新下载安装包。"
+                    reason = str(e) if isinstance(e, patch.IncompleteRollback) else "这次更新需要重新下载安装包。"
                 except Exception as e:
                     log.warning("增量更新失败：%s", e)
                     self.manual.emit("更新文件下载失败。", update.pan_links())
@@ -964,7 +969,9 @@ class MainWindow(QMainWindow):
         self.btn_update.setText("重试更新")
         links = links or {}
         pan = links.get("portable" if is_portable() else "setup")
-        box = QMessageBox(QMessageBox.Information, "更新", f"{reason}请下载新版本，直接覆盖安装，设置会保留。", parent=self)
+        instructions = ("请下载便携版，解压到新目录；退出旧助手后，将旧目录的 userdata 文件夹复制到新目录以保留设置。"
+                        if is_portable() else "请下载新版本，直接覆盖安装，设置会保留。")
+        box = QMessageBox(QMessageBox.Information, "更新", f"{reason}\n{instructions}", parent=self)
         b_pan = box.addButton("网盘下载", QMessageBox.AcceptRole)
         b_site = box.addButton("官网下载", QMessageBox.ActionRole)
         box.addButton("取消", QMessageBox.RejectRole)

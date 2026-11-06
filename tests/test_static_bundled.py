@@ -105,7 +105,8 @@ def test_chain_reaction_is_gold():
     assert json.loads(BUNDLED_STATIC.read_text(encoding="utf-8"))["augments"]["2078"]["rarity"] == "gold"
     rows = [a for h in json.loads(BUNDLED_HEROES.read_text(encoding="utf-8"))["heroes"].values()
             for a in h.get("augments") or [] if a["id"] == "2078"]
-    assert rows and all(a["rarity"] == "gold" for a in rows)
+    # 英雄资料的海克斯行已清空（只留自采统计）；万一还有残留，也不能标错稀有度。
+    assert all(a["rarity"] == "gold" for a in rows)
     raw = [{"augmentID": 2078, "name_cn": "连锁反应", "level": "kPrismatic"},
            {"augmentID": 1005, "name_cn": "喂呜喂呜", "level": "kGold"}]
     got = tencent.parse_kiwi_augments(raw)

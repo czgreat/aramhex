@@ -24,7 +24,8 @@ if ($TestTag) {
 } elseif (Test-Path -LiteralPath $buildInfo) {
     Remove-Item -LiteralPath $buildInfo
 }
-$version = (& $py -c "import lolhex; print(lolhex.__version__)").Trim()
+$version = (& $py -c "import pathlib,lolhex; assert pathlib.Path(lolhex.__file__).resolve() == pathlib.Path('lolhex/__init__.py').resolve(), 'Python imported lolhex outside the current checkout'; print(lolhex.__version__)").Trim()
+if ($LASTEXITCODE) { throw 'Python 没有使用当前源码目录，不能打包' }
 Write-Host "版本 $version"
 if (-not (Test-Path (Join-Path $root 'lolhex\data\bundled\latest.json'))) {
     throw '缺少内置统计数据：先运行 python scripts/update_data.py'

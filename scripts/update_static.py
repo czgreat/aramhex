@@ -25,6 +25,7 @@ import requests
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+from official_data import apply_overrides  # noqa: E402
 from lolhex.data import tencent  # noqa: E402
 from lolhex.data.icons import BUNDLED as ICONS_OUT  # noqa: E402
 from lolhex.data.store import BUNDLED_HEROES as HEROES_OUT, BUNDLED_STATIC as STATIC_OUT, DataStore  # noqa: E402
@@ -58,6 +59,7 @@ def main() -> int:
                   file=sys.stderr)
             return 1
         out = {k: static.get(k) for k in KEYS}
+        apply_overrides(out)  # 腾讯缺的海克斯和装备，按游戏文件人工补（official_overrides.json）
         print(f"{out['patch']} 版本：英雄 {len(out['heroes'])}、海克斯 {len(out['augments'])}、装备 {len(out['items'])}、"
               f"召唤师技能 {len(out['spells'])}")
 

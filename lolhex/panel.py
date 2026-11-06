@@ -4,8 +4,7 @@ from __future__ import annotations
 
 from . import recommend
 
-MIN_SHARE = 0.1     # 出装按胜率排之前，先去掉出场不到同类最热门 1/10 的（样本太少，胜率说明不了什么）
-
+MIN_SHARE = 0.1     # 旧的非核心出装栏目仍按现有规则过滤低出场组合。
 
 # 召唤师技能组合：出场率 ≥3% 且至少 1000 局的，按胜率排，最多三组（用户 10-23 定，和官网数据页一致）。
 # 以前是 ≥10%、最多两组：一半英雄只剩一组，格温的疾跑+雪球（5%、胜率最高、1 万多局）被挡掉。
@@ -22,7 +21,7 @@ def sort_summoners(rows: list[dict]) -> list[dict]:
 
 
 def by_win(rows: list[dict], min_games: int = 0) -> list[dict]:
-    """有一定出场的里面按胜率从高到低排。出场率缺失时用场次比较。"""
+    """非核心出装栏目保持原有的出场筛选和胜率排序。"""
     def share(x):
         return x.get("pick") or x.get("games") or 0
     top = max((share(x) for x in rows), default=0)
@@ -67,10 +66,10 @@ def hero_panel(store, hero_key, k: int = 300, *, allow_network: bool = True) -> 
         return {"id": str(i), "name": it.get("name") or name or str(i), "icon": it.get("icon")}
 
     b = data.get("builds") or {}
-    # 官方出装都按胜率排（只比有一定出场的）
+    # 核心三件由资料包完成样本筛选和推荐排序；其他旧栏目保持原有客户端规则。
     builds = {
         "full": [{**x, "items": [item(i) for i in x["items"]]} for x in by_win(b.get("full", []))],
-        "core": [{**x, "items": [item(i) for i in x["items"]]} for x in by_win(b.get("core", []))],
+        "core": [{**x, "items": [item(i) for i in x["items"]]} for x in b.get("core", [])],
         "first": [{**x, "item": item(x["item"])} for x in by_win(b.get("first", []))],
         "shoes": [{**x, "item": item(x["item"])} for x in by_win(b.get("shoes", []))],
         "start": [{**x, "items": [item(i) for i in x["items"]]} for x in by_win(b.get("start", []))],
