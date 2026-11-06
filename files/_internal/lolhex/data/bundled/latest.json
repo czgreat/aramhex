@@ -1,0 +1,44 @@
+{
+ "bands": false,
+ "files": {
+  "augments.json": {
+   "sha256": "cb970a64df8b812f5b9865caad1ea7eaccee841dd4b59637e88ffd7538e11534",
+   "size": 15221
+  },
+  "hero_augment_items.json": {
+   "sha256": "6df5a06fa90609b84683959dcbb3714d63a6c6bcad2174c9147670264b7eea35",
+   "size": 103257
+  },
+  "hero_augments.json": {
+   "sha256": "b99e41f052453e9639e15bbe4ce1d85bd824fa7ff31c5aa5f5715dfde9fe0760",
+   "size": 2209116
+  },
+  "hero_spells.json": {
+   "sha256": "16af8e4d4047673e49eacfb59adf2a9cc68724dcc46f477b855c138e2d0be52c",
+   "size": 201583
+  },
+  "heroes.json": {
+   "sha256": "169f30ce971c80eb657b7b7fa7afcb15dfbc940ebc2d0446d98775a4dc8e1a87",
+   "size": 27955
+  },
+  "meta.json": {
+   "sha256": "3fb1b65a9375183462e55e35111264284767793c5e8526d8bc116b2f3cd96247",
+   "size": 3536
+  }
+ },
+ "matches": 4145668,
+ "matches_detail": {
+  "collected": 4281885,
+  "excluded": 136217,
+  "valid": 4145668,
+  "validity_rule": "16.22、队列2400、入库时间早于截止；时长至少240秒、GameComplete、10人完整且5胜5负"
+ },
+ "mode": "normal",
+ "mode_label": "常规",
+ "patch": "16.22",
+ "path": "patches/16.22/normal",
+ "release_status": "approved",
+ "schema_version": 1,
+ "seq": 13,
+ "snapshot_at": "2026-11-06T12:02:35+08:00"
+}

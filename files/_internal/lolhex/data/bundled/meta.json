@@ -1,0 +1,95 @@
+{
+ "bands": false,
+ "components": {
+  "destiny_baseline": {
+   "display_delta": true,
+   "limitations": "Item rows are the 300s proxy first record among 3081 holders; the base is all valid matches (240s) of the hero.",
+   "smoothing": false,
+   "source": "heroes.json games/wins of the same hero, same base as the augment deltas on the offer cards"
+  },
+  "display_policy": {
+   "augment_tier_fallback": "disabled_by_empty_official_hero_augments",
+   "core": "tencent_filtered_and_sorted_like_client_1.1.4",
+   "destiny": "raw_delta_vs_hero_base_only; existing_top_usage_candidates_ranked_by_raw_winrate",
+   "first": "explicitly_empty_no_tencent_equipment",
+   "full": "explicitly_empty_no_tencent_equipment",
+   "partners": "empty",
+   "shoes": "tencent_base_boots_removed",
+   "skills": "retained_from_tencent_without_date_rewrite",
+   "start": "tencent"
+  },
+  "limitations": [
+   "SUMMARY record positions are not independently verified purchase timestamps.",
+   "Destiny candidate pool remains the original at-most-three top-usage candidates; ranking is within that pool.",
+   "Binding and undo remain unverified; missing first records are excluded from baseline."
+  ],
+  "minimum_approved": true,
+  "published": true,
+  "recommendation_sources": {
+   "augment_statistics": "self_collected",
+   "augment_tier_fallback": "none",
+   "common_items": "not_shipped",
+   "core": "tencent",
+   "destiny": "self_collected",
+   "first": "empty",
+   "full": "empty",
+   "partners": "empty",
+   "shoes": "tencent",
+   "skill_order": "tencent",
+   "start": "tencent",
+   "static_names_icons_descriptions": "tencent"
+  },
+  "sample_minimum_proposal": 1000,
+  "self_collected": {
+   "cutoff": "2026-11-06T12:02:35+08:00",
+   "equipment_participants": 41387180,
+   "patch": "16.22"
+  },
+  "status": "approved",
+  "tencent": {
+   "candidate_sha256": "f1d3bc63b044cc45241bbc8df4b9c2019993eb8e17965cc858cf8cd2f8d6ab5c",
+   "patch": "16.22",
+   "source_date": "2026-11-05"
+  }
+ },
+ "excluded_augments": {
+  "1337": "任务完成后替换成其他强化，结算持有有偏差",
+  "3176": "五杀摇滚通用记录标记，不是常规可选强化"
+ },
+ "item_export_policy": "frozen_legendary_groups_only_exclude_nonrecommended_and_confirmed_auto_upgrades; raw_final_inventory_statistics_preserved; shoes_separate",
+ "item_min_games_proposed": 1000,
+ "item_stats_rule": "10人完整5胜5负GameComplete，时长>=300秒；终局装备全槽去重持有，常出榜只交冻结分组内传说成装，排除出门装、组件、鞋子及本轮不推荐ID；鞋子独立栏目。原始装备研究表不删。不表示购买顺序或全局最优出装。",
+ "limitations": [
+  "只统计已采集到的对局，不是全服数据；七区直接合并。",
+  "海克斯按终局全槽去重持有统计；关联不等于因果。",
+  "开发候选，最终截止重跑后才能发布。",
+  "未生成分段数据。",
+  "命运之武器装备建议独立评审，不包含在此公开候选中。"
+ ],
+ "matches": {
+  "collected": 4281885,
+  "excluded": 136217,
+  "valid": 4145668,
+  "validity_rule": "16.22、队列2400、入库时间早于截止；时长至少240秒、GameComplete、10人完整且5胜5负"
+ },
+ "mode": "normal",
+ "mode_label": "常规",
+ "patch": "16.22",
+ "regions": [
+  "CQ100",
+  "GZ100",
+  "HN1",
+  "HN10",
+  "NJ100",
+  "TJ100",
+  "TJ101"
+ ],
+ "schema_version": 1,
+ "snapshot_at": "2026-11-06T12:02:35+08:00",
+ "spell_invalid_participations": 0,
+ "status": "approved",
+ "unknown_ids": {
+  "augments": [],
+  "heroes": []
+ }
+}
