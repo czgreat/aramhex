@@ -15,7 +15,7 @@ lolhex/
   data/
     store.py           官方资料（英雄、海克斯、装备）的读取和缓存；1.1.2 起运行时不连腾讯
     official.py        官方资料整包：内置优先，按云控从自己的服务器更新，对局外切换
-    public.py          自采统计数据：内置 + 从数据仓库下载更新，逐文件校验 SHA-256；分数段切换
+    public.py          统计数据：内置 + 从数据仓库下载更新，逐文件校验 SHA-256；分数段切换
     tencent.py         腾讯接口和解析
     bundled/           内置统计数据（scripts/update_data.py 生成，不要手改）
   vision/              截屏、选人界面识别、三选一识别、OCR
