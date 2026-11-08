@@ -517,7 +517,7 @@ class MainWindow(QMainWindow):
         self.rank_result.setText(text or "<span style='color:#777'>填自己的「名字#编号」，查区内排名，自动选对应分段</span>")
         r = (res or {}).get("results") or []
         if hasattr(self, "my_rank_label"):
-            self.my_rank_label.setText(f"你：{r[0]['band_name']}（前 {r[0]['top'] * 100:.1f}%）" if r else "")
+            self.my_rank_label.setText('你：' + rank.summary(r[0]) if r else '')
 
     def _retire_when_done(self, attr: str, worker) -> None:
         """查询/更新线程跑完就删掉：父对象是主窗口，不删的话每查一次留一个 QThread（助手常驻托盘好几天）。"""
@@ -545,7 +545,7 @@ class MainWindow(QMainWindow):
         import time
         s = self.engine.settings
         old = (s.my_rank or {}).get("results") or []
-        old_band = norm_band(old[0]["band"]) if old else ""
+        old_band = norm_band(old[0].get("band") or "") if old else ""
         s.riot_id, s.my_rank = rid, {**res, "queried_at": time.time()}
         pending = getattr(self, "_recheck_pending", None)
         if silent and pending:  # 查分库更新后的自动重查成功了：这个日期不再查
@@ -553,7 +553,7 @@ class MainWindow(QMainWindow):
             self._recheck_pending = None
         s.save()
         self._show_rank(s.my_rank)
-        band = norm_band(res["results"][0]["band"])
+        band = norm_band(res["results"][0].get("band") or "")
         if silent and old and band != old_band and band in BANDS:
             # 查分库更新后自动重查，分段变了：告诉玩家；参考分段原来跟着查分选的，就跟着换
             self._toast(f"查分数据更新了：你现在是{BANDS[band]}（前 {res['results'][0]['top'] * 100:.1f}%），"

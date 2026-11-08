@@ -1,11 +1,12 @@
 """查自己的水平：名字#编号 → 区内前百分之几 + 分段（aramhex.com/api/rank）。
 
-只返回前百分比、分段、近 30 天局数和数据日期，不返回分数。查询有次数限制。
+显示个人总分、区内排名、样本提示及单排对局水平。查询有次数限制。
 """
 
 from __future__ import annotations
 
 import re
+from html import escape
 
 import requests
 
@@ -36,7 +37,7 @@ def lookup(riot_id: str, timeout: float = 10) -> dict:
         raise RankError(cfg.get("message") or "查询暂时关闭，请稍后再试")
     try:
         r = requests.get(cfg.get("api") or cloud.DEFAULT["rank"]["api"], params={"id": riot_id},
-                         headers={"X-AramHex": __version__, "User-Agent": f"aramhex/{__version__}"}, timeout=timeout)
+                         headers={"X-AramHex": __version__, "X-AramHex-Score-Policy":"v2", "User-Agent": f"aramhex/{__version__}"}, timeout=timeout)
     except requests.RequestException:
         raise RankError("连不上查询服务，请稍后再试")
     try:
@@ -57,12 +58,23 @@ def describe(res: dict) -> str:
     """一句话：前 3.1%（高分）· 艾欧尼亚 · 近 30 天 120 局 · 数据截至 10-16"""
     if not res or not res.get("results"):
         return ""
-    r = res["results"][0]
-    s = f"前 {_pct(r['top'])}（{r['band_name']}）· {r['region_name']} · 近 30 天 {r['games']} 局"
+    parts = []
+    for r in res['results']:
+        s = summary(r) + f"· {escape(str(r['region_name']))} · 近 30 天 {r['games']} 局"
+        if r.get('solo_top') is not None:
+            s += f"<br>单排对局水平：相当于区内前 {_pct(r['solo_top'])}"
+        parts.append(s)
+    s = '<br><br>'.join(parts)
     if res.get("as_of"):
         s += f" · 数据截至 {res['as_of'][5:10]}"
-    if r.get("solo_top"):
-        s += f"<br>单排对局水平：相当于区内前 {_pct(r['solo_top'])}（近 30 天单排 {r.get('solo_games') or 0} 局）"
-    if len(res["results"]) > 1:
-        s += "<br>另有：" + "、".join(f"{x['region_name']} {x['band_name']}" for x in res["results"][1:3])
     return s
+
+
+def summary(r: dict) -> str:
+    if r.get('score_eligible') is False or r.get('top') is None:
+        return '样本较少'
+    prefix = f"个人总分 {r['score']:.1f} 分 · " if r.get('score') is not None else ''
+    text = prefix + f"前 {_pct(r['top'])}（{escape(str(r['band_name']))}）"
+    if r.get('games',31) <= 30:
+        text += ' · 样本较少'
+    return text
