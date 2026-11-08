@@ -20,3 +20,20 @@ def test_multiple_regions_and_old_cached_payload():
     small={'region_name':'联盟二区','games':10,'score':None,'top':None,'band_name':None,'score_eligible':False}
     text=rank.describe({'results':[old,small]})
     assert '艾欧尼亚' in text and '联盟二区' in text and '样本较少' in text
+
+
+def test_low_sample_window_labels_and_auto_band():
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+    from lolhex.ui.mainwindow import MainWindow
+    low={'region_name':'艾欧尼亚','games':20,'score':None,'top':None,'band':None,'band_name':None,'score_eligible':False}
+    result={'results':[low]}
+    dummy=SimpleNamespace(rank_result=Mock(),my_rank_label=Mock())
+    MainWindow._show_rank(dummy,result)
+    assert dummy.my_rank_label.setText.call_args.args[0]=='你：样本较少'
+    settings=SimpleNamespace(my_rank={'results':[{'band':'high'}]},data_band='high',extra={},save=Mock())
+    dummy=SimpleNamespace(engine=SimpleNamespace(settings=settings),band_box=Mock(),_show_rank=Mock(),_toast=Mock())
+    MainWindow._rank_done(dummy,'示例#1',result,False)
+    dummy.band_box.findData.assert_not_called()
+    dummy._toast.assert_not_called()
+    assert settings.data_band=='high'
