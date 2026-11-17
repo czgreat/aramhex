@@ -6,7 +6,7 @@
     files/<相对路径>.gz   patchable 里的文件（AramHex.exe、_internal/base_library.zip、_internal/lolhex/**）的 gzip 压缩版。
                           jsDelivr 不给下 .exe（403），压缩后就可以；SHA-256 校验的是解压后的原文件。
     files/<相对路径>      原文件，给 1.0.3（只认原文件）从 GitHub 下载用
-GitHub 和 jsDelivr 都能读这个分支，国内连不上 GitHub 时走 jsDelivr（单个文件 ≤20MB，整个分支 ≤150MB）。
+下载顺序：云控配置的备用地址 → 官网 aramhex.com/u/<版本> → GitHub。1.1.7 起不再用 jsDelivr。
 
 程序这边：
 1. 读清单，确认版本号就是要更新到的版本（jsDelivr 有缓存，旧清单就换下一个地址）；
@@ -38,12 +38,10 @@ from .config import program_dir
 
 log = logging.getLogger(__name__)
 BRANCH = "updates"
-JSD_HOSTS = ("fastly.jsdelivr.net", "gcore.jsdelivr.net", "cdn.jsdelivr.net")
 
 
 def tag_for(version: str) -> str:
-    """发版时给这一版的增量更新文件打的 tag。jsDelivr 对分支名的解析会缓存好几个小时（推送后还拿到旧清单），
-    按 tag 取则立即是新的，所以下载一律按 tag。"""
+    """发版时给这一版的增量更新文件打的 tag。按 tag 取不受分支缓存影响，所以下载一律按 tag。"""
     return f"updates-v{version}"
 
 
@@ -53,10 +51,8 @@ def sources_for(version: str) -> list[str]:
     extra = [u.replace("{version}", version).rstrip("/") for u in cloud.mirrors("update")]
     site = [f"{s}/u/{version}" for s in cloud.sites()]  # 云控换了官网地址时新的在前，内置 aramhex.com/u 在最后
     return (extra + site + [f"https://raw.githubusercontent.com/{GITHUB_REPO}/{tag}"]
-            + [f"https://{host}/gh/{GITHUB_REPO}@{tag}" for host in JSD_HOSTS]
             # 分支地址兜底（1.0.3 发布时还没有 tag）；清单版本对不上会被跳过
-            + [f"https://raw.githubusercontent.com/{GITHUB_REPO}/{BRANCH}"]
-            + [f"https://{host}/gh/{GITHUB_REPO}@{BRANCH}" for host in JSD_HOSTS])
+            + [f"https://raw.githubusercontent.com/{GITHUB_REPO}/{BRANCH}"])
 
 
 SOURCES = sources_for("0")  # 只用作默认值的形状；实际按要更新到的版本取 sources_for(version)

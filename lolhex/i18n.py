@@ -63,6 +63,24 @@ def hero_names(lang: str) -> dict[str, list[str]]:
     return {} if lang == "zh_CN" else _heroes(lang)
 
 
+def unlisted_augment_names(known) -> dict[str, list[str]]:
+    """腾讯资料里还没有的海克斯（测试服新出的）：{ID: [拳头简中, 繁中, 马来西亚服简中]}，中文模式也认。"""
+    out: dict[str, list[str]] = {}
+    for aid, names in (_table().get("augments") or {}).items():
+        if aid in known:
+            continue
+        got = [names[lang] for lang in ("zh_CN", TW, MY) if names.get(lang)]
+        if got:
+            out[aid] = list(dict.fromkeys(got))
+    return out
+
+
+def chinese_augment_name(aid: str) -> str | None:
+    """拳头简中名：腾讯资料还没有这个海克斯时拿来显示。"""
+    names = (_table().get("augments") or {}).get(aid) or {}
+    return names.get("zh_CN") or names.get(MY) or names.get(TW)
+
+
 def traditional_augment_names() -> dict[str, str]:
     """中文模式下额外认的繁中海克斯名。"""
     return _augments(TW)

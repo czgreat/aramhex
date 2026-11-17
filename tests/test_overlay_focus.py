@@ -151,9 +151,9 @@ def test_lobby_badge_scales_with_client(panel, monkeypatch, w, h):
     b = panel.p.btn
     assert b.width() == max(20, d)
     assert abs(panel.p.x() + panel.p.width() - b.width() / 2 - cx) <= 1 and abs(panel.p.y() + b.height() / 2 - cy) <= 1
-    # 进游戏后和以前一样：右上角、40 像素
+    # 进游戏后和以前一样贴右上角；1.1.7 起按钮 48 像素
     panel.p.place(r, in_client=False)
-    assert b.width() == 40 and panel.p.y() == 50 + 90
+    assert b.width() == panel.overlay.GAME_BUTTON and panel.p.y() == 50 + 90
 
 
 def test_lobby_badge_cloud_override_and_bad_values(panel, monkeypatch):
@@ -167,7 +167,7 @@ def test_lobby_badge_cloud_override_and_bad_values(panel, monkeypatch):
     monkeypatch.setattr(cloud, "get", lambda: cloud._merge({}))
     panel.p.corner = "top-left"
     panel.p.place(r, in_client=True)
-    assert panel.p.btn.width() == 40 and (panel.p.x(), panel.p.y()) == (12, 90)
+    assert panel.p.btn.width() == panel.overlay.GAME_BUTTON and (panel.p.x(), panel.p.y()) == (12, 90)
 
 
 def test_layers_register_drawn_areas_for_masking(panel, monkeypatch):

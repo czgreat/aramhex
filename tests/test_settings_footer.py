@@ -71,6 +71,18 @@ def test_update_visible_without_scrolling(mw, monkeypatch, size):
     assert calls == [True]
 
 
+def test_default_window_shows_every_setting_without_scrolling(mw):
+    """1.1.7：默认窗口大小下设置页一屏放下，不用滚动就能看到最后一项（没有保存按钮，改了就生效）。"""
+    mw.resize(700, 820)
+    mw.status.setText("<b>状态：</b>客户端<br><b>海克斯识别：</b>待机<br><b>数据：</b>全体 · 16.22 版本")
+    mw.tabs.setCurrentIndex(2)
+    settle()
+    form = mw.tabs.widget(2).findChild(QtWidgets.QScrollArea)
+    assert form.verticalScrollBar().maximum() == 0
+    for widget in (mw.set_lang, mw.set_hotkey, mw.set_badge, mw.badge_preview, mw.set_usage, mw.rank_input, mw.btn_check):
+        fully_visible(widget)
+
+
 def test_scrolling_form_does_not_move_footer(mw):
     mw.resize(667, 424)
     mw.tabs.setCurrentIndex(2)

@@ -174,9 +174,10 @@ def test_probe_follows_tags_to_newest(monkeypatch):
         v = url.split("@updates-v")[1].split("/")[0]
         return _Resp(200, {"version": v}) if v in published else _Resp(404)
     monkeypatch.setattr(update.requests, "get", fake_get)
-    assert update.probe_newer("1.0.4") == ("1.1.0", True)
-    assert all("fastly.jsdelivr.net" in u for u in asked)  # 第一个节点答复了就不再问别的节点
-    info = update.check_mirror("1.0.4", mirrors=[])
+    hosts = ("mirror-a.example", "mirror-b.example")  # 1.1.7 起默认没有镜像，只测传入镜像时的机制
+    assert update.probe_newer("1.0.4", hosts=hosts) == ("1.1.0", True)
+    assert all("mirror-a.example" in u for u in asked)  # 第一个节点答复了就不再问别的节点
+    info = update.check_mirror("1.0.4", mirrors=[], probe_hosts=hosts)
     assert info["version"] == "1.1.0" and info["mirror"] is True
 
 
@@ -236,3 +237,10 @@ def test_build_info_adds_test_tag(tmp_path):
     tagged = subprocess.run([sys.executable, "-c", command], cwd=tmp_path,
                             capture_output=True, text=True, check=True).stdout.strip()
     assert tagged == plain + "-test.3" and update.is_newer(plain, tagged)
+
+
+def test_no_jsdelivr_by_default():
+    """1.1.7：程序更新和增量更新都不再访问 jsDelivr；以后的备用地址走云控 mirrors。"""
+    from lolhex import patch
+    assert update.VERSION_MIRRORS == [] and update.PROBE_HOSTS == ()
+    assert not any("jsdelivr" in u for u in patch.sources_for("1.1.7"))

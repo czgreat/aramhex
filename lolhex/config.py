@@ -19,6 +19,8 @@ from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 
 APP_DIR_NAME = "AramHex"
+# 默认不注册游戏快捷键；系统占用检查无法发现游戏内部的录像等键位。
+DEFAULT_OVERLAY_HOTKEY = ""
 # 去掉的设置项：老设置文件里有也不再写回（1.1.1 删了 2999 接口；浮窗不再对截图隐身，录屏开关也删了；
 # 自动截图只是调试用，设置页去掉，只在调试模式（debug.txt）下截）
 REMOVED = {"use_liveclient", "allow_capture", "auto_screenshot"}
@@ -86,6 +88,9 @@ class Settings:
     # 默认和 scan_interval_ms 一样（不慢扫）：改成 1 秒时三选一出来平均晚 0.3 秒、最多晚 0.65 秒，
     # 省下的只是单线程约 10% 的一个核（10-24 定）。低配电脑卡的话云控对一部分人调大
     idle_scan_ms: int = 300
+    # 试用：空闲时用标题像素跳过部分 OCR，定期复查兜底；默认保留原识别行为。
+    # 1.1.7 正式版起设置页不提供开关（测试包里勾过的读设置时关掉），只留给云控 defaults / force 小范围试。
+    idle_ocr_guard: bool = False
     # 未校准时，整块中部区域检测+识别的间隔（秒）。单次约 1 秒（单线程）。
     bootstrap_interval_s: float = 3.0
     # 本机校准过、没在选海克斯时，整块兜底扫描（防止卡片位置变了）的间隔（秒），分两段（1.1.3）：
@@ -97,6 +102,9 @@ class Settings:
     # 两项云控可调；fallback_proven_s 范围仍为 10–3600 秒，写 600 可退回 10 分钟，写 30 可退回每 30 秒一次
     fallback_scan_s: float = 30.0
     fallback_proven_s: float = 3600.0
+    # 1.1.7：这局还没认出过第一次海克斯选择时，整块兜底按这个间隔（秒）。四选一和三选一卡位错开半张，
+    # 上一局的定位读不到这局的卡，要靠整块扫描换布局；认出第一次后照旧按上面两项放慢。云控可调，写 30 退回 1.1.6
+    fallback_first_s: float = 5.0
     # 已发布卡片不变时的逐列复查周期（秒，1–60）。
     recheck_seconds: float = 5.0
     # 单列待确认读数持续多久后暂时隐藏该列（秒，0.1–5）。
@@ -121,13 +129,19 @@ class Settings:
     smoothing_games: int = 300
     # 悬浮层开关（--headless 也会关闭）。
     overlay: bool = True
+    # 对局中收起详情后隐藏按钮窗口，鼠标移到原位置附近再显示；选人、三选一标签和手动选英雄提示照常显示。
+    # 1.1.7 起固定开启，设置页没有这一项；只留给云控 force 当应急开关（关掉就回到常驻按钮）。
+    overlay_on_demand: bool = True
+    # 游戏 / 选英雄在前台时切换出装、加点详情；空字符串禁用。不影响三选一自动推荐。
+    overlay_hotkey: str = DEFAULT_OVERLAY_HOTKEY
     # 悬浮按钮的位置：top-right / top-left。
     overlay_corner: str = "top-right"
     # 三选一标签放在卡片哪里：top=标题上方（压在图标下半，默认）/ bottom=描述下面的空白处。
     badge_position: str = "top"
     # 参考数据的分数段：""=全体（默认），casual/mid/high=娱乐/中分/前 5%（1.1.0 以前的 top 读到当 high）。
     data_band: str = ""
-    # 识别频率（见 SPEEDS）：standard / saver / low。
+    # 识别频率（见 SPEEDS）：standard / saver / low。1.1.7 起设置页没有这一项（空闲时按本机认字耗时自动放慢，
+    # 见 engine.AUTO_IDLE_FACTOR）；以前选过的读设置时改回 standard、不算玩家改的，只留给云控。
     speed: str = "standard"
     # 查分：自己的「名字#编号」和上次查到的结果（{"as_of", "results", "queried_at"}）
     riot_id: str = ""
@@ -187,6 +201,11 @@ class Settings:
         s.extra = {k: v for k, v in data.items() if k not in known and k not in REMOVED}
         if not isinstance(s.user_set, list):
             s.user_set = []
+        # 1.1.6 试用版曾自动绑定 F8。仅撤掉未主动设置的旧默认，保留自定义和禁用值。
+        # 放在旧配置的 user_set 推断之前，避免把旧默认误判成玩家自定义。
+        hotkey_migrated = s.overlay_hotkey == "Ctrl+Shift+F8" and "overlay_hotkey" not in s.user_set
+        if hotkey_migrated:
+            s.overlay_hotkey = DEFAULT_OVERLAY_HOTKEY
         if data and "user_set" not in data:
             # 1.1.0 以前的设置文件没记谁改过：和默认值不一样的就当玩家自己改的，云控改默认值时不碰
             dflt = cls()
@@ -199,6 +218,17 @@ class Settings:
             s.send_usage = str(s.send_usage).strip().lower() in ("true", "1", "yes", "on")  # 认不出就当关了
         from .i18n import normalize_lang
         s.game_lang = normalize_lang(s.game_lang)  # 以前的繁中选项 zh_TW、手改的怪值都当中文
+        # 1.1.7 测试包里曾有勾选框：勾过的读设置时关掉，也不算玩家改的，只有云控能打开
+        s.idle_ocr_guard = False
+        # 1.1.7 起设置页去掉「识别频率」，空闲时自动按本机认字耗时放慢；以前选的省电、低配改回标准
+        s.speed = "standard"
+        s.user_set = [k for k in s.user_set if k not in ("idle_ocr_guard", "speed")]
+        # 1.1.7 起按需按钮固定开启：1.1.7 测试版里取消过勾选的也打开，不再算玩家改的
+        s.overlay_on_demand = True
+        if "overlay_on_demand" in s.user_set:
+            s.user_set = [k for k in s.user_set if k != "overlay_on_demand"]
+        if not isinstance(s.overlay_hotkey, str):
+            s.overlay_hotkey = DEFAULT_OVERLAY_HOTKEY
         # 1.1.1：设置页去掉「显示胜率数字」（用这个软件就是要看胜率），以前关掉的也打开
         s.show_winrate = True
         if s.data_band == "top":
@@ -217,7 +247,7 @@ class Settings:
                 log.warning("坏的设置文件改名为 %s，这次用默认设置", backup.name)
             except OSError as e:
                 log.warning("坏的设置文件没法改名：%s", e)
-        if not s.install_id or not path.exists():
+        if hotkey_migrated or not s.install_id or not path.exists():
             s.install_id = s.install_id or secrets.token_hex(8)
             s.save(path)
         return s

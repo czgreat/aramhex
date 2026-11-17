@@ -16,13 +16,13 @@ from html import escape
 from importlib import resources
 
 from PySide6.QtCore import Qt, QThread, QTimer, Signal
-from PySide6.QtGui import QAction, QIcon, QPixmap
-from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QFormLayout, QFrame, QGridLayout,
-                               QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMenu, QMessageBox, QProgressBar, QScrollArea,
+from PySide6.QtGui import QAction, QIcon, QKeySequence, QPixmap
+from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QFrame, QGridLayout,
+                               QHBoxLayout, QKeySequenceEdit, QLabel, QLineEdit, QMainWindow, QMenu, QMessageBox, QProgressBar, QScrollArea,
                                QPushButton, QSizePolicy, QSystemTrayIcon, QTabWidget, QVBoxLayout, QWidget)
 
 from .. import DATA_HOMEPAGE, HOMEPAGE, __version__, cloud, cloudsettings, i18n, logupload, patch, rank, recommend, update
-from ..config import SPEEDS, is_portable
+from ..config import is_portable
 from ..vision import window as win
 from ..data.public import BANDS, norm_band
 from . import autostart
@@ -33,7 +33,7 @@ from .herosearch import hero_completer
 
 RARITY_CN = {"silver": "白银", "gold": "黄金", "prismatic": "棱彩"}
 # 云控强制设置时提示用的名字
-SETTING_NAMES = {"show_winrate": "显示胜率数字", "overlay": "显示游戏内浮窗", "overlay_corner": "浮窗位置",
+SETTING_NAMES = {"idle_ocr_guard": "空闲时减少识别开销", "overlay_on_demand": "对局中按需显示浮窗按钮", "show_winrate": "显示胜率数字", "overlay": "显示游戏内浮窗", "overlay_corner": "浮窗位置",
                  "badge_position": "三选一标签", "speed": "识别频率",
                  "check_data_updates": "自动获取最新海克斯数据", "game_lang": "游戏语言", "data_band": "参考分数段"}
 VERDICT_CN = {"best": ("首选", "#2e9d5b"), "ok": ("可选", "#3b7dd8"), "reroll": ("可考虑刷新", "#d0533f"),
@@ -348,8 +348,8 @@ class MainWindow(QMainWindow):
         self.offer_advice.setWordWrap(True)
         l2.addWidget(self.offer_advice)
         grid = QGridLayout()
-        self.offer_cards = []
-        for i in range(3):
+        self.offer_cards, self.offer_frames = [], []
+        for i in range(4):  # 第 4 格只在四选一时显示
             lab = QLabel()
             lab.setTextFormat(Qt.RichText)
             lab.setWordWrap(True)
@@ -358,7 +358,9 @@ class MainWindow(QMainWindow):
             fr = _card()
             QVBoxLayout(fr).addWidget(lab)
             grid.addWidget(fr, 0, i)
+            fr.setVisible(i < 3)
             self.offer_cards.append(lab)
+            self.offer_frames.append(fr)
         l2.addLayout(grid)
         btns = QHBoxLayout()
         b1 = QPushButton("重新识别")
@@ -370,7 +372,7 @@ class MainWindow(QMainWindow):
         btns.addStretch(1)
         l2.addLayout(btns)
         l2.addStretch(1)
-        self.tabs.addTab(w2, "海克斯三选一")
+        self.tabs.addTab(w2, "海克斯选择")
 
         self.tabs.addTab(self._settings_tab(), "设置")
         lay.addWidget(self.tabs, 1)
@@ -390,34 +392,59 @@ class MainWindow(QMainWindow):
     # ---------- 设置 ----------
 
     def _settings_tab(self) -> QWidget:
+        """设置页：一屏放下，不用滚动；改了马上生效，没有「保存」按钮。"""
         s = self.engine.settings
         w = QWidget()
         outer = QVBoxLayout(w)
-        outer.setSpacing(14)
-        f = QFormLayout()
-        f.setVerticalSpacing(10)
-        outer.addLayout(f)
+        outer.setSpacing(10)
+        g = QGridLayout()
+        g.setVerticalSpacing(8)
+        g.setHorizontalSpacing(10)
+        g.setColumnStretch(1, 1)
+        outer.addLayout(g)
+
+        def label(text: str) -> QLabel:
+            lab = QLabel(text)
+            lab.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+            return lab
+
+        # 外服：游戏客户端的语言
+        self.set_lang = QComboBox()
+        for code, name in i18n.LANGS:
+            self.set_lang.addItem(name, code)
+        self.set_lang.setCurrentIndex(max(0, self.set_lang.findData(i18n.normalize_lang(s.game_lang))))
+        self.set_lang.setToolTip("国服选简体中文；外服按游戏客户端的语言选")
         self.set_corner = QComboBox()
         self.set_corner.addItems(["右上角", "左上角"])
         self.set_corner.setCurrentIndex(0 if s.overlay_corner == "top-right" else 1)
-        # 三选一标签放卡片上方还是下方，旁边的示意图跟着选项变
+        self.set_corner.setToolTip("对局中收起详情后按钮隐藏，鼠标移到原位置附近再出现，点击可展开。\n"
+                                   "选英雄、三选一推荐标签和未识别英雄的提示照常显示。")
+        self.set_hotkey = QKeySequenceEdit(QKeySequence(s.overlay_hotkey))
+        self.set_hotkey.setMaximumSequenceLength(1)
+        self.set_hotkey.setClearButtonEnabled(True)
+        self.set_hotkey.setToolTip("点击后按下组合键，包含 Ctrl 或 Alt，可再加 Shift；支持字母、数字、F1～F11。\n"
+                                   "默认不绑定：点击浮窗或把鼠标移到按钮位置也能看详情；海克斯推荐自动出现，选完自动收起。\n"
+                                   "只在游戏或选英雄在前台时启用。建议避开 F 键和游戏、聊天、录屏软件已用的键位。")
+        hotkey_row = QHBoxLayout()
+        hotkey_row.addWidget(self.set_hotkey, 1)
+        clear_hotkey = QPushButton("清空")
+        clear_hotkey.setToolTip("不绑定快捷键（默认）；仍可点击浮窗查看详情。")
+        clear_hotkey.clicked.connect(self.set_hotkey.clear)
+        hotkey_row.addWidget(clear_hotkey)
+        hotkey_service = getattr(self.overlay, "hotkey", None)
+        self.hotkey_status = QLabel(hotkey_service.status if hotkey_service else "游戏或选英雄在前台时启用。")
+        self.hotkey_status.setWordWrap(True)
+        self.hotkey_status.setStyleSheet("color:#555")
+        if hotkey_service:
+            hotkey_service.status_changed.connect(self.hotkey_status.setText)
+        # 三选一标签放卡片上方还是下方，右边的示意图跟着选项变
         self.set_badge = QComboBox()
-        for code, label in BADGE_POSITIONS:
-            self.set_badge.addItem(label, code)
+        for code, name in BADGE_POSITIONS:
+            self.set_badge.addItem(name, code)
         self.set_badge.setCurrentIndex(max(0, self.set_badge.findData(s.badge_position)))
         self.badge_preview = BadgePosPreview(s.badge_position)
         self.set_badge.currentIndexChanged.connect(
             lambda i: self.badge_preview.set_position(self.set_badge.itemData(i)))
-        # 示意图比下拉框高：右边放示意图，左边下拉框下面接着放后面几项，不留空白
-        badge_row = QHBoxLayout()
-        badge_left = QVBoxLayout()
-        badge_left.setSpacing(10)
-        badge_row.addLayout(badge_left, 1)
-        badge_row.addWidget(self.badge_preview, 0, Qt.AlignTop)
-        self.set_speed = QComboBox()
-        for key, (label, _) in SPEEDS.items():
-            self.set_speed.addItem(label, key)
-        self.set_speed.setCurrentIndex(max(0, self.set_speed.findData(s.speed)))
         self.set_auto = QCheckBox("开机自动启动")
         self.set_auto.setChecked(autostart.is_enabled())
         self.set_data = QCheckBox("自动获取最新海克斯数据（建议开启）")
@@ -427,36 +454,31 @@ class MainWindow(QMainWindow):
         self.set_usage.setToolTip("开着时：联网时带一个随机编号（和账号、硬件无关），用来统计有多少人在用；\n"
                                   "排查问题时开发者可能请这台电脑上传运行日志，上传前去掉游戏账号名和电脑用户名。\n"
                                   "关掉就都不发。")
-        # 外服：游戏客户端的语言
-        self.set_lang = QComboBox()
-        for code, label in i18n.LANGS:
-            self.set_lang.addItem(label, code)
-        self.set_lang.setCurrentIndex(max(0, self.set_lang.findData(i18n.normalize_lang(s.game_lang))))
-        self.lang_hint = QLabel()
-        self.lang_hint.setStyleSheet("color:#555")
-        lang_row = QHBoxLayout()
-        lang_row.addWidget(self.lang_hint, 1)
-        self.set_lang.currentIndexChanged.connect(self._update_lang_hint)
-        self._update_lang_hint()
-        f.addRow("游戏语言", self.set_lang)
-        f.addRow("", lang_row)
-        f.addRow("识别频率", self.set_speed)
-        f.addRow("浮窗位置", self.set_corner)
-        badge_left.addWidget(self.set_badge)
-        badge_left.addWidget(self.set_auto)
-        badge_left.addWidget(self.set_data)
-        badge_left.addWidget(self.set_usage)
-        save = QPushButton("保存设置")
-        save.clicked.connect(self._save_settings)
-        badge_left.addStretch(1)
-        badge_left.addWidget(save)  # 放在示意图左边、和示意图底边对齐，不留空白
-        f.addRow("三选一标签", badge_row)
 
-        rk = _card()
-        rv = QVBoxLayout(rk)
-        rv.setContentsMargins(18, 14, 18, 14)
-        rv.setSpacing(8)
-        rv.addWidget(QLabel("<b>我的水平</b>"))
+        g.addWidget(label("游戏语言"), 0, 0)
+        g.addWidget(self.set_lang, 0, 1, 1, 2)
+        g.addWidget(label("浮窗位置"), 2, 0)
+        g.addWidget(self.set_corner, 2, 1, 1, 2)
+        g.addWidget(label("详情快捷键"), 3, 0)
+        g.addLayout(hotkey_row, 3, 1, 1, 2)
+        g.addWidget(self.hotkey_status, 4, 1, 1, 2)
+        # 示意图比下拉框高：左边下拉框下面接着放三个勾选项，示意图在右边占这四行
+        g.addWidget(label("三选一标签"), 5, 0)
+        g.addWidget(self.set_badge, 5, 1)
+        g.addWidget(self.set_auto, 6, 1)
+        g.addWidget(self.set_data, 7, 1)
+        g.addWidget(self.set_usage, 8, 1)
+        g.addWidget(self.badge_preview, 5, 2, 4, 1, Qt.AlignTop | Qt.AlignRight)
+
+        # 改了就生效、马上写进设置文件
+        for combo in (self.set_lang, self.set_corner, self.set_badge):
+            combo.currentIndexChanged.connect(self._settings_edited)
+        for box in (self.set_data, self.set_usage):
+            box.toggled.connect(self._settings_edited)
+        self.set_auto.toggled.connect(self._autostart_edited)
+        self.set_hotkey.keySequenceChanged.connect(self._hotkey_edited)
+
+        # 我的水平：和上面的设置项排成一样的一行
         rrow = QHBoxLayout()
         self.rank_input = QLineEdit(s.riot_id)
         self.rank_input.setPlaceholderText("名字#编号")
@@ -466,11 +488,11 @@ class MainWindow(QMainWindow):
         self.btn_rank.clicked.connect(self._query_rank)
         rrow.addWidget(self.rank_input, 1)
         rrow.addWidget(self.btn_rank)
-        rv.addLayout(rrow)
+        g.addWidget(label("我的水平"), 9, 0)
+        g.addLayout(rrow, 9, 1, 1, 2)
         self.rank_result = QLabel()
         self.rank_result.setWordWrap(True)
-        rv.addWidget(self.rank_result)
-        outer.addWidget(rk)
+        g.addWidget(self.rank_result, 10, 1, 1, 2)
         self._show_rank(s.my_rank)
         self._rank_worker = None
         outer.addStretch(1)
@@ -517,7 +539,7 @@ class MainWindow(QMainWindow):
         self.rank_result.setText(text or "<span style='color:#777'>填自己的「名字#编号」，查区内排名，自动选对应分段</span>")
         r = (res or {}).get("results") or []
         if hasattr(self, "my_rank_label"):
-            self.my_rank_label.setText('你：' + rank.summary(r[0]) if r else '')
+            self.my_rank_label.setText(f"你：{r[0]['band_name']}（前 {r[0]['top'] * 100:.1f}%）" if r else "")
 
     def _retire_when_done(self, attr: str, worker) -> None:
         """查询/更新线程跑完就删掉：父对象是主窗口，不删的话每查一次留一个 QThread（助手常驻托盘好几天）。"""
@@ -545,7 +567,7 @@ class MainWindow(QMainWindow):
         import time
         s = self.engine.settings
         old = (s.my_rank or {}).get("results") or []
-        old_band = norm_band(old[0].get("band") or "") if old else ""
+        old_band = norm_band(old[0]["band"]) if old else ""
         s.riot_id, s.my_rank = rid, {**res, "queried_at": time.time()}
         pending = getattr(self, "_recheck_pending", None)
         if silent and pending:  # 查分库更新后的自动重查成功了：这个日期不再查
@@ -553,7 +575,7 @@ class MainWindow(QMainWindow):
             self._recheck_pending = None
         s.save()
         self._show_rank(s.my_rank)
-        band = norm_band(res["results"][0].get("band") or "")
+        band = norm_band(res["results"][0]["band"])
         if silent and old and band != old_band and band in BANDS:
             # 查分库更新后自动重查，分段变了：告诉玩家；参考分段原来跟着查分选的，就跟着换
             self._toast(f"查分数据更新了：你现在是{BANDS[band]}（前 {res['results'][0]['top'] * 100:.1f}%），"
@@ -704,7 +726,6 @@ class MainWindow(QMainWindow):
         pairs = [(self.set_data, lambda w: w.setChecked(s.check_data_updates)),
                  (self.set_corner, lambda w: w.setCurrentIndex(0 if s.overlay_corner == "top-right" else 1)),
                  (self.set_badge, lambda w: w.setCurrentIndex(max(0, w.findData(s.badge_position)))),
-                 (self.set_speed, lambda w: w.setCurrentIndex(max(0, w.findData(s.speed)))),
                  (self.set_lang, lambda w: w.setCurrentIndex(max(0, w.findData(s.game_lang)))),
                  (self.band_box, lambda w: w.setCurrentIndex(max(0, w.findData(s.data_band or ""))))]
         for w, fn in pairs:
@@ -774,7 +795,37 @@ class MainWindow(QMainWindow):
                 else:
                     self._offer_manual("", update.pan_links())
 
-    def _save_settings(self):
+    def _hotkey_edited(self, seq) -> None:
+        """录完一个组合键（或点了清空）马上生效。不能用的键（单按、被占用）不改原来的设置，下面一行说明原因。"""
+        from .hotkey import parse_shortcut
+        s = self.engine.settings
+        text = seq.toString(QKeySequence.PortableText)
+        try:
+            parse_shortcut(text)
+        except ValueError as exc:
+            self.hotkey_status.setText(f"<span style='color:#d9534f'>{escape(str(exc))}</span>")
+            return
+        hotkey_service = getattr(self.overlay, "hotkey", None)
+        error = hotkey_service.validate(text) if hotkey_service else ""
+        if error:
+            self.hotkey_status.setText(f"<span style='color:#d9534f'>{escape(error)}</span>")
+            return
+        if text == s.overlay_hotkey:
+            return
+        s.set_by_user("overlay_hotkey", text)
+        self._write_settings()
+
+    def _autostart_edited(self, on: bool) -> None:
+        try:
+            autostart.set_enabled(on)
+        except OSError as e:
+            old = self.set_auto.blockSignals(True)
+            self.set_auto.setChecked(not on)
+            self.set_auto.blockSignals(old)
+            QMessageBox.warning(self, "开机自启", f"设置失败：{e}")
+
+    def _settings_edited(self, *_):
+        """设置页任意一项改了：马上生效并写进设置文件（没有「保存」按钮）。"""
         s = self.engine.settings
         before = {k: getattr(s, k) for k in cloudsettings.SPEC}
         s.check_data_updates = self.set_data.isChecked()
@@ -786,7 +837,6 @@ class MainWindow(QMainWindow):
             logging.getLogger(__name__).exception("远程详细日志出错")
         if hasattr(self.engine.store, "check_updates"):
             self.engine.store.check_updates = s.check_data_updates  # 马上生效，不用重开
-        s.speed = self.set_speed.currentData() or "standard"
         s.overlay_corner = "top-right" if self.set_corner.currentIndex() == 0 else "top-left"
         s.badge_position = self.set_badge.currentData() or "top"
         lang = self.set_lang.currentData() or "zh_CN"
@@ -801,23 +851,16 @@ class MainWindow(QMainWindow):
             self._apply_cloud_settings(cloud.get())  # 改回强制值，并让语言、数据更新等跟着生效
             QMessageBox.information(self, "设置", "这几项现在按官方临时设置，撤掉后会改回你选的："
                                     + "、".join(SETTING_NAMES.get(k, k) for k in held))
-        saved = s.save()
-        self.overlay.set_visible(s.overlay)
         self.overlay.panel.corner = s.overlay_corner
-        try:
-            autostart.set_enabled(self.set_auto.isChecked())
-        except OSError as e:
-            QMessageBox.warning(self, "开机自启", f"设置失败：{e}")
-        if saved:
-            QMessageBox.information(self, "设置", "已保存。")
-        else:
-            QMessageBox.warning(self, "设置", "设置文件写不进去，这次的改动关掉助手后会丢失。")
+        self._write_settings()
 
-    def _update_lang_hint(self):
-        """游戏语言下面那一行提示：选中文时提醒国服、外服怎么选。"""
-        text = "国服选简体中文；外服按游戏客户端的语言选" if self.set_lang.currentData() == "zh_CN" else ""
-        self.lang_hint.setText(text)
-        self.lang_hint.setVisible(bool(text))
+    def _write_settings(self) -> None:
+        """写设置文件；写不进去只提醒一次，免得每改一项弹一次。"""
+        if self.engine.settings.save():
+            self._save_warned = False
+        elif not getattr(self, "_save_warned", False):
+            self._save_warned = True
+            QMessageBox.warning(self, "设置", "设置文件写不进去，改动关掉助手后会丢失。")
 
     def _recalibrate(self):
         self.engine.reset_calibration()
@@ -1113,8 +1156,10 @@ class MainWindow(QMainWindow):
         advice = "卡片更新中，等待识别确认" if waiting else ev['advice']
         self.offer_advice.setText(f"<b style='font-size:15px'>{advice}</b>"
                                   + (f"<br><span style='color:#c9a0ff'>{escape(pk)}</span>" if pk else ""))
+        for i, fr in enumerate(getattr(self, "offer_frames", ())):
+            fr.setVisible(i < max(3, len(ev["slots"])))
         for lab, r in zip(self.offer_cards, ev["slots"]):
-            if pending and pending[r["index"]]:
+            if pending and r["index"] < len(pending) and pending[r["index"]]:
                 lab.setText("<span style='color:#777'>识别中…</span>")
                 continue
             v, col = VERDICT_CN.get(r["verdict"], VERDICT_CN["unknown"])

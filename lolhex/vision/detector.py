@@ -41,6 +41,33 @@ REC_HEIGHT = 48                   # 识别前把标题块缩放到这个高度
 # 识别不到就照常整块扫描，扫到三张后换成本机的校准结果。
 DEFAULT_BOXES = [(0.2309, 0.3869, 0.3923, 0.4335), (0.4231, 0.3869, 0.5845, 0.4335),
                  (0.6152, 0.3869, 0.7767, 0.4335)]
+# 卡距约为窗口高度的 0.342（由 DEFAULT_BOXES 在 16:9 下换算，四选一实机截图同为约 0.34）
+CARD_SPACING_H = (DEFAULT_BOXES[2][0] - DEFAULT_BOXES[0][0]) / 2 * 16 / 9
+# 标题条连续这么多次在至少两列读到清楚、却对不上任何名字的字：多半是卡片数（三张 / 四张）和定位不符，
+# 定位框正好卡在两张卡之间，只读到半截名字（1.1.7-test.1 实录：「倒倒黄」「鼓声暴」）
+# 画面不动时标题条直接用缓存、不会再读：第一次读到后持续 GARBLED_HOLD_S 秒也算
+GARBLED_READS = 2
+GARBLED_HOLD_S = 1.0
+GARBLED_CONF = 0.8
+CARD_COUNTS = (3, 4)  # 四选一（测试服地图）：卡距、卡宽和标题高度与三选一相同，整组仍以屏幕中心对称
+
+
+def _band(W: int, H: int) -> tuple[int, int, int, int]:
+    """整块扫描的区域（像素）。16:9 及更宽照旧；4:3 这类窄屏四选一两边的卡贴近画面边缘，
+    左右放宽到能盖住最外侧标题（卡心离中线 1.5 个卡距，再留约 0.1 个窗口高度给长名字）。"""
+    half = min(0.5, (1.5 * CARD_SPACING_H + 0.11) * H / max(1, W))
+    bx0, bx1 = min(BAND[0], 0.5 - half), max(BAND[2], 0.5 + half)
+    return int(bx0 * W), int(BAND[1] * H), int(bx1 * W), int(BAND[3] * H)
+
+
+def _shifted_boxes(boxes, count: int) -> list[tuple[float, float, float, float]]:
+    """按三选一的卡距和框宽，排出 count 张以中心对称的标题框（比例坐标）。"""
+    centers = [(b[0] + b[2]) / 2 for b in boxes]
+    spacing = (centers[-1] - centers[0]) / (len(boxes) - 1)
+    mid = sum(centers) / len(centers)
+    half = (boxes[0][2] - boxes[0][0]) / 2
+    y0, y1 = boxes[0][1], boxes[0][3]
+    return [(c - half, y0, c + half, y1) for c in (mid + (i - (count - 1) / 2) * spacing for i in range(count))]
 
 
 @dataclass
@@ -51,10 +78,15 @@ class Calibration:
     guess: bool = False
 
     @classmethod
-    def default(cls, w: int, h: int) -> "Calibration":
+    def default(cls, w: int, h: int, count: int = 3) -> "Calibration":
         k = (16 / 9) * h / max(1, w)  # 16:9 → 1；更宽的屏幕卡片往中间收
-        boxes = [(0.5 + (x0 - 0.5) * k, y0, 0.5 + (x1 - 0.5) * k, y1) for x0, y0, x1, y1 in DEFAULT_BOXES]
+        boxes = DEFAULT_BOXES if count == 3 else _shifted_boxes(DEFAULT_BOXES, count)
+        boxes = [(0.5 + (x0 - 0.5) * k, y0, 0.5 + (x1 - 0.5) * k, y1) for x0, y0, x1, y1 in boxes]
         return cls(boxes, (w, h), guess=True)
+
+    @property
+    def count(self) -> int:
+        return len(self.boxes)
 
     def pixel_boxes(self, w: int, h: int) -> list[tuple[int, int, int, int]]:
         return [(int(a * w), int(b * h), int(c * w), int(d * h)) for a, b, c, d in self.boxes]
@@ -62,7 +94,7 @@ class Calibration:
     def valid(self) -> bool:
         """标题区域须在客户区内、从左到右且互不重叠；不要求固定间距。"""
         try:
-            if (not isinstance(self.boxes, (list, tuple)) or len(self.boxes) != 3
+            if (not isinstance(self.boxes, (list, tuple)) or len(self.boxes) not in CARD_COUNTS
                     or not isinstance(self.size, (list, tuple)) or len(self.size) != 2
                     or any(type(v) not in (int, float) or not math.isfinite(v) or v <= 0 for v in self.size)):
                 return False
@@ -92,7 +124,12 @@ class Offer:
     observation: int = 0  # 真实 OCR 批次；指纹缓存返回不增加。
     trace: dict | None = None  # 单调时钟诊断；不是卡片真实出现时刻，不进入 UI 状态。
     group_changed: bool = False  # 整组三选一正在换牌，暂不发布旧卡混合组
-    pending_columns: tuple[bool, bool, bool] = (False, False, False)  # 旧身份留作确认基准，界面不再画该列旧分数
+    pending_columns: tuple[bool, ...] = ()  # 旧身份留作确认基准，界面不再画该列旧分数；长度同 slots
+
+    def __post_init__(self) -> None:
+        n = len(self.slots)
+        if len(self.pending_columns) != n:
+            self.pending_columns = (tuple(self.pending_columns) + (False,) * n)[:n]
 
     def key(self) -> tuple:
         return tuple(self.slots)
@@ -136,6 +173,8 @@ class AugmentDetector:
         self.pending_seconds = defaults.pending_seconds
         self.low_match_reads = defaults.low_match_reads
         self.group_confirm = defaults.group_confirm
+        self.idle_ocr_guard = defaults.idle_ocr_guard
+        self._idle_read_at = float("-inf")
         self.calibration: Calibration | None = None
         self._last_fp: np.ndarray | None = None
         self._last_result: Offer | None = None
@@ -146,6 +185,8 @@ class AugmentDetector:
         self._stable: Offer | None = None
         self._pending: list[dict | None] = [None] * 3
         self._low_match_reads = 0  # 已稳定后，有限次数的新 OCR 确认；缓存空值不作新证据。
+        self._garbled_reads = 0    # 连续几次标题条只读到半截名字（见 GARBLED_READS）
+        self._garbled_since = 0.0  # 第一次读到半截名字的时刻
         self._group_target: list[str | None] | None = None
         self._group_counts: list[int] = [0] * 3
         self._group_since = 0.0
@@ -161,6 +202,22 @@ class AugmentDetector:
                      "full_lines": 0, "full_matches": 0, "strip_cache": 0,
                      "name_reject": 0, "color_reject": 0, "color_trust": 0, "pending": 0}
         self.calibration = self._load_calibration()
+        self._cells, self._pending = [None] * self._n(), [None] * self._n()
+        self._group_counts = [0] * self._n()
+
+    def _n(self) -> int:
+        """当前定位的卡片数（三选一或四选一）；各列跟踪状态都按它的长度。"""
+        return self.calibration.count if self.calibration is not None else 3
+
+    def _layout_changed(self) -> None:
+        """换成另一种卡片数：上一组卡的跟踪状态不能按列对到新布局上。"""
+        n = self._n()
+        self._last_fp = self._last_result = self._last_window = None
+        self._cells, self._pending = [None] * n, [None] * n
+        self._stable = None
+        self._low_match_reads = 0
+        self._group_target = None
+        self._group_counts = [0] * n
 
     def _load_calibration(self) -> Calibration | None:
         """本机存的三选一位置（calibration.json）。只有当前画面上真认出三张卡才会写这个文件，
@@ -182,7 +239,10 @@ class AugmentDetector:
         """丢掉内存里的位置后，换回本机存的那份（和刚启动时一样）。分辨率不同的那份不会被用上：
         calibrated_for 按尺寸比，对不上照旧先用默认位置再重新定位。"""
         with self._track_lock:
+            before = self._n()
             self.calibration = self._load_calibration()
+            if self._n() != before:
+                self._layout_changed()
             return self.calibration is not None
 
     @property
@@ -195,21 +255,32 @@ class AugmentDetector:
         """离开对局时保留定位校准，丢弃上一局标题与待确认读数。"""
         with self._track_lock:
             self._last_fp = self._last_result = self._last_window = None
-            self._cells = [None]*3
+            self._idle_read_at = float("-inf")
+            self._cells = [None] * self._n()
             self._stable = None
-            self._pending = [None]*3
+            self._pending = [None] * self._n()
             self._low_match_reads = 0
+            self._garbled_reads = 0
             self._group_target = None
-            self._group_counts = [0] * 3
+            self._group_counts = [0] * self._n()
+
+    @property
+    def layout_suspect(self) -> bool:
+        """标题条连续读到半截名字：卡片数多半和定位不符，该整块扫描重新定位了。"""
+        return self._garbled_reads >= GARBLED_READS or (
+            self._garbled_reads > 0 and time.monotonic() - self._garbled_since >= GARBLED_HOLD_S)
+
+    def clear_layout_suspect(self) -> None:
+        self._garbled_reads = 0
 
     def set_matcher(self, matcher: NameMatcher) -> None:
         with self._track_lock:
             self.matcher = matcher
             self._last_fp = None
-            self._cells = [None] * 3
+            self._cells = [None] * self._n()
             self._low_match_reads = 0
             self._group_target = None
-            self._group_counts = [0] * 3
+            self._group_counts = [0] * self._n()
 
     @property
     def color_check(self) -> str:
@@ -222,7 +293,7 @@ class AugmentDetector:
         with self._track_lock:
             if getattr(self, "_color_check", value) != value:
                 self._last_fp = None
-                self._cells = [None] * 3
+                self._cells = [None] * self._n()
                 self._low_match_reads = 0
             self._color_check = value
 
@@ -235,25 +306,27 @@ class AugmentDetector:
     def ensure_calibration(self, w: int, h: int) -> None:
         """这个窗口大小还没校准过：先用默认位置，第一次选海克斯就能走轻量检查。"""
         if not self.calibrated_for(w, h):
+            self._idle_read_at = float("-inf")
             self.calibration = Calibration.default(w, h)
             self._last_fp = None
-            self._cells = [None] * 3
+            self._cells = [None] * self._n()
             self._stable = None
-            self._pending = [None] * 3
+            self._pending = [None] * self._n()
             self._low_match_reads = 0
             self._group_target = None
-            self._group_counts = [0] * 3
+            self._group_counts = [0] * self._n()
 
     def reset_calibration(self) -> None:
         with self._track_lock:
+            self._idle_read_at = float("-inf")
             self.calibration = None
             self._last_fp = None
-            self._cells = [None] * 3
+            self._cells = [None] * self._n()
             self._stable = None
-            self._pending = [None] * 3
+            self._pending = [None] * self._n()
             self._low_match_reads = 0
             self._group_target = None
-            self._group_counts = [0] * 3
+            self._group_counts = [0] * self._n()
         if self.calib_path and self.calib_path.exists():
             self.calib_path.unlink()
 
@@ -293,8 +366,8 @@ class AugmentDetector:
         H, W = frame.shape[:2]
         if not self.calibrated_for(W, H):
             self._stable = None
-            self._pending = [None]*3
-        x0, y0, x1, y1 = int(BAND[0] * W), int(BAND[1] * H), int(BAND[2] * W), int(BAND[3] * H)
+            self._pending = [None] * self._n()
+        x0, y0, x1, y1 = _band(W, H)
         band = frame[y0:y1, x0:x1]
         scale = min(1.0, DETECT_MAX_W / max(1, band.shape[1]))
         image = _resize(band, scale)
@@ -303,7 +376,9 @@ class AugmentDetector:
             priority = None  # 云控 features.title_priority=false：退回 1.1.1 的整块全部认字
         if callable(priority):
             from .title_rows import title_groups, title_plan
-            reference = self.calibration if self.calibrated_for(W, H) else Calibration.default(W, H)
+            # 提前收工只按三选一判断；四选一定位时先用默认三列，四张卡走完整认字。
+            reference = (self.calibration if self.calibrated_for(W, H) and self._n() == 3
+                         else Calibration.default(W, H))
             regions = [tuple((v - (x0 if j % 2 == 0 else y0)) * scale for j, v in enumerate(box))
                        for box in reference.pixel_boxes(W, H)]
             def accept_titles(candidates, prefix):
@@ -358,22 +433,24 @@ class AugmentDetector:
                 log.info("拒绝整块识别：匹配列=%d，但不足两个不同海克斯名", len(group))
             return None
         group.sort(key=lambda t: t[0].cx)
-        slots, texts, scores, boxes = self._assign_columns(group, W)
-        if len(group) == 3:
+        count, idx = self._layout_columns(group, W, H)
+        slots, texts, scores, boxes = self._assign_columns(group, W, count=count, idx=idx)
+        complete = len(group) == count
+        if complete:
             if not self._calibrate(group, W, H):
                 return None  # 不发布错误位置，也不污染已确认的校准。
             boxes = self.calibration.pixel_boxes(W, H)
         else:
             # 整块扫描已找到卡片，旧条带的空缓存不能遮掉这次恢复。
             self._last_fp = self._last_result = self._last_window = None
-            self._cells = [None] * 3
+            self._cells = [None] * self._n()
         self._low_match_reads = 0
         ox, oy = origin
         sboxes = [None if b is None else (b[0] + ox, b[1] + oy, b[2] + ox, b[3] + oy) for b in boxes]
         self._observation += 1
-        offer = Offer(slots, texts, scores, sboxes, padded=len(group) == 3,
+        offer = Offer(slots, texts, scores, sboxes, padded=complete,
                       source="full", observation=self._observation)
-        offer = self._stabilize(offer, [True]*3)
+        offer = self._stabilize(offer, [True] * count)
         log.debug("海克斯OCR source=full observation=%d raw=%r matches=%r scores=%r",
                   offer.observation, texts, slots, scores)
         return offer
@@ -413,16 +490,69 @@ class AugmentDetector:
                     uniq.append(t)
             if len(uniq) > len(best):
                 best = uniq
+        if len(best) >= 4:
+            four = sorted(best[:4], key=lambda t: t[0].cx)
+            if AugmentDetector._even([t[0].cx for t in four], H):
+                return four  # 四选一：四张等距排开
         return best[:3]
 
     @staticmethod
-    def _assign_columns(group, W):
-        """把识别到的卡片放进左/中/右三个位置。只有两张时按左右对称推断缺的是哪张。"""
-        slots: list[str | None] = [None, None, None]
-        texts = ["", "", ""]
-        scores = [0.0, 0.0, 0.0]
-        boxes: list = [None, None, None]
-        if len(group) == 3:
+    def _even(centers, H) -> bool:
+        """卡片等距、间距像海克斯卡（约 0.34 个窗口高度）。"""
+        gaps = np.diff(sorted(centers))
+        if not len(gaps):
+            return False
+        spacing = float(np.mean(gaps))
+        return 0.2 * H <= spacing <= 0.5 * H and float(np.max(np.abs(gaps - spacing))) <= 0.15 * spacing
+
+    @staticmethod
+    def _layout_columns(group, W, H) -> tuple[int, list[int] | None]:
+        """这一排是三选一还是四选一，每张在第几列。idx 为 None 表示按三选一的老办法推断。
+
+        四选一的卡距和三选一一样，只是整组错开半张：三选一的卡心在中线和中线±1 个卡距，
+        四选一在中线±0.5、±1.5 个卡距。拿不准时一律按三选一，保持原来的行为。"""
+        centers = [t[0].cx for t in group]
+        if len(group) == 4:
+            return 4, [0, 1, 2, 3]
+        spacing = None
+        if len(group) == 3 and AugmentDetector._even(centers, H):
+            spacing = (centers[2] - centers[0]) / 2
+        elif len(group) == 3:
+            gaps = np.diff(centers)
+            spacing = float(min(gaps))
+            if not (0.2 * H <= spacing <= 0.5 * H) or abs(max(gaps) / spacing - 2) > 0.3:
+                return 3, None
+        elif len(group) == 2:
+            spacing = CARD_SPACING_H * H  # 两张时卡距无法自证，用实机卡距
+            k = (centers[1] - centers[0]) / spacing
+            if round(k) not in (1, 2, 3) or abs(k - round(k)) > 0.2:
+                return 3, None
+        if not spacing:
+            return 3, None
+        offsets = [(c - W / 2) / spacing for c in centers]
+
+        def fit(slots):
+            cols = [min(range(len(slots)), key=lambda j: abs(u - slots[j])) for u in offsets]
+            worst = max(abs(u - slots[c]) for u, c in zip(offsets, cols))
+            return (cols, worst) if len(set(cols)) == len(cols) else (None, math.inf)
+
+        three, err3 = fit([-1.0, 0.0, 1.0])
+        four, err4 = fit([-1.5, -0.5, 0.5, 1.5])
+        if four is not None and err4 < 0.25 and err4 < err3:
+            return 4, four
+        return 3, None
+
+    @staticmethod
+    def _assign_columns(group, W, count: int = 3, idx: list[int] | None = None):
+        """把识别到的卡片放进各列。三选一只有两张时按左右对称推断缺的是哪张；
+        四选一的列号由 _layout_columns 给出。"""
+        slots: list[str | None] = [None] * count
+        texts = [""] * count
+        scores = [0.0] * count
+        boxes: list = [None] * count
+        if idx is not None:
+            pass
+        elif len(group) == 3:
             idx = [0, 1, 2]
         else:
             a, b = group[0][0].cx, group[1][0].cx
@@ -441,10 +571,12 @@ class AugmentDetector:
     @staticmethod
     def _calibration_candidate(group, W, H):
         centers = [t[0].cx for t in group]
-        spacing = (centers[2] - centers[0]) / 2
+        spacing = (centers[-1] - centers[0]) / (len(centers) - 1)
         th = int(np.median([t[0].h for t in group]))
         cy = float(np.median([t[0].cy for t in group]))
-        half_w = 0.42 * spacing
+        # 窄屏四选一最外侧的卡贴着画面边缘：框宽一起收窄到放得下，卡心不动（标题字比框窄得多）
+        half_w = min(0.42 * spacing, centers[0], W - centers[-1])
+        half_w = max(half_w, 0.25 * spacing) if half_w > 0 else 0.42 * spacing
         half_h = 0.9 * th
         boxes = [((c - half_w) / W, (cy - half_h) / H, (c + half_w) / W, (cy + half_h) / H) for c in centers]
         return Calibration(boxes, (W, H))
@@ -458,13 +590,17 @@ class AugmentDetector:
                 self._geometry_rejected_at = now
                 log.warning("拒绝三选一校准：标题区域越界、重叠或顺序错误 boxes=%s @ %dx%d", boxes, W, H)
             return False
+        before = self._n()
         self.calibration = candidate
+        if candidate.count != before:
+            self._layout_changed()
+            log.info("海克斯卡片数改为 %d 张", candidate.count)
         # 定位框变更后不能用旧条带的近似指纹命中旧坐标。
         self._last_fp = self._last_result = self._last_window = None
-        self._cells = [None] * 3
+        self._cells = [None] * self._n()
         self._low_match_reads = 0
         self._save_calibration()
-        log.info("已校准三选一标题位置：%s @ %dx%d", boxes, W, H)
+        log.info("已校准%s标题位置：%s @ %dx%d", "四选一" if candidate.count == 4 else "三选一", boxes, W, H)
         return True
 
     # ---------- 2. 已校准的轻量检查 ----------
@@ -484,10 +620,38 @@ class AugmentDetector:
                 x0, x1 = max(0, x0), min(win.width, x1)
         return Rect(win.left + x0, win.top + y0, x1 - x0, y1 - y0)
 
+    IDLE_RECHECK_S = 1.0
+
+    def _skip_idle_ocr(self, strip: np.ndarray, win: Rect, now: float) -> bool:
+        """只在空闲且没有待确认卡组时省略读字；首次、超时及未知均放行。"""
+        with self._track_lock:
+            if (not self.idle_ocr_guard or self._last_result is not None or self._stable is not None
+                    or any(self._pending) or self._group_target is not None
+                    or self._last_window != win
+                    or not self.confirmed_for(win.width, win.height)
+                    or not self.calibration.valid()
+                    or not 0 <= now - self._idle_read_at < self.IDLE_RECHECK_S):
+                return False
+            from .title_probe import TitleSignal, probe_titles
+            region = self.strip_rect(win)
+            signal = probe_titles(strip, self.calibration.pixel_boxes(win.width, win.height),
+                                  (region.left - win.left, region.top - win.top))
+            self.cost["idle_probe"] = self.cost.get("idle_probe", 0) + 1
+            if signal is not TitleSignal.EMPTY:
+                return False
+            self.cost["idle_skipped"] = self.cost.get("idle_skipped", 0) + 1
+            return True
+
     def check_strip(self, strip: np.ndarray, win: Rect) -> Offer | None:
         """strip 为 strip_rect 截图。画面没变化时直接复用上次结果。"""
-        fp = fingerprint(strip)
         now = time.monotonic()
+        try:
+            if self._skip_idle_ocr(strip, win, now):
+                return None
+        except Exception:
+            # 省电路径故障不能阻断原识别；不记录图像或识别文字。
+            self.cost["idle_probe_errors"] = self.cost.get("idle_probe_errors", 0) + 1
+        fp = fingerprint(strip)
         active = self._last_result is not None
         confirming = self._stable is not None and 0 < self._low_match_reads < self.low_match_reads
         due = any(c is None for c in self._cells) or (active and any(
@@ -497,13 +661,15 @@ class AugmentDetector:
             log.debug("海克斯OCR source=cache observation=%d", self._observation)
             return replace(self._last_result, source="cache") if self._last_result else None
         if self._last_window != win:
-            self._cells = [None] * 3
+            self._cells = [None] * self._n()
             self._low_match_reads = 0
         self._last_fp = fp
         self._last_window = win
         t0, c0 = time.perf_counter(), time.thread_time()
         try:
-            return self._read_strip(strip, win)
+            result = self._read_strip(strip, win)
+            self._idle_read_at = time.monotonic()
+            return result
         finally:
             self.cost["strip"] += 1
             self.cost["strip_s"] += time.perf_counter() - t0
@@ -513,7 +679,7 @@ class AugmentDetector:
         pb = self.calibration.pixel_boxes(win.width, win.height)
         region = self.strip_rect(win)
         sx, sy = region.left-win.left, region.top-win.top
-        rarities = [None]*3
+        rarities = [None] * len(pb)
         if self.rarities and self.color_check != "off":
             from .cardframe import classify_card_frames
             rarities = classify_card_frames(strip, pb, strip_origin=(sx, sy), window_height=win.height)
@@ -586,7 +752,18 @@ class AugmentDetector:
                 self._observation += 1
             offer = Offer(slots, texts, scores, boxes, padded=True, source="strip", observation=self._observation)
             self._mark_display_pending(offer, fresh)
-            if self.calibration.guess and offer.matched() == 3:
+            garbled = sum(1 for i, read in enumerate(fresh) if read and not slots[i]
+                          and len(texts[i].strip()) >= 2 and cells[i]["conf"] >= GARBLED_CONF)
+            if offer.matched() < 2 and garbled >= 2:
+                self._garbled_reads += 1
+                if self._garbled_reads == 1:
+                    self._garbled_since = now
+                if self._garbled_reads == GARBLED_READS:
+                    log.info("标题条连续 %d 次只读到对不上的字 %s：卡片数可能和定位不符（现为 %d 张）",
+                             GARBLED_READS, texts, len(pb))
+            elif any(fresh):
+                self._garbled_reads = 0
+            if self.calibration.guess and offer.matched() == len(pb):
                 self.calibration.guess = False  # 默认位置在本机对上了，存下来
                 self._save_calibration()
             if offer.matched() >= 2:
@@ -607,14 +784,14 @@ class AugmentDetector:
                              self._low_match_reads, self.low_match_reads, fresh, offer.matched())
                 if self._stable is None or self._low_match_reads >= self.low_match_reads:
                     self._stable = None
-                    self._pending = [None] * 3
+                    self._pending = [None] * self._n()
                     self._group_target = None  # 等确认时面板关了：不带到下一次三选一
-                    self._group_counts = [0] * 3
+                    self._group_counts = [0] * self._n()
             return self._last_result
 
     @property
     def pending_columns(self) -> tuple[bool, bool, bool]:
-        return self._stable.pending_columns if self._stable else (False, False, False)
+        return self._stable.pending_columns if self._stable else (False,) * self._n()
 
     def _mark_display_pending(self, offer: Offer, fresh: list[bool]) -> None:
         if self._stable is None:
@@ -627,10 +804,14 @@ class AugmentDetector:
 
     def _stabilize(self, offer: Offer, fresh: list[bool]) -> Offer:
         """单列只采纳连续的新 OCR 观察，短暂读空不重排整组；不无限保留旧卡。"""
+        if self._stable is not None and len(self._stable.slots) != len(offer.slots):
+            self._stable = None  # 三选一和四选一之间切换：旧卡组的列对不上
+        if len(self._pending) != len(offer.slots):
+            self._pending = [None] * len(offer.slots)
         if self._stable is None:
             self._group_target = None  # 从头开始的卡组不沿用上一组的整组确认状态
-            self._group_counts = [0] * 3
-            self._stable = replace(offer, pending_columns=(False, False, False))
+            self._group_counts = [0] * len(offer.slots)
+            self._stable = replace(offer, pending_columns=(False,) * len(offer.slots))
             return self._stable
         self._mark_display_pending(offer, fresh)
         # 上一轮已进入单列待确认的同名读数，这轮是确认，不是又一次换牌。
@@ -641,9 +822,9 @@ class AugmentDetector:
         now = time.monotonic()
         if self.group_confirm and self._group_target is None and len(changed) >= 2:
             # 整组确认接管这批读数；上一组的单列候选不能跨组充当第二次确认。
-            self._pending = [None] * 3
-            self._group_target = [None] * 3
-            self._group_counts = [0] * 3
+            self._pending = [None] * len(offer.slots)
+            self._group_target = [None] * len(offer.slots)
+            self._group_counts = [0] * len(offer.slots)
             self._group_since = now
             log.info("三选一整组换牌待确认：变化列=%s", changed)
         if self._group_target is not None:
@@ -664,11 +845,11 @@ class AugmentDetector:
                 if not all(done):
                     log.info("三选一整组换牌超时：已确认=%s 采用=%s", done, accepted)
                 self._group_target = None
-                self._group_counts = [0] * 3
-                self._stable = replace(offer, slots=accepted, pending_columns=(False, False, False))
+                self._group_counts = [0] * len(offer.slots)
+                self._stable = replace(offer, slots=accepted, pending_columns=(False,) * len(offer.slots))
                 return self._stable
-            self._stable = replace(offer, slots=[None] * 3, group_changed=True,
-                                   pending_columns=(False, False, False))
+            self._stable = replace(offer, slots=[None] * len(offer.slots), group_changed=True,
+                                   pending_columns=(False,) * len(offer.slots))
             return self._stable
         accepted = list(self._stable.slots)
         display_pending = list(self._stable.pending_columns)
@@ -703,7 +884,7 @@ class AugmentDetector:
         if not self.calibrated_for(win.width, win.height):
             return None
         pb = self.calibration.pixel_boxes(win.width, win.height)
-        spacing = (pb[2][0] - pb[0][0]) / 2
+        spacing = (pb[-1][0] - pb[0][0]) / (len(pb) - 1)
         title_y = (pb[0][1] + pb[0][3]) / 2 + win.top
         if abs(y - title_y) > 0.35 * win.height:
             return None

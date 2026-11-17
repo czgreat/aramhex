@@ -36,6 +36,43 @@ TICKET = re.compile(r"[0-9A-Za-z_-]{1,32}")  # 单号：和服务端同一个规
 GIVE_UP = {400, 403, 404, 413}  # 这几种重试也没用；其他失败（5xx、429、断网）下次刷新云控再试
 MAX_TRIES = 5
 
+# 只保留本程序固定诊断事件中的计数/单位，不把任意文本里的数字当作性能数据。
+_DIAGNOSTIC_EVENT = re.compile(
+    r"^(?:推荐状态发布|扫描诊断|这局认字|运行资源|OCR(?:整块|标题)耗时|运行环境)：")
+_LOG_HEADER = re.compile(
+    r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3} "
+    r"(?:DEBUG|INFO|WARNING|ERROR|CRITICAL) lolhex(?:\.[a-z_]+)*: ")
+_DIAGNOSTIC_NUMBER = re.compile(
+    r"(?:\b(?:scan|observation|capture|work|after|total|frame_age)|文本行|输入|逻辑核|"
+    r"可用/总内存|标题间隔|启动扫描间隔|已运行|本程序内存|系统可用/总内存|总计|等待锁|检测|认字)="
+    r"\d+(?:\.\d+)?(?:/\d+)?(?:x\d+)?(?:ms|MB|毫秒|秒|小时)?(?=\s|[；;）)\r\n]|$)"
+    r"|(?:标题条|整块扫描|标题OCR|平均) \d+(?:\.\d+)?(?=\s*(?:次|毫秒))"
+    r"|(?<=CPU )\d+(?=）)"
+    r"|(?<=峰值)\d+(?=MB)"
+    r"|(?<=私有)\d+(?=MB)")
+
+
+def _redact_names(text: str, patterns: list[re.Pattern]) -> str:
+    for pattern in patterns:
+        text = pattern.sub("<已去掉>", text)
+    return text
+
+
+def _redact_line(line: str, patterns: list[re.Pattern]) -> str:
+    header = _LOG_HEADER.match(line)
+    prefix = header.group() if header else ""
+    message = line[len(prefix):]
+    event = _DIAGNOSTIC_EVENT.match(message)
+    if not event:
+        return prefix + _redact_names(message, patterns)
+    # 数字原样拷贝，其余仍脱敏；不用可与用户名字相撞的临时占位符。
+    parts, end = [prefix, event.group()], event.end()
+    for match in _DIAGNOSTIC_NUMBER.finditer(message, end):
+        parts.extend((_redact_names(message[end:match.start()], patterns), match.group()))
+        end = match.end()
+    parts.append(_redact_names(message[end:], patterns))
+    return "".join(parts)
+
 
 def _tickets(cfg: dict, install_id: str) -> list[str]:
     req = ((cfg or {}).get("logs") or {}).get("request") or []
@@ -112,14 +149,21 @@ def redact(text: str, riot_id: str = "") -> str:
         v = os.environ.get(var) or ""
         if len(v) >= 2:
             names.append(v)
-    for n in sorted({n for n in names if n and len(n) >= 2}, key=len, reverse=True):
-        text = re.sub(re.escape(n), "<已去掉>", text, flags=re.I)  # 日志里的大小写可能和设置里的不一样
     # 用户文件夹名可以带空格：一直到下一个 \ / 引号 或行尾
     text = re.sub(r"(?i)([A-Z]:[\\/]+(?:Users|Documents and Settings)[\\/]+)[^\\/\"'\r\n：]+", r"\1<用户>", text)
     text = re.sub(r"(/(?:home|Users)/)[^/\"'\r\n]+", r"\1<用户>", text)
+    if "#" in rid:
+        text = re.sub(re.escape(rid), "<游戏账号>", text, flags=re.I)
     # 名字#编号 这种写法（别人的游戏账号也可能出现在日志里）
     text = re.sub(r"[^\s#：:，,（()）\[\]\"'<>]{1,16}#[0-9A-Za-z]{3,5}(?![0-9A-Za-z])", "<游戏账号>", text)
-    return text
+    patterns = []
+    for name in sorted({n for n in names if n and len(n) >= 2}, key=len, reverse=True):
+        # ASCII 名称只匹配完整标识，Win/78 不应破坏 Windows/178ms；中文周围常没有空格。
+        pattern = re.escape(name)
+        if name.isascii():
+            pattern = r"(?<![A-Za-z0-9_])" + pattern + r"(?![A-Za-z0-9_])"
+        patterns.append(re.compile(pattern, re.I))
+    return "".join(_redact_line(line, patterns) for line in text.splitlines(keepends=True))
 
 
 def _read_recent(folder, limit: int) -> bytes:

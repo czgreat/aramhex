@@ -9,8 +9,8 @@
 下载后核对 SHA-256，不一致就删掉并报错。匿名接口每个 IP 每小时 60 次，启动、再次打开、每 30 分钟各查一次足够。
 便携版不能替换自己：有新版本时只打开下载页。
 
-国内常常连不上 GitHub：查不到时改从 jsDelivr 读最新版本号（取最新 tag 里的 lolhex/__init__.py）。
-这条路拿不到安装包和 SHA-256，所以只提示有新版本、打开下载页，不在程序里直接安装。
+查更新先问官网（云控配置的官网地址），不通再问 GitHub。1.1.7 起不再用 jsDelivr：
+默认镜像列表为空，check_mirror / probe_newer 只在显式传入镜像地址时使用（以后加备用地址时复用）。
 """
 
 from __future__ import annotations
@@ -31,12 +31,11 @@ log = logging.getLogger(__name__)
 API = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 FILE_RE = re.compile(r"^AramHex-Setup-[0-9][0-9A-Za-z.\-]*\.exe$")
 SUMS = "SHA256SUMS.txt"
-VERSION_MIRRORS = [f"https://{host}/gh/{GITHUB_REPO}@latest/lolhex/__init__.py"
-                   for host in ("fastly.jsdelivr.net", "gcore.jsdelivr.net", "cdn.jsdelivr.net")]
+VERSION_MIRRORS: list[str] = []  # 1.1.7 起不用 jsDelivr；格式同旧版："<镜像>/@latest/lolhex/__init__.py"
 _VERSION = re.compile(r'^__version__\s*=\s*"([0-9][0-9A-Za-z.\-]*)"', re.M)
 
 
-PROBE_HOSTS = ("fastly.jsdelivr.net", "gcore.jsdelivr.net")
+PROBE_HOSTS: tuple[str, ...] = ()  # 同上，按 tag 试探的镜像主机
 SITE_LATEST = f"{MIRROR}/latest.json"
 DOWNLOAD_PAGE = f"{WEBSITE}/#download"
 
@@ -192,7 +191,7 @@ def _sha_from_sums(assets: list[dict], name: str, timeout: float) -> str | None:
 
 def check(current: str, timeout: float = 8, strict: bool = False, api: str = API,
           mirrors=VERSION_MIRRORS, probe_hosts=PROBE_HOSTS, site: str | None = SITE_LATEST) -> dict | None:
-    """有新版本返回它的信息，没有或查不到返回 None。先问官网镜像，不通再问 GitHub 和 jsDelivr。
+    """有新版本返回它的信息，没有或查不到返回 None。先问官网，不通再问 GitHub（传入镜像时最后问镜像）。
     strict=True（用户手动点"检查更新"）时查不到就抛异常，好告诉用户是没新版本还是没连上。
     site 用默认值时按云控的官网地址顺序问（换了新官网先问新的，内置 aramhex.com 最后）。"""
     for url in ([f"{s}/u/latest.json" for s in cloud.sites()] if site == SITE_LATEST else [site] if site else []):

@@ -28,6 +28,14 @@ from .vision import window as win
 from .vision.matcher import NameMatcher, normalize
 
 log = logging.getLogger(__name__)
+# 标题条读到半截名字触发的整块扫描，两次之间至少隔这么久（整块扫描 4K 约 1 秒 CPU）
+GARBLED_RESCAN_S = 3.0
+# 没在选海克斯时标题条多久读一次，按这台电脑每次认字实际花的 CPU 时间自动定（1.1.7 起代替设置页的「识别频率」）：
+# 间隔 = 认字 CPU 时间 × AUTO_IDLE_FACTOR，即空闲时识别线程最多占一个核的 1/AUTO_IDLE_FACTOR；
+# 不低于 scan_interval_ms，不超过 AUTO_IDLE_MAX_MS。出现海克斯后照旧按 scan_interval_ms 快扫。
+# 9800X3D 实测每次约 51 毫秒 → 约 0.3 秒，和以前一样；慢 3 倍的电脑约 0.75 秒。
+AUTO_IDLE_FACTOR = 5
+AUTO_IDLE_MAX_MS = 1200
 
 
 _AUG_ALIASES: dict[str, list[str]] | None = None
@@ -57,6 +65,12 @@ def augment_matcher(store, settings) -> NameMatcher:
         extra = i18n.chinese_extra_augment_names()
         names = {aid: [n] + [x for x in extra.get(aid, []) if x != n] if extra.get(aid) else n
                  for aid, n in names.items()}
+        # 腾讯资料还没有的（测试服新海克斯）：用拳头的简中、繁中名认，统计数据有了再显示胜率
+        from .recommend import HIDDEN_AUGMENTS
+        listed = getattr(store, "augments", None)  # 完整的腾讯资料（含别的模式）；拿不到就不补，免得把整张表当新海克斯
+        if listed:
+            unlisted = i18n.unlisted_augment_names(set(listed) | set(names))
+            names.update({aid: n for aid, n in unlisted.items() if aid not in HIDDEN_AUGMENTS})
     # OCR 常读错的写法（augment_aliases.json）：同一个 ID 多一个名字，和繁中名一样
     for aid, extra in augment_aliases().items():
         if aid in names:
@@ -164,7 +178,8 @@ class Engine:
         with self._lock:
             s = copy.deepcopy(self.state)
         s["data"] = self.store.status()
-        s["settings"] = {"show_winrate": self.settings.show_winrate, "badge_position": self.settings.badge_position}
+        s["settings"] = {"show_winrate": self.settings.show_winrate, "badge_position": self.settings.badge_position,
+                         "overlay_on_demand": self.settings.overlay_on_demand}
         s["hero"] = self.store.heroes.get(s["hero_id"] or "")
         s["candidates"] = [self.store.heroes.get(h, {"id": h}) for h in s["hero_candidates"]]
         return s
@@ -203,7 +218,7 @@ class Engine:
     def correct_slot(self, index: int, augment_id: str | None) -> None:
         with self._lock:
             offer = self.state.get("offer")
-            if not offer or not 0 <= index < 3:
+            if not offer or not 0 <= index < len(offer["slots"]):
                 return
             offer["slots"][index] = augment_id
             offer["corrected"] = True
@@ -580,40 +595,67 @@ class Engine:
         （10-24 日志一局约 2500 次、每次约 35 毫秒 CPU）。"""
         ms = self.settings.scan_interval_ms
         if not visible and since_hit > getattr(self.settings, "active_hold_s", Settings.active_hold_s):
-            ms = max(ms, self.settings.idle_scan_ms)
+            ms = max(ms, self.settings.idle_scan_ms, self.auto_idle_ms())
         return ms / 1000 * self.settings.speed_factor
+
+    def auto_idle_ms(self) -> float:
+        """空闲时标题条读一次的间隔下限（毫秒），按最近几次认字的 CPU 时间算；还没测到时为 0。"""
+        cpu = getattr(self, "_read_cpu_ms", None)
+        return min(AUTO_IDLE_MAX_MS, cpu * AUTO_IDLE_FACTOR) if cpu else 0.0
+
+    def _track_read_cpu(self, det) -> None:
+        """标题条这次真的认了字（不是用缓存）：更新每次认字 CPU 时间的滑动平均。"""
+        c = getattr(det, "cost", None) or {}
+        n, cpu = c.get("strip", 0), c.get("strip_cpu", 0.0)
+        last_n, last_cpu = getattr(self, "_read_cpu_seen", (0, 0.0))
+        self._read_cpu_seen = (n, cpu)
+        if n <= last_n:  # 用了缓存，或这局计数刚清零
+            return
+        ms = (cpu - last_cpu) * 1000 / (n - last_n)
+        old = getattr(self, "_read_cpu_ms", None)
+        self._read_cpu_ms = ms if old is None else old * 0.8 + ms * 0.2
 
     def _fallback_every(self, confirmed: bool, proven: bool = False) -> float:
         """已校准时整块兜底扫描的间隔（秒）：还在用默认位置照常按 bootstrap 间隔扫；
-        本机校准过按 fallback_scan_s（默认 30）；这局标题条已认出过三选一按 fallback_proven_s（默认 3600）。"""
+        本机校准过按 fallback_scan_s（默认 30）；这局标题条已认出过三选一按 fallback_proven_s（默认 3600）。
+        1.1.7：这局还没认出过时按 fallback_first_s（默认 5），四选一地图要靠整块扫描换成四张的布局。"""
         if not confirmed:
             return self.settings.bootstrap_interval_s * self.settings.speed_factor
         if proven:
             return float(max(self.settings.fallback_scan_s, self.settings.fallback_proven_s))
-        return float(self.settings.fallback_scan_s)
+        first = getattr(self.settings, "fallback_first_s", Settings.fallback_first_s)
+        return float(min(self.settings.fallback_scan_s, first))
 
     def _vision_loop(self) -> None:
         from .vision import capture
         from .vision.detector import AugmentDetector
 
-        win.lower_thread_priority()  # 认字和游戏抢 CPU 时让游戏先
+        eco = win.lower_thread_priority()  # 认字和游戏抢 CPU 时让游戏先
+        log.info("识别线程：优先级最低一档，效率模式%s", "已打开" if eco else "未打开（系统不支持）")
         try:
             import cv2
             cv2.setNumThreads(1)  # OpenCV 缩图也默认开满核的线程池
         except Exception:
             pass
         last_full = last_strip = 0.0
+        last_garbled = float("-inf")  # 上次因读到半截名字整块扫描的时间
         last_hit = float("-inf")  # 上次认出三选一的时间：之后 active_hold_s 秒内照常快扫
         visible = False
         misses = 0  # 刷新动画会短暂缺卡，连续 3 次识别不到才算关闭
         proven = None  # 这局标题条认出过三选一时的窗口尺寸：位置对了，兜底整块放慢
+        verify_layout = False  # 这局标题条第一次认出后，整块核对一次是三张还是四张
         while not self._stop.is_set():
             if self.state["phase"] != "ingame":
                 proven = None
+                verify_layout = False
                 if visible:
                     self._on_offer(None)
                     visible = False
                 if self._detector is not None:
+                    if (getattr(self._detector, "cost", None) or {}).get("strip") and getattr(self, "_read_cpu_ms", None):
+                        log.info("这局空闲时标题条间隔：自动 %.0f 毫秒（每次认字 CPU 约 %.0f 毫秒）",
+                                 max(self.settings.scan_interval_ms, self.settings.idle_scan_ms, self.auto_idle_ms())
+                                 * self.settings.speed_factor, self._read_cpu_ms)
                     self._log_vision_cost(self._detector)
                 capture.release()  # 不在局内就关掉截屏实例：它占着上次截图大小的位图（4K 约 33MB），挂托盘时不该一直留着
                 self.state["vision"]["status"] = "idle"
@@ -631,6 +673,7 @@ class Engine:
                     rarities={aid: a.get("rarity") for aid, a in self.store.augments.items()})
             det = self._detector
             det.color_check = getattr(self.settings, "color_check", "log")
+            det.idle_ocr_guard = getattr(self.settings, "idle_ocr_guard", False) is True
             det.recheck_seconds = getattr(self.settings, "recheck_seconds", Settings.recheck_seconds)
             det.pending_seconds = getattr(self.settings, "pending_seconds", Settings.pending_seconds)
             det.low_match_reads = getattr(self.settings, "low_match_reads", Settings.low_match_reads)
@@ -645,17 +688,36 @@ class Engine:
             offer, ran = None, False
             self._scan_discarded = False
             try:
-                if det.calibrated_for(rect.width, rect.height) and not forced:
+                if det.calibrated_for(rect.width, rect.height) and not forced and verify_layout:
+                    # 标题条按上一局的布局读到了卡：整块核对一次，四选一和三选一卡位错开半张，
+                    # 用错布局只能读到半截名字。核对没找到卡不算这组关闭。
+                    verify_layout = False
+                    last_full = now
+                    offer = self._observed_scan(det, rect, full=True, reason="layout", hwnd=hwnd)
+                    ran = offer is not None
+                elif det.calibrated_for(rect.width, rect.height) and not forced:
                     if now - last_strip >= self._strip_step(visible, now - last_hit):
                         last_strip = now
                         offer = self._observed_scan(det, rect, full=False, reason="titles", hwnd=hwnd)
                         ran = True
+                        self._track_read_cpu(det)
                         if offer is not None and not self._scan_discarded:
+                            # 用错布局只能读到半截名字，不可能每张都认对；认全了就不用核对
+                            verify_layout = verify_layout or (proven is None and offer.matched() < len(offer.slots))
                             proven = (rect.width, rect.height)
                         # 一直识别不到：整块扫描一次，防止卡片位置变了
                         every = self._fallback_every(det.confirmed_for(rect.width, rect.height),
                                                      proven is not None)
-                        if offer is None and not self._scan_discarded and not visible and now - last_full > every:
+                        suspect = getattr(det, "layout_suspect", False)
+                        if suspect:
+                            det.clear_layout_suspect()
+                        if offer is None and not self._scan_discarded and not visible and suspect \
+                                and now - last_garbled >= GARBLED_RESCAN_S:
+                            # 标题条只读到半截名字：卡片数和定位不符（上一局三选一、这局四选一，或反过来），
+                            # 马上整块扫描重新定位，不等兜底间隔（这局还没认出过时最长要等 fallback_first_s）
+                            last_full = last_garbled = now
+                            offer = self._observed_scan(det, rect, full=True, reason="garbled", hwnd=hwnd)
+                        elif offer is None and not self._scan_discarded and not visible and now - last_full > every:
                             last_full = now
                             offer = self._observed_scan(det, rect, full=True, reason="fallback", hwnd=hwnd)
                 elif forced or now - last_full >= self.settings.bootstrap_interval_s * self.settings.speed_factor:
@@ -668,7 +730,7 @@ class Engine:
             self.state["vision"].update(status="scanning", calibrated=det.confirmed_for(rect.width, rect.height))
             if ran and getattr(self, "_scan_discarded", False):
                 # 不把“旧画面被丢弃”累计成三次读空，也不再用旧客户区触发整块兜底。
-                visible, misses, proven = False, 0, None
+                visible, misses, proven, verify_layout = False, 0, None, False
                 last_full = last_strip = 0.0
                 self._stop.wait(0.1)
                 continue
@@ -804,6 +866,8 @@ class Engine:
             log.info("这局标题优先：检测框=%d 实际认字=%d 提前完成=%d 重复名字拒绝=%d 同名多处=%d",
                      c.get("full_detected", 0), c.get("full_recognized", 0), c.get("full_early", 0),
                      c.get("full_duplicate_reject", 0), c.get("full_repeat_name", 0))
+            log.info("这局空闲检查：像素检查=%d 跳过读字=%d 检查异常=%d",
+                     c.get("idle_probe", 0), c.get("idle_skipped", 0), c.get("idle_probe_errors", 0))
         det.cost = dict.fromkeys(c, 0)
 
     SHOTS_KEEP = 3
@@ -839,7 +903,9 @@ class Engine:
             if (not current or self.state.get("phase") != "ingame"
                     or (context and context[0] != getattr(self, "_scan_epoch", 0))):
                 return
-            before = current.get("pending_columns", (False, False, False))
+            before = tuple(current.get("pending_columns") or (False,) * len(current["slots"]))
+            if len(pending) != len(before):
+                return  # 三选一和四选一之间切换：列号对不上，不按列遮
             masked = tuple(a or b for a, b in zip(before, pending))
             if tuple(before) != masked:
                 self._evaluation_revision += 1  # 在途重算不能把旧可见状态带回来。
@@ -863,17 +929,17 @@ class Engine:
                 self.state.update(offer=None, evaluation=None)
                 return
             slots = list(offer.slots)
-            if prev and prev.get("corrected"):
+            if prev and prev.get("corrected") and len(prev["slots"]) == len(slots):
                 slots = [s or p for s, p in zip(slots, prev["slots"])]
             if prev and prev["slots"] == slots:
-                if tuple(prev.get("pending_columns", (False, False, False))) != offer.pending_columns:
+                if tuple(prev.get("pending_columns", ())) != tuple(offer.pending_columns):
                     self._evaluation_revision += 1
                 # 卡片内容不变也可能移动或切换分辨率：保留评分，更新绘制坐标。
                 prev.update(texts=offer.texts, scores=offer.scores, boxes=offer.boxes, at=offer.at,
                             padded=offer.padded, source=offer.source, observation=offer.observation,
                             pending_columns=offer.pending_columns, _scan_context=context)
                 return
-            if prev:
+            if prev and len(prev["slots"]) == len(slots):
                 # 新分数尚未算好也先隐藏已换卡列，另外两列继续画原来的完整结果。
                 self._mask_offer_columns([p or old != new for p, old, new in
                                           zip(offer.pending_columns, prev["slots"], slots)], context)

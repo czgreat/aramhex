@@ -4,7 +4,8 @@
   点完按钮、候选或链接后把焦点还给游戏，免得空格等按键落在浮窗上；展开后鼠标离开
   AUTO_HIDE_SECONDS 秒自动收起（正在搜索框里打字时不收；进游戏没认出英雄自动展开的，选好英雄前不收）。
 - 卡片标签：识别到三选一时，在每张卡的标题下方显示「首选 / 可选 / 可考虑刷新」与依据。
-  标签层对鼠标完全透明，不挡游戏点击；所有悬浮窗都设置为不被截图，避免识别到自己。
+  标签层对鼠标完全透明，不挡游戏点击；浮窗可以正常截图和录屏。
+  只在用于识别的截图里涂掉助手绘制的区域，避免识别到自己的文字。
 只有无边框/窗口化模式下悬浮层才能盖在游戏上面。
 """
 
@@ -29,6 +30,7 @@ from .autoshot import AutoShot
 
 from .data_status import data_status_html
 from .herosearch import hero_completer
+from .hotkey import GameHotkey
 
 log = logging.getLogger(__name__)
 
@@ -42,6 +44,15 @@ READING_S = 2.0
 
 
 AUTO_HIDE_SECONDS = 5
+BUTTON_REVEAL_SECONDS = 1.5
+# 1.1.7：游戏内按钮由 40 放大到 48（逻辑像素）；按需模式的感应范围在按钮外再留 24（原 8），更容易找到
+GAME_BUTTON = 48
+REVEAL_PAD = 24
+# 1.1.7：对局里第一次海克斯选择结束之前，按钮一直显示，让玩家知道它在哪；选完 FIRST_OFFER_HIDE_SECONDS 秒后
+# 按钮连同详情直接隐藏，之后鼠标移到原位置附近再出现。没认出英雄时详情一直开着提示手动选，不受这条影响。
+# 中途才打开助手、等不到第一次选择时，进对局 PIN_MAX_SECONDS 秒后也不再固定显示（读条也算在对局里）。
+FIRST_OFFER_HIDE_SECONDS = 0.5
+PIN_MAX_SECONDS = 300
 
 
 def _dpr() -> float:
@@ -93,6 +104,14 @@ BOTTOM_EDGE = 236
 HINT_HEAD_H, HINT_ROW_H, HINT_NOTE_H = 24, 30, 28  # 命运之武器装备提示：标题行、每件装备、没有够格装备时那一行
 HINT_ICON, HINT_PAD = 22, 8
 HINT_TITLE = "首件传说装备"
+
+
+def hint_title(hint) -> str:
+    """命运之武器提示的标题；选了分段时带上用的是哪档（「前 5%」或「全体」）。"""
+    band = hint.get("band_label")
+    return f"{HINT_TITLE} · {band}" if band else HINT_TITLE
+
+
 HINT_BG = QColor(16, 20, 28, 170)  # 半透明：只是浮在卡片空白处，不当遮罩用
 
 
@@ -272,7 +291,8 @@ class BadgeLayer(_Layer):
         items = []
         for r in ev["slots"]:
             i = r["index"]
-            if (offer.get("pending_columns") or (False, False, False))[i]:
+            pending = offer.get("pending_columns") or ()
+            if i < len(pending) and pending[i]:
                 continue  # 不画待确认列的旧分数、评级及装备提示；另外两列保持可见。
             box = boxes[i] if i < len(boxes) else None
             if box is None and len(known) >= 2:
@@ -284,7 +304,8 @@ class BadgeLayer(_Layer):
             y0 = (box[1] - oy) / unit
             cx = (x0 + x1) / 2
             label, color = VERDICT.get(r["verdict"], VERDICT["unknown"])
-            since = (offer.get("unread_since") or [None] * 3)[i] if not r.get("augment_id") else None
+            unread = offer.get("unread_since") or ()
+            since = unread[i] if i < len(unread) and not r.get("augment_id") else None
             if since is not None and time.monotonic() - since < READING_S:
                 label = "识别中…"
             if r["verdict"] == "best" and r.get("sample_warning"):
@@ -398,7 +419,7 @@ class BadgeLayer(_Layer):
         if not rows:  # 没有够格的装备：说明照常显示，只在底部写一行
             width = min(badge.width(), fm.horizontalAdvance(hint.get("note") or "") + 2 * HINT_PAD)
             return QRect(int(cx - width / 2), bottom - HINT_NOTE_H, width, HINT_NOTE_H)
-        widest = max(fm.horizontalAdvance(HINT_TITLE), *(
+        widest = max(fm.horizontalAdvance(hint_title(hint)), *(
             HINT_ICON + 6 + fm.horizontalAdvance(row["name"]) + 12 + fm.horizontalAdvance(self._item_hint_stat(row, hint, show_win))
             for row in rows))
         width = min(badge.width(), widest + 2 * HINT_PAD)
@@ -417,7 +438,7 @@ class BadgeLayer(_Layer):
             return
         x, width = rect.x() + HINT_PAD, rect.width() - 2 * HINT_PAD
         p.setPen(QColor(231, 195, 90))
-        p.drawText(QRect(x, rect.y() + 4, width, 18), Qt.AlignLeft, HINT_TITLE)
+        p.drawText(QRect(x, rect.y() + 4, width, 18), Qt.AlignLeft, hint_title(hint))
         row_h = min(HINT_ROW_H, (rect.height() - HINT_HEAD_H - 4) // len(rows))
         for i, row in enumerate(rows):
             y = rect.y() + HINT_HEAD_H + i * row_h
@@ -642,6 +663,12 @@ class ControlPanel(QWidget):
         self._auto_opened_for = None
         self._missing_hero_notified = False
         self._hold_for_hero = False  # 进游戏没认出英雄自动展开的：选好英雄或玩家手动收起前不自动收
+        self._offer_seen = False       # 这局出现过海克斯选择
+        self._ingame_since = None      # 这局进对局的时刻：从这时起按钮固定显示
+        self._unpin_at = None          # 第一次选择结束后，到这个时刻隐藏按钮
+        self._pin_over = False         # 这局按钮固定显示已结束
+        self._reveal_until = 0.0
+        self._reveal_target = None
         self._names = {}
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
@@ -855,14 +882,45 @@ class ControlPanel(QWidget):
             self.btn.setIconSize(QSize(round(d * 0.75), round(d * 0.75)))
             self.btn.setStyleSheet(self.BTN_STYLE % (d // 2))
 
+    def _game_position(self, rect, width: int, scale: float) -> tuple[int, int]:
+        x = rect.right - width - round(12 * scale) if self.corner == "top-right" else rect.left + round(12 * scale)
+        return x, rect.top + round(90 * scale)
+
+    def button_needed(self, snap: dict, rect, foreground: bool) -> bool:
+        """按需模式下的游戏按钮。只查鼠标位置，不用透明窗口占着热区。
+
+        热区和游戏内按钮使用同一套物理像素坐标，边缘多留 8 个逻辑像素；
+        离开后留一点时间供点击。详情或三选一正在显示时不隐藏按钮。
+        """
+        target = (rect, self.corner)
+        if target != self._reveal_target or not foreground:
+            self._reveal_target = target
+            self._reveal_until = 0.0
+        if not foreground:
+            return False
+        if self.expanded or (snap.get("offer") and snap.get("evaluation")) or self.pinned():
+            return True
+        k = self.devicePixelRatioF() or 1.0
+        size, pad = round(GAME_BUTTON * k), round(REVEAL_PAD * k)
+        x, y = self._game_position(rect, size, k)
+        if win.IS_WINDOWS:
+            cx, cy = win.cursor_pos()
+        else:
+            pos = QCursor.pos()
+            cx, cy = round(pos.x() * k), round(pos.y() * k)
+        now = time.monotonic()
+        if x - pad <= cx < x + size + pad and y - pad <= cy < y + size + pad:
+            self._reveal_until = now + BUTTON_REVEAL_SECONDS
+        return now < self._reveal_until
+
     def place(self, rect, in_client: bool = False) -> None:
         """rect：游戏或客户端窗口（物理像素）。在客户端（大厅、选英雄）且浮窗在右上角时，
         图标放在头像右边「在线」那一行、铃铛左边，大小跟着客户端窗口走；进游戏后和以前一样贴在右上角。"""
         badge = client_badge(rect) if in_client and rect is not None and self.corner == "top-right" else None
         k = self.devicePixelRatioF() or 1.0
-        self._set_btn_size(max(20, round(badge[2] / k)) if badge else 40)
+        self._set_btn_size(max(20, round(badge[2] / k)) if badge else GAME_BUTTON)
         self.adjustSize()
-        if rect is not None and win.IS_WINDOWS and self.isVisible():
+        if rect is not None and win.IS_WINDOWS:
             # 和标注层一样按物理像素摆
             hwnd = int(self.winId())
             cur = win.window_rect(hwnd)
@@ -871,8 +929,7 @@ class ControlPanel(QWidget):
                     bw = round(self.btn.width() * k)
                     x, y = badge[0] + bw // 2 - cur.width, badge[1] - bw // 2
                 else:
-                    x = rect.right - cur.width - round(12 * k) if self.corner == "top-right" else rect.left + round(12 * k)
-                    y = rect.top + round(90 * k)
+                    x, y = self._game_position(rect, cur.width, k)
                 key = (_rect_text(rect), in_client, x, y, cur.width, cur.height)
                 if key != getattr(self, "_place_logged", None):
                     self._place_logged = key
@@ -913,6 +970,42 @@ class ControlPanel(QWidget):
             self.cands.addWidget(b)
         self.cands.addStretch(1)
 
+    def pinned(self) -> bool:
+        """对局开始到第一次海克斯选完（再过半秒）：按钮固定显示。"""
+        return self._ingame_since is not None and not self._pin_over
+
+    def _first_offer_pin(self, snap: dict) -> None:
+        """进对局后按钮固定显示；第一次海克斯选择结束半秒后，按钮连同详情直接隐藏。"""
+        if snap.get("phase") != "ingame":
+            self._offer_seen, self._ingame_since, self._unpin_at, self._pin_over = False, None, None, False
+            return
+        now = time.monotonic()
+        if self._ingame_since is None:
+            self._ingame_since = now
+        if self._pin_over:
+            return
+        if snap.get("offer") and snap.get("evaluation"):
+            self._offer_seen = True
+            return
+        if self._offer_seen and self._unpin_at is None:
+            self._unpin_at = now + FIRST_OFFER_HIDE_SECONDS
+        if self._unpin_at is not None:
+            if now < self._unpin_at:
+                return
+            why = "第一次海克斯选择结束"
+        elif now - self._ingame_since >= PIN_MAX_SECONDS:
+            why = f"进对局 {PIN_MAX_SECONDS} 秒还没等到海克斯选择"
+        else:
+            return
+        self._pin_over = True
+        # 详情开着也一起收起（按需模式下按钮跟着隐藏）；没认出英雄、正在搜英雄、鼠标在浮窗上时不收
+        pos = QCursor.pos()
+        on_panel = self.frameGeometry().contains(pos) or (
+            self.body_win.isVisible() and self.body_win.frameGeometry().contains(pos))
+        if self.expanded and not self._hold_for_hero and not self._typing() and not on_panel:
+            self.toggle()
+        log.info("%s，游戏按钮不再固定显示", why)
+
     def update_from(self, snap: dict) -> None:
         # 选英雄阶段识别到新英雄时自动展开一次，方便看胜率、出装、加点
         hid = snap.get("hero_id")
@@ -928,6 +1021,7 @@ class ControlPanel(QWidget):
             self._hold_for_hero = False  # 选好了（手动或补认出）、对局结束：照常按时收起
         if not hid:
             self._auto_opened_for = None  # 英雄清掉了（新的一把）：下一把同一个英雄也再自动展开
+        self._first_offer_pin(snap)
         if hid and snap.get("phase") == "client" and self._auto_opened_for != hid:
             self._auto_opened_for = hid
             if not self.expanded:
@@ -999,7 +1093,10 @@ class Overlay:
         self.badges.icons = engine.icons
         self.champ = ChampSelectLayer()
         self.panel = ControlPanel(engine, engine.settings.overlay_corner)
-        self.panel.show()
+        self.visible = engine.settings.overlay
+        self.hotkey = GameHotkey()
+        self.hotkey.activated.connect(self._toggle_details)
+        self.hotkey.sync(engine.settings.overlay_hotkey, False)
         self.autoshot = AutoShot(engine)  # 设置里开了自动截图时，三选一和选英雄时自动截整屏
         self.timer = QTimer()
         self.timer.timeout.connect(self._tick)
@@ -1008,15 +1105,32 @@ class Overlay:
     def set_visible(self, on: bool):
         self.visible = on
         if on:
-            self.panel.show()
+            self._tick()
         else:
+            self.hotkey.sync(self.engine.settings.overlay_hotkey, False)
             self.panel.hide()
             self.badges.hide()
             self.champ.hide()
 
+    def _toggle_details(self) -> None:
+        """处理按键时重新核对前台，丢弃切出游戏前排队的消息。"""
+        if not self.visible:
+            return
+        snap = self.engine.snapshot()
+        game = win.find_game_window()
+        target = game or win.find_client_window()
+        playing = snap.get("phase") == "ingame" if game else (
+            snap.get("phase") == "client" and bool(snap.get("champ_select")))
+        if not playing or not target or not win.client_rect(target) or not win.is_foreground(target):
+            self.hotkey.sync(self.engine.settings.overlay_hotkey, False)
+            return
+        self.panel.toggle()
+        self._tick()  # 按需模式下按钮可能完全隐藏：展开后立即摆放并显示详情。
+
     def _tick(self):
         crashlog.enforce_limit()
         if not getattr(self, "visible", True):
+            self.hotkey.sync(self.engine.settings.overlay_hotkey, False)
             return
         snap = self.engine.snapshot()
         if snap.get("vision", {}).get("blank") and not getattr(self, "_blank_warned", False):
@@ -1026,9 +1140,14 @@ class Overlay:
                 notify("游戏可能是全屏模式，无法识别。请在游戏内设置-窗口模式中选择无边框/窗口。")
         game = win.find_game_window()
         grect = win.client_rect(game) if game else None
-        self.badges.update_from(snap, grect if grect and win.is_foreground(game) else None, game)
+        game_foreground = bool(grect and win.is_foreground(game))
+        self.badges.update_from(snap, grect if game_foreground else None, game)
         client = None if grect else win.find_client_window()
         crect = win.client_rect(client) if client else None
+        hotkey_active = (snap.get("phase") == "ingame" and game_foreground) or (
+            snap.get("phase") == "client" and bool(snap.get("champ_select"))
+            and bool(crect and win.is_foreground(client)))
+        self.hotkey.sync(self.engine.settings.overlay_hotkey, bool(hotkey_active))
         # 标注层置顶：客户端不在前台（切到别的窗口）时隐藏，免得盖在别的程序上
         self.champ.update_from(snap, crect if crect and win.is_foreground(client) else None, client or 0)
         self.autoshot.tick(snap, grect, crect if crect and win.is_foreground(client) else None)
@@ -1042,6 +1161,15 @@ class Overlay:
                 log.debug("浮窗：游戏和客户端窗口都找不到，隐藏")
             self.panel.hide()
             return
+        on_demand = snap.get("settings", {}).get("overlay_on_demand", False) is True
+        if on_demand and grect and snap.get("phase") == "ingame":
+            if not self.panel.isVisible():
+                # 隐藏时也跟随目标显示器，让 Qt 收到 DPI 变化；不先 show，免得每轮闪一下。
+                self.panel.place(grect)
+            if not self.panel.button_needed(snap, grect, game_foreground):
+                if self.panel.isVisible():
+                    self.panel.hide()
+                return
         if not self.panel.isVisible():
             log.debug("浮窗：显示（%s）", "游戏" if grect else "客户端")
             self.panel.show()

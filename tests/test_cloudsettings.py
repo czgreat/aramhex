@@ -17,7 +17,11 @@ def test_defaults_skip_items_the_player_changed(tmp_path):
     res = cloudsettings.apply(s, cfg({"defaults": {"speed": "saver", "show_winrate": False}}), V)
     assert res["changed"] == ["speed"] and s.speed == "saver" and s.show_winrate is True
     s.save(tmp_path / "config.json")
-    assert Settings.load(tmp_path / "config.json").speed == "saver"  # defaults 写进设置文件
+    assert json.loads((tmp_path / "config.json").read_text(encoding="utf-8"))["speed"] == "saver"  # defaults 写进设置文件
+    again = Settings.load(tmp_path / "config.json")
+    assert again.speed == "standard"  # 1.1.7 起识别频率没有设置项：读设置时改回标准，云控每次启动再按规则改
+    cloudsettings.apply(again, cfg({"defaults": {"speed": "saver"}}), V)
+    assert again.speed == "saver"
 
 
 def test_force_overrides_but_is_not_saved_and_restores(tmp_path):
@@ -66,11 +70,11 @@ def test_percent_groups_by_install_id(tmp_path):
 
 def test_old_config_migration_marks_non_default_as_user_set(tmp_path):
     p = tmp_path / "config.json"
-    p.write_text(json.dumps({"speed": "low", "show_winrate": True, "install_id": "0123456789abcdef"}), encoding="utf-8")
+    p.write_text(json.dumps({"badge_position": "bottom", "show_winrate": True, "install_id": "0123456789abcdef"}), encoding="utf-8")
     s = Settings.load(p)
-    assert "speed" in s.user_set and "show_winrate" not in s.user_set
-    cloudsettings.apply(s, cfg({"defaults": {"speed": "saver", "show_winrate": False}}), V)
-    assert s.speed == "low" and s.show_winrate is False
+    assert "badge_position" in s.user_set and "show_winrate" not in s.user_set
+    cloudsettings.apply(s, cfg({"defaults": {"badge_position": "top", "show_winrate": False}}), V)
+    assert s.badge_position == "bottom" and s.show_winrate is False
 
 
 def test_cloud_merge_keeps_rules_and_survives_garbage():

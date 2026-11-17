@@ -19,12 +19,17 @@ def mw(tmp_path, monkeypatch):
     monkeypatch.setattr(mainwindow.QMessageBox, "information", staticmethod(lambda *a, **k: None))
     s = Settings.load()
     eng = Engine(s)
-    w = mainwindow.MainWindow(eng, overlay.Overlay(eng))
+    ov = overlay.Overlay(eng)
+    w = mainwindow.MainWindow(eng, ov)
     toasts = []
     w._toast = toasts.append
     w.toasts = toasts
     yield w, s, eng, cloud, tmp_path
+    ov.timer.stop()
+    ov.set_visible(False)
     w.close()
+    for widget in (w, ov.panel, ov.badges, ov.champ):
+        widget.deleteLater()
     app.processEvents()
 
 
@@ -36,16 +41,64 @@ def test_cloud_force_then_player_change_then_removed(mw, monkeypatch):
     w._apply_cloud_settings(cfg)
     w._apply_cloud_settings(cfg)
     assert w.toasts == ["测试原因"]  # 同一条规则只提示一次
-    assert s.speed == "saver" and w.set_speed.currentData() == "saver" and w.set_badge.currentData() == "bottom"
+    assert s.speed == "saver" and not hasattr(w, "set_speed") and w.set_badge.currentData() == "bottom"
     assert "speed" not in s.user_set  # 云控改的不算玩家改的
-    w.set_badge.setCurrentIndex(w.set_badge.findData("top"))
-    w._save_settings()
+    w.set_badge.setCurrentIndex(w.set_badge.findData("top"))  # 没有保存按钮：一改就生效
     assert s.badge_position == "bottom" and s.forced == {"badge_position": "top"}
     assert json.loads((home / "config.json").read_text(encoding="utf-8"))["badge_position"] == "top"
     empty = cloud._merge({})
     monkeypatch.setattr(cloud, "get", lambda: empty)
     w._apply_cloud_settings(empty)
     assert s.badge_position == "top" and w.set_badge.currentData() == "top" and s.speed == "saver"
+
+
+def test_idle_guard_has_no_checkbox_and_only_cloud_can_turn_it_on(mw):
+    """空闲时减少识别开销：设置页没有开关；测试包里勾过的读设置时关掉；云控还能打开、撤掉后关回去。"""
+    w, s, _, cloud, home = mw
+    import json
+    from lolhex.config import Settings
+    assert not hasattr(w, "set_idle_guard") and s.idle_ocr_guard is False
+    (home / "old.json").write_text(json.dumps({"idle_ocr_guard": True, "user_set": ["idle_ocr_guard"]}), encoding="utf-8")
+    old = Settings.load(home / "old.json")
+    assert old.idle_ocr_guard is False and "idle_ocr_guard" not in old.user_set
+    w._apply_cloud_settings(cloud._merge({"settings": [{"force": {"idle_ocr_guard": True}}]}))
+    assert s.idle_ocr_guard is True
+    w._apply_cloud_settings(cloud._merge({}))
+    assert s.idle_ocr_guard is False
+
+
+def test_on_demand_has_no_checkbox_and_cloud_force_still_works(mw):
+    """1.1.7 起按需按钮固定开启，设置页没有勾选框；云控 force 仍可应急关掉、撤掉后恢复。"""
+    w, s, _, cloud, _ = mw
+    assert not hasattr(w, "set_on_demand") and s.overlay_on_demand is True
+    w._apply_cloud_settings(cloud._merge({"settings": [{"force": {"overlay_on_demand": False}}]}))
+    assert s.overlay_on_demand is False
+    w._apply_cloud_settings(cloud._merge({}))
+    assert s.overlay_on_demand is True
+
+
+def test_every_setting_saves_on_change(mw, monkeypatch):
+    """改哪一项都马上写进设置文件；开机自启单独处理，失败时勾选框退回原状。"""
+    w, s, _, cloud, home = mw
+    from lolhex.config import Settings
+    from lolhex.ui import mainwindow
+    monkeypatch.setattr(cloud, "get", lambda: cloud._merge({}))
+    w.set_badge.setCurrentIndex(w.set_badge.findData("bottom"))
+    w.set_corner.setCurrentIndex(1)
+    w.set_data.setChecked(False)
+    saved = Settings.load(home / "config.json")
+    assert (saved.badge_position, saved.overlay_corner, saved.check_data_updates) == ("bottom", "top-left", False)
+    assert w.overlay.panel.corner == "top-left"
+    calls = []
+    monkeypatch.setattr(mainwindow.autostart, "set_enabled", calls.append)
+    w.set_auto.setChecked(True)
+    assert calls == [True]
+    warnings = []
+    monkeypatch.setattr(mainwindow.QMessageBox, "warning", lambda *a: warnings.append(a[-1]))
+    monkeypatch.setattr(mainwindow.autostart, "set_enabled", lambda on: (_ for _ in ()).throw(OSError("拒绝访问")))
+    w.set_auto.setChecked(False)
+    assert w.set_auto.isChecked() is True and "拒绝访问" in warnings[-1]
+    assert not [b for b in w.findChildren(mainwindow.QPushButton) if b.text() == "保存设置"]
 
 
 def test_rank_rechecked_when_rank_db_newer(mw):

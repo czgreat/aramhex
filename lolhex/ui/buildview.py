@@ -69,8 +69,9 @@ def lines(d: dict, icons, show_win: bool, size: int = 24, compact: bool = False)
         separator = " → " if c.get("ordered") is True else " + "
         return separator.join(item(icons, x, size) for x in c.get("items") or []) + wr(c.get("win"))
     cores = b.get("core") or []
-    if cores:
-        out.append("<b>核心三件</b>")
+    if cores:  # 选了分段时标出用的是哪档（前 5% 或全体）
+        band = d.get("core_band")
+        out.append("<b>核心三件</b>" + (f" <span style='color:{GRAY}'>{escape(band)}</span>" if band else ""))
         out.extend("　" + core(c) for c in cores[:3])
     shoes = (b.get("shoes") or [])[:2]
     if shoes:

@@ -41,6 +41,13 @@ BAND_ALIASES = {"top": "high"}  # 老设置文件、查分服务里的 top 当 h
 
 def norm_band(band):
     return BAND_ALIASES.get(band, band) if band else band
+
+
+# 1.1.6：装备推荐（核心三件、命运之武器首件装备）只有「全体」和「前 5%」两档，数据从 seq18 起有
+# bands/high/core_builds.json、bands/high/hero_augment_items.json。选了前 5% 就用前 5% 的；
+# 这个英雄前 5% 没有够格的（样本不够门槛）就用全体，并标明「全体」。中分、娱乐没有单独的装备推荐，用全体。
+EQUIPMENT_BANDS = ("high",)
+ALL_LABEL = "全体"
 BUNDLED_DIR = Path(__file__).with_name("bundled")
 # 保留常量名供旧测试/工具导入，但默认线路绝不访问外部代码托管或 CDN。
 RAW_BASE = f"https://raw.githubusercontent.com/{DATA_REPO}/main"
@@ -220,6 +227,12 @@ class Dataset:
                     self._tables[key] = data if isinstance(data, dict) else {}
                 return self._tables[key]
         return {}
+
+    def band_table(self, name: str, band: str) -> dict | None:
+        """只读分段自己的文件（bands/<band>/<name>），不退回全体；清单里没有返回 None。"""
+        if f"bands/{band}/{name}" not in self.manifest["files"]:
+            return None
+        return self.optional_table(name, band)
 
     def table(self, band: str | None) -> tuple[dict, dict]:
         """(heroes, hero_augments)；band=None 为全体。"""
@@ -750,11 +763,61 @@ class PublicStore(DataStore):
         rows, label = self._hero_rows("hero_items.json", hero_id)
         return [{"item": r["key"], "games": r["games"], "win": r["win"]} for r in rows], label
 
+    def equipment_band(self) -> str | None:
+        """装备推荐实际可用的分段：选了前 5% 且数据有分段时为 "high"，其余（没选、中分、娱乐）为 None。"""
+        band = self.effective_band()
+        return band if band in EQUIPMENT_BANDS else None
+
+    def equipment_label(self, band_rows: bool) -> str | None:
+        """装备推荐标签：没选分段不标；选了分段时，用上前 5% 的写「前 5%」，其余写「全体」。"""
+        if not self.effective_band():
+            return None
+        return BANDS["high"] if band_rows else ALL_LABEL
+
+    def core_builds(self, hero_id: str) -> list[dict] | None:
+        """选了前 5% 时这个英雄前 5% 的核心三件（bands/high/core_builds.json）；
+        没选前 5%、数据里没有分段三件套、或这个英雄前 5% 没有够格路线时返回 None，界面用官方资料包里的全体。
+        门槛、排序、最多 3 条都在数据里定好，这里只校验格式、保持顺序。"""
+        band = self.equipment_band()
+        table = self.dataset.band_table("core_builds.json", band) if band and self.dataset else None
+        raw = table.get(str(hero_id)) if table else None
+        if not isinstance(raw, list):
+            return None
+        rows = []
+        for x in raw:
+            if not isinstance(x, dict) or x.get("ordered") is not True:
+                continue
+            items = x.get("items")
+            if (not isinstance(items, list) or len(items) != 3 or len(set(items)) != 3
+                    or not all(isinstance(i, str) and i.isascii() and i.isdigit() and len(i) <= 6 for i in items)):
+                continue
+            g, w, pick = x.get("games"), x.get("wins"), x.get("pick")
+            if not (type(g) is int and g > 0 and type(w) is int and 0 <= w <= g):
+                continue
+            row = {"items": list(items), "ordered": True, "games": g, "wins": w, "win": w / g}
+            if type(pick) in (int, float) and 0 <= pick <= 1:
+                row["pick"] = pick
+            rows.append(row)
+            if len(rows) == 3:
+                break
+        return rows or None
+
     def augment_items(self, hero_id: str, augment_id: str) -> dict | None:
-        """按英雄、海克斯配置的装备建议；独立于普通出装统计，保持数据提供的顺序。"""
+        """按英雄、海克斯配置的装备建议；独立于普通出装统计，保持数据提供的顺序。
+        选了前 5% 时先用前 5% 的；前 5% 没有够格装备就用全体。选了分段时结果带 band_label（「前 5%」或「全体」）。"""
         if not self.dataset:
             return None
-        table = self.dataset.optional_table("hero_augment_items.json")
+        band = self.equipment_band()
+        if band:
+            table = self.dataset.band_table("hero_augment_items.json", band)
+            hint = self._augment_items_from(table, hero_id, augment_id) if table else None
+            if hint and hint["items"]:
+                return {**hint, "band_label": self.equipment_label(True)}
+        hint = self._augment_items_from(self.dataset.optional_table("hero_augment_items.json"), hero_id, augment_id)
+        label = self.equipment_label(False)
+        return {**hint, "band_label": label} if hint and label else hint
+
+    def _augment_items_from(self, table: dict, hero_id: str, augment_id: str) -> dict | None:
         hero = table.get(str(hero_id))
         cfg = hero.get(str(augment_id)) if isinstance(hero, dict) else None
         if not isinstance(cfg, dict) or cfg.get("source") not in ("stats", "community", "manual"):

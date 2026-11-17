@@ -174,6 +174,10 @@ def _provisional(r: dict, p: dict, mine: dict | None, base: float | None, k: int
     return r
 
 
+def _cards(slots) -> str:
+    return "四张" if len(slots) == 4 else "三张"
+
+
 def evaluate(store, hero_id: str | None, slots: list[str | None], k: int = 300) -> dict:
     # 重算也会由界面点击触发；网络更新交给 Engine 的后台预取。
     hero = store.hero(hero_id, allow_network=False) if hero_id else None
@@ -211,6 +215,9 @@ def evaluate(store, hero_id: str | None, slots: list[str | None], k: int = 300) 
             results.append(r)
             continue
         meta = store.augments.get(aid, {})
+        if not meta.get("name"):
+            from .i18n import chinese_augment_name  # 腾讯资料还没有（测试服新海克斯）：用拳头的简中名
+            meta = {**meta, "name": chinese_augment_name(aid) or aid}
         r.update(name=display_name(aid, meta.get("name", aid)), rarity=meta.get("rarity"), icon=meta.get("icon"),
                  desc=meta.get("desc", ""))
         if aid == WEAPON_OF_DESTINY and hero_id and hasattr(store, "augment_items"):
@@ -330,12 +337,12 @@ def evaluate(store, hero_id: str | None, slots: list[str | None], k: int = 300) 
 
     if best is None:
         advice = "暂无可靠数据，请自行判断"
-    elif len(slots) == 3 and len(scored) == 3 and all(r.get("sample_warning") for r in scored):
-        advice = f"三张样本都偏少，「{best.get('name')}」相对好一点，仅供参考"
+    elif len(slots) in (3, 4) and len(scored) == len(slots) and all(r.get("sample_warning") for r in scored):
+        advice = f"{_cards(slots)}样本都偏少，「{best.get('name')}」相对好一点，仅供参考"
     elif best.get("sample_warning"):
         advice = f"「{best.get('name')}」样本偏少，相对好一点，仅供参考"
     elif len(scored) == len(slots) and all(r["score"] < REROLL_BELOW for r in scored):
-        advice = f"三张都不理想，可考虑刷新；非要选就拿「{best.get('name')}」"
+        advice = f"{_cards(slots)}都不理想，可考虑刷新；非要选就拿「{best.get('name')}」"
     else:
         advice = f"首选「{best.get('name')}」"
         if passed:

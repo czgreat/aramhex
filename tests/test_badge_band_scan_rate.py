@@ -6,10 +6,12 @@ from conftest import render_in_game
 
 
 @pytest.mark.parametrize("size", [(1920, 1080), (2560, 1440), (3840, 2160)])
-def test_badge_layer_stays_off_screen_edges(size):
+def test_badge_layer_stays_off_screen_edges(size, monkeypatch):
     from PySide6.QtWidgets import QApplication
     from lolhex.ui.overlay import BadgeLayer
     from lolhex.vision import window
+    # 关闭浮窗后遮罩会短暂保留；只检查本层，隔离前一项 GUI 测试留下的登记。
+    monkeypatch.setattr(window, "_drawn", {})
     app = QApplication.instance() or QApplication([])
     w, h = size
     k = h / 1080
@@ -67,6 +69,46 @@ def test_scan_slow_until_offer_then_fast_for_a_while(tmp_path):
     assert engine._strip_step(False, hold + 1) == pytest.approx(1.5)
 
 
+def test_idle_interval_follows_this_pcs_read_cost():
+    """1.1.7：空闲时标题条间隔按本机每次认字的 CPU 时间自动放慢；出现海克斯照旧快扫。"""
+    from types import SimpleNamespace
+    from lolhex import engine as module
+    from lolhex.config import Settings
+    from lolhex.engine import Engine
+    engine = Engine.__new__(Engine)
+    engine.settings = Settings()
+    hold = engine.settings.active_hold_s
+    assert engine.auto_idle_ms() == 0  # 还没测到
+    det = SimpleNamespace(cost={"strip": 0, "strip_cpu": 0.0})
+    engine._track_read_cpu(det)
+    det.cost.update(strip=10, strip_cpu=0.51)  # 实测：每次约 51 毫秒
+    engine._track_read_cpu(det)
+    assert engine._read_cpu_ms == pytest.approx(51)
+    assert engine._strip_step(False, hold + 1) == pytest.approx(0.3, abs=0.01)  # 快电脑和以前一样
+    engine._track_read_cpu(det)  # 用了缓存：不算
+    assert engine._read_cpu_ms == pytest.approx(51)
+    for _ in range(40):  # 慢 3 倍的电脑
+        det.cost["strip"] += 1
+        det.cost["strip_cpu"] += 0.153
+        engine._track_read_cpu(det)
+    assert engine._strip_step(False, hold + 1) == pytest.approx(0.765, rel=0.02)
+    assert engine._strip_step(True, 0) == pytest.approx(0.3)  # 海克斯开着：照旧快扫
+    assert engine._strip_step(False, hold - 1) == pytest.approx(0.3)
+    for _ in range(40):  # 特别慢：封顶
+        det.cost["strip"] += 1
+        det.cost["strip_cpu"] += 1.0
+        engine._track_read_cpu(det)
+    assert engine._strip_step(False, hold + 1) == pytest.approx(module.AUTO_IDLE_MAX_MS / 1000)
+    det.cost = {"strip": 0, "strip_cpu": 0.0}  # 下一局计数清零：不出负数
+    engine._track_read_cpu(det)
+    assert engine._read_cpu_ms > 0
+
+
+def test_lower_thread_priority_is_harmless_off_windows():
+    from lolhex.vision import window
+    assert window.lower_thread_priority() is (False if not window.IS_WINDOWS else window.lower_thread_priority())
+
+
 def test_fallback_full_scan_interval(tmp_path):
     """本机校准过、没在选海克斯：这局标题条还没认出过三选一时 30 秒一次（和 1.1.2 一样），
     认出过后基本不再整块扫描（3600 秒）；两项云控可调；没校准照旧按 bootstrap 快扫。"""
@@ -75,7 +117,9 @@ def test_fallback_full_scan_interval(tmp_path):
     from lolhex.engine import Engine
     engine = Engine.__new__(Engine)
     engine.settings = Settings()
-    assert engine._fallback_every(True) == pytest.approx(30)
+    assert engine._fallback_every(True) == pytest.approx(5)  # 1.1.7：这局还没认出过时 5 秒（四选一换布局）
+    engine.settings.fallback_first_s = 900
+    assert engine._fallback_every(True) == pytest.approx(30)  # 写到 30 以上就退回 1.1.6 的 30 秒
     assert engine._fallback_every(True, proven=True) == pytest.approx(3600)
     assert engine._fallback_every(False) == pytest.approx(3.0)
     assert engine._fallback_every(False, proven=True) == pytest.approx(3.0)  # 默认位置还没确认：不放慢
@@ -144,6 +188,7 @@ def test_fallback_proven_skips_3599_seconds_and_resets_next_game(monkeypatch, cl
     engine._stop, engine._rescan, engine._detector = Stop(), Rescan(), det
     engine.state = {"phase": "ingame", "vision": {}}
     engine.settings = Settings()
+    engine.settings.fallback_first_s = 30  # 本测试锁定 1.1.6 的分段；1.1.7 的 5 秒见 test_first_offer_fallback_*
     if cloud_interval is not None:
         from lolhex import cloudsettings
         cloudsettings.apply(engine.settings, {"settings": [{"id": "fallback-rollback",
@@ -216,6 +261,7 @@ def test_fallback_proven_cleared_when_window_size_changes_and_back(monkeypatch):
     engine._stop, engine._rescan, engine._detector = Stop(), Rescan(), det
     engine.state = {"phase": "ingame", "vision": {}}
     engine.settings = Settings()
+    engine.settings.fallback_first_s = 30  # 本测试锁定 1.1.6 的分段
     engine._observed_scan = scan
     engine._on_offer = engine._save_offer_shot = engine._log_vision_cost = lambda *a: None
     engine._scan_discarded = False

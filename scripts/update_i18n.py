@@ -123,8 +123,15 @@ def main(argv=None) -> int:
     diff = [(i, tx[i], v["zh_CN"]) for i, v in aug.items() if i in tx and v.get("zh_CN") and v["zh_CN"] != tx[i]]
     print(f"简中名字和腾讯一致 {sum(1 for i, v in aug.items() if tx.get(i) == v.get('zh_CN'))} 个，不一致 {len(diff)} 个", diff[:10])
     print("选英雄界面：", json.dumps(ui, ensure_ascii=False))
+    # 拳头删掉的海克斯（如 10-26 热更新那批）腾讯资料可能还列着：旧表里的名字保留，不删
+    if a.out.exists():
+        old = json.loads(a.out.read_text(encoding="utf-8")).get("augments") or {}
+        kept = {aid: names for aid, names in old.items() if aid not in aug}
+        aug.update(kept)
+        print(f"保留旧表里拳头已删的海克斯 {len(kept)} 个")
 
-    out = {"_说明": "外服名字表，scripts/update_i18n.py 生成。augments/heroes 按腾讯同一套 ID；heroes 每种语言是 [名字, 称号]。",
+    out = {"_说明": "外服名字表，scripts/update_i18n.py 生成。augments/heroes 按腾讯同一套 ID；heroes 每种语言是 [名字, 称号]。"
+                    "zh_MY（马来西亚服简中）1.1.4 加入，中文模式和繁中一起认。拳头已删的海克斯保留旧名字。",
            "ddragon": ver, "augments": dict(sorted(aug.items(), key=lambda kv: int(kv[0]))),
            "heroes": dict(sorted(hero.items(), key=lambda kv: int(kv[0]))), "ui": ui}
     a.out.write_text(json.dumps(out, ensure_ascii=False, indent=0, sort_keys=False) + "\n", encoding="utf-8")

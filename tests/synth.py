@@ -25,7 +25,8 @@ def fonts_available() -> bool:
 
 def render_offer(names: list[str | None], size=(3840, 2160), seed: int = 0,
                  desc: str = "获得1个随机强化符文。") -> np.ndarray:
-    """返回 BGR 图。names 中 None 表示该位置不画卡。卡片按屏幕中心对称排布。"""
+    """返回 BGR 图。names 中 None 表示该位置不画卡。卡片按屏幕中心对称排布；
+    names 有 4 项时画四选一（卡距同三选一，整组错开半张）。"""
     W, H = size
     rng = np.random.default_rng(seed)
     base = rng.integers(10, 70, (H, W, 3), dtype=np.uint8)
@@ -40,7 +41,7 @@ def render_offer(names: list[str | None], size=(3840, 2160), seed: int = 0,
     for i, n in enumerate(names):
         if n is None:
             continue
-        cx = cx0 + (i - 1) * gap
+        cx = cx0 + round((i - (len(names) - 1) / 2) * gap)
         top = int(H * 0.28)
         d.rectangle([cx - card_w // 2, top, cx + card_w // 2, top + card_h],
                     fill=(45, 38, 70), outline=(210, 180, 70), width=max(2, int(3 * s)))

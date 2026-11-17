@@ -9,18 +9,21 @@ def test_speed_factor(tmp_path):
     p = tmp_path / "config.json"
     s = Settings.load(p)
     assert s.speed == "standard" and s.speed_factor == 1.0
-    p.write_text(json.dumps({"speed": "low"}), encoding="utf-8")
-    assert Settings.load(p).speed_factor == SPEEDS["low"][1] == 4.0
-    p.write_text(json.dumps({"speed": "不存在"}), encoding="utf-8")
-    assert Settings.load(p).speed_factor == 1.0  # 认不出的档位按标准
+    s.speed = "low"  # 云控还能设
+    assert s.speed_factor == SPEEDS["low"][1] == 4.0
+    s.speed = "不存在"
+    assert s.speed_factor == 1.0  # 认不出的档位按标准
+    p.write_text(json.dumps({"speed": "low", "user_set": ["speed"]}), encoding="utf-8")
+    s = Settings.load(p)  # 1.1.7 起设置页没有识别频率：以前选的低配改回标准，不算玩家改的
+    assert s.speed == "standard" and s.speed_factor == 1.0 and "speed" not in s.user_set
 
 
 def test_old_allow_capture_setting_dropped(tmp_path):
     # 1.1.1（A1）：「录屏、截图时显示浮窗」删了（浮窗本来就能录到）；老设置文件里有也不报错、不写回
     p = tmp_path / "config.json"
-    p.write_text(json.dumps({"allow_capture": True, "speed": "low"}), encoding="utf-8")
+    p.write_text(json.dumps({"allow_capture": True, "badge_position": "bottom"}), encoding="utf-8")
     s = Settings.load(p)
-    assert not hasattr(s, "allow_capture") and s.speed == "low"
+    assert not hasattr(s, "allow_capture") and s.badge_position == "bottom"
     s.save(p)
     assert "allow_capture" not in json.loads(p.read_text(encoding="utf-8"))
 
@@ -71,7 +74,7 @@ def test_load_config_with_bom(tmp_path):
 def test_unwritable_or_broken_config_never_crashes(tmp_path, monkeypatch):
     # 设置文件写不进去：照常用（老用户第一次开 1.1.0 要写编号，写不进去也不能每次启动都崩）
     p = tmp_path / "config.json"
-    p.write_text('{"speed": "low"}', encoding="utf-8")
+    p.write_text('{"badge_position": "bottom"}', encoding="utf-8")
     real = type(p).write_text
 
     def deny(self, *a, **k):
@@ -80,7 +83,7 @@ def test_unwritable_or_broken_config_never_crashes(tmp_path, monkeypatch):
         return real(self, *a, **k)
     monkeypatch.setattr(type(p), "write_text", deny)
     s = Settings.load(p)
-    assert s.speed == "low" and len(s.install_id) == 16 and s.save(p) is False
+    assert s.badge_position == "bottom" and len(s.install_id) == 16 and s.save(p) is False
     monkeypatch.setattr(type(p), "write_text", real)
     # 设置文件实在读不懂：原文件备份成 .broken，这次不发匿名编号（能从原文看出用户的选择就照它的）
     for bad, usage in (("{坏了", False), ('{"send_usage": true, 坏了', True), ("[1, 2]", False)):
@@ -120,9 +123,9 @@ def test_broken_config_backups_kept_and_unknown_usage_off(tmp_path):
 def test_removed_liveclient_setting_dropped(tmp_path):
     """1.1.1 删了 2999 接口：老设置文件里的 use_liveclient 读到就丢，存回去也不再有。"""
     p = tmp_path / "config.json"
-    p.write_text(json.dumps({"use_liveclient": True, "speed": "low"}), encoding="utf-8")
+    p.write_text(json.dumps({"use_liveclient": True, "badge_position": "bottom"}), encoding="utf-8")
     s = Settings.load(p)
-    assert not hasattr(s, "use_liveclient") and "use_liveclient" not in s.extra and s.speed == "low"
+    assert not hasattr(s, "use_liveclient") and "use_liveclient" not in s.extra and s.badge_position == "bottom"
     s.save(p)
     assert "use_liveclient" not in json.loads(p.read_text(encoding="utf-8"))
 
@@ -140,7 +143,8 @@ def test_old_auto_screenshot_dropped(tmp_path):
     p = tmp_path / "config.json"
     p.write_text(json.dumps({"auto_screenshot": True, "speed": "saver"}), encoding="utf-8")
     s = Settings.load(p)
-    assert not hasattr(s, "auto_screenshot") and s.debug_mode is False and s.speed == "saver"
+    assert not hasattr(s, "auto_screenshot") and s.debug_mode is False
+    assert s.speed == "standard"  # 1.1.7 起识别频率没有设置项，以前选的省电改回标准
     s.save(p)
     assert "auto_screenshot" not in json.loads(p.read_text(encoding="utf-8"))
     assert not (tmp_path / "config.json.tmp").exists()  # 先写临时文件再换过去

@@ -1,6 +1,6 @@
 """保守的卡框像素证据原型；不截图、不认字，也不据此直接确定海克斯。
 
-输入为已有标题条的 BGR 像素、三个带留白的标题框及其屏幕坐标。
+输入为已有标题条的 BGR 像素、三个或四个带留白的标题框及其屏幕坐标。
 调用者需要按 frame_strip_bounds 提供条带：只增加左右约 0.02 个窗口高度，
 不增加竖向范围。尚无真实棱彩边框样本，所以棱彩及不确定颜色均返回 None。
 """
@@ -15,13 +15,13 @@ Box = tuple[int, int, int, int]
 
 
 def _geometry(boxes: Sequence[Box | None], window_height: int):
-    if window_height <= 0 or len(boxes) != 3 or any(b is None for b in boxes):
+    if window_height <= 0 or len(boxes) not in (3, 4) or any(b is None for b in boxes):
         return None
     if any(b[2] <= b[0] or b[3] <= b[1] for b in boxes):
         return None
     centers = [(b[0] + b[2]) / 2 for b in boxes]
     gaps = np.diff(centers)
-    if gaps[0] <= 0 or abs(gaps[0] - gaps[1]) > 0.03 * window_height:
+    if gaps.min() <= 0 or gaps.max() - gaps.min() > 0.03 * window_height:
         return None
     spacing = float(np.mean(gaps))
     if not 0.20 * window_height <= spacing <= 0.50 * window_height:
@@ -30,14 +30,14 @@ def _geometry(boxes: Sequence[Box | None], window_height: int):
 
 
 def frame_strip_bounds(boxes: Sequence[Box | None], window_height: int) -> Box | None:
-    """所需像素矩形（与 boxes 相同坐标系）；无法推定三列布局时返回 None。"""
+    """所需像素矩形（与 boxes 相同坐标系）；无法推定等距的三列或四列布局时返回 None。"""
     geometry = _geometry(boxes, window_height)
     if geometry is None:
         return None
     centers, spacing, radius = geometry
     return (round(centers[0] - 0.42 * spacing) - radius,
             min(b[1] for b in boxes),
-            round(centers[2] + 0.42 * spacing) + radius + 1,
+            round(centers[-1] + 0.42 * spacing) + radius + 1,
             max(b[3] for b in boxes))
 
 
@@ -71,7 +71,7 @@ def classify_card_frames(strip: np.ndarray, boxes: Sequence[Box | None], *,
     缺少任一侧像素、背景干扰、棱彩未验证颜色均不猜。不能替代 OCR 稳定性判断。
     """
     geometry = _geometry(boxes, window_height)
-    result = [None, None, None]
+    result: list[str | None] = [None] * len(boxes)
     if geometry is None or strip.ndim != 3 or strip.shape[2] < 3 or strip.dtype != np.uint8:
         return result
     centers, spacing, radius = geometry

@@ -67,9 +67,13 @@ def hero_panel(store, hero_key, k: int = 300, *, allow_network: bool = True) -> 
 
     b = data.get("builds") or {}
     # 核心三件由资料包完成样本筛选和推荐排序；其他旧栏目保持原有客户端规则。
+    # 1.1.7：选了前 5% 且这个英雄前 5% 有够格路线时换成前 5% 的，否则用资料包里的全体（选了分段时标「全体」）。
+    band_core = store.core_builds(hid) if hasattr(store, "core_builds") else None
+    core = band_core or b.get("core", [])
+    core_band = store.equipment_label(bool(band_core)) if hasattr(store, "equipment_label") and core else None
     builds = {
         "full": [{**x, "items": [item(i) for i in x["items"]]} for x in by_win(b.get("full", []))],
-        "core": [{**x, "items": [item(i) for i in x["items"]]} for x in b.get("core", [])],
+        "core": [{**x, "items": [item(i) for i in x["items"]]} for x in core],
         "first": [{**x, "item": item(x["item"])} for x in by_win(b.get("first", []))],
         "shoes": [{**x, "item": item(x["item"])} for x in by_win(b.get("shoes", []))],
         "start": [{**x, "items": [item(i) for i in x["items"]]} for x in by_win(b.get("start", []))],
@@ -91,7 +95,7 @@ def hero_panel(store, hero_key, k: int = 300, *, allow_network: bool = True) -> 
     return {
         "hero": store.heroes.get(hid),
         "rank": {**rank, "total": n_heroes},
-        "augments": augs, "builds": builds, "skills": data.get("skills", []), "spells": data.get("spells", {}),
+        "augments": augs, "builds": builds, "core_band": core_band, "skills": data.get("skills", []), "spells": data.get("spells", {}),
         "partners": [{**p, "hero": store.heroes.get(p["hero"], {"id": p["hero"]})}
                      for p in data.get("partners", [])],
         "date": data.get("date"), "patch": store.static.get("patch"),

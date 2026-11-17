@@ -5,6 +5,8 @@ from types import SimpleNamespace
 def test_game_badges_hide_in_background_and_return_without_rescan(monkeypatch):
     from PySide6.QtWidgets import QApplication
     from lolhex.ui.overlay import Overlay, BadgeLayer
+    from lolhex.ui.hotkey import GameHotkey
+    from lolhex.config import Settings
     from lolhex.vision import window
     app=QApplication.instance() or QApplication([])
     rect=window.Rect(-640,120,1920,1080)
@@ -14,7 +16,8 @@ def test_game_badges_hide_in_background_and_return_without_rescan(monkeypatch):
     monkeypatch.setattr(window,"is_foreground",lambda _:front[0])
     snap={"phase":"ingame","offer":{"boxes":[]},"evaluation":{"slots":[]}}
     ov=Overlay.__new__(Overlay)
-    ov.engine=SimpleNamespace(snapshot=lambda:snap)
+    ov.engine=SimpleNamespace(snapshot=lambda:snap, settings=Settings())
+    ov.hotkey=GameHotkey()
     ov.badges=BadgeLayer()
     ov.champ=SimpleNamespace(update_from=lambda *args:None)
     ov.autoshot=SimpleNamespace(tick=lambda *args:None)
