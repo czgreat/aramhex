@@ -788,8 +788,10 @@ class PublicStore(DataStore):
             if not isinstance(x, dict) or x.get("ordered") is not True:
                 continue
             items = x.get("items")
-            if (not isinstance(items, list) or len(items) != 3 or len(set(items)) != 3
-                    or not all(isinstance(i, str) and i.isascii() and i.isdigit() and len(i) <= 6 for i in items)):
+            # 先看每个 ID 是不是数字串再去重：混进 {} 之类时 set() 会抛错，整个面板出不来
+            if (not isinstance(items, list) or len(items) != 3
+                    or not all(isinstance(i, str) and i.isascii() and i.isdigit() and len(i) <= 6 for i in items)
+                    or len(set(items)) != 3):
                 continue
             g, w, pick = x.get("games"), x.get("wins"), x.get("pick")
             if not (type(g) is int and g > 0 and type(w) is int and 0 <= w <= g):

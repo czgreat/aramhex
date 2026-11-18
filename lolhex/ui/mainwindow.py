@@ -833,6 +833,7 @@ class MainWindow(QMainWindow):
         s = self.engine.settings
         before = {k: getattr(s, k) for k in cloudsettings.SPEC}
         s.check_data_updates = self.set_data.isChecked()
+        usage_changed = s.send_usage != self.set_usage.isChecked()
         s.send_usage = self.set_usage.isChecked()
         cloud.set_install_id(s.install_id if s.send_usage else None)
         try:
@@ -851,8 +852,14 @@ class MainWindow(QMainWindow):
         held = [k for k in mine if k in s.forced]
         for k in held:  # 云控正在强制的项：记下玩家要的值，云控撤掉后用它
             s.forced[k] = getattr(s, k)
+        if held or usage_changed:
+            # 改回强制值，并让语言、数据更新等跟着生效；开关使用统计会换掉匿名编号，
+            # 按编号挑的规则（ids、percent 分组）要马上重算，关了统计就马上撤掉（1.1.9）
+            try:
+                self._apply_cloud_settings(cloud.get())
+            except Exception:
+                logging.getLogger(__name__).exception("云控设置出错")
         if held:
-            self._apply_cloud_settings(cloud.get())  # 改回强制值，并让语言、数据更新等跟着生效
             QMessageBox.information(self, "设置", "这几项现在按官方临时设置，撤掉后会改回你选的："
                                     + "、".join(SETTING_NAMES.get(k, k) for k in held))
         self.overlay.panel.corner = s.overlay_corner

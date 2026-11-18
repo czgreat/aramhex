@@ -36,15 +36,21 @@ class FakeEngine:
 def panel(monkeypatch):
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
     from lolhex.ui import overlay
-    focused, clock, cursor = [], [1000.0], [QPoint(-500, -500)]
-    monkeypatch.setattr(overlay.win, "give_focus", focused.append)
+    focused, clock, cursor, fg = [], [1000.0], [QPoint(-500, -500)], [0]
+
+    def give_focus(hwnd):
+        focused.append(hwnd)
+        fg[0] = hwnd
+    monkeypatch.setattr(overlay.win, "give_focus", give_focus)
+    monkeypatch.setattr(overlay.win, "foreground_window", lambda: fg[0])
     monkeypatch.setattr(overlay.win, "add_companion", lambda _h: None)
     monkeypatch.setattr(overlay.time, "monotonic", lambda: clock[0])
     monkeypatch.setattr(overlay.QCursor, "pos", staticmethod(lambda: cursor[0]))
     p = overlay.ControlPanel(FakeEngine())
     p.target_hwnd = 4242
     p.show()
-    yield SimpleNamespace(p=p, app=app, focused=focused, clock=clock, cursor=cursor, overlay=overlay)
+    fg[0] = int(p.winId())  # 默认按 1.1.8：点了浮窗它就是前台
+    yield SimpleNamespace(p=p, app=app, focused=focused, clock=clock, cursor=cursor, overlay=overlay, fg=fg)
     p.close()
 
 
@@ -126,6 +132,7 @@ def test_search_pick_and_escape_give_focus_back(panel):
     p.btn.click()
     panel.app.processEvents()
     panel.focused.clear()
+    panel.fg[0] = int(p.body_win.winId())  # 正在打字
     p.search.setText("提莫")
     p._search_pick()
     panel.app.processEvents()
@@ -133,9 +140,143 @@ def test_search_pick_and_escape_give_focus_back(panel):
     from PySide6.QtCore import QEvent, Qt
     from PySide6.QtGui import QKeyEvent
     p.search.setText("abc")
+    panel.fg[0] = int(p.body_win.winId())  # 正在打字
     QtWidgets.QApplication.sendEvent(p.search, QKeyEvent(QEvent.KeyPress, Qt.Key_Escape, Qt.NoModifier))
     panel.app.processEvents()
     assert p.search.text() == "" and panel.focused == [4242, 4242]
+
+
+def test_panel_never_takes_foreground_except_for_typing(panel, monkeypatch):
+    """1.1.9：图标、详情窗口都设「不激活」；点进搜索框时详情窗口才临时能当前台，选好英雄改回去。
+    云控 panel_no_activate=false 退回 1.1.8（不设）。"""
+    from PySide6.QtCore import QEvent, QPointF, Qt
+    from PySide6.QtGui import QMouseEvent
+    from lolhex import cloud
+    p, ov = panel.p, panel.overlay
+    styles = {}
+
+    def set_no_activate(hwnd, on):
+        styles[hwnd] = on
+        return True
+    monkeypatch.setattr(ov.win, "set_no_activate", set_no_activate)
+    cfg = {"features": {}}
+    monkeypatch.setattr(cloud, "get", lambda: cloud._merge(cfg))
+    icon, body = int(p.winId()), int(p.body_win.winId())
+    p.hide()
+    p.show()
+    assert styles[icon] is True
+    p.btn.click()
+    panel.app.processEvents()
+    assert p.expanded and styles[body] is True
+    panel.focused.clear()
+    QtWidgets.QApplication.sendEvent(p.search, QMouseEvent(QEvent.MouseButtonPress, QPointF(5, 5), QPointF(5, 5),
+                                                            Qt.LeftButton, Qt.LeftButton, Qt.NoModifier))
+    assert styles[body] is False and panel.focused == [body]  # 能打字了
+    p.search.setText("提莫")
+    p._search_pick()
+    panel.app.processEvents()
+    assert styles[body] is True and styles[icon] is True and panel.focused[-1] == 4242
+    cfg["features"]["panel_no_activate"] = False
+    p.btn.click()  # 收起
+    panel.app.processEvents()
+    assert styles[icon] is False and styles[body] is False
+
+
+def _styles(panel, monkeypatch, cfg):
+    from lolhex import cloud
+    styles = {}
+
+    def set_no_activate(hwnd, on):
+        styles[hwnd] = on
+        return True
+    monkeypatch.setattr(panel.overlay.win, "set_no_activate", set_no_activate)
+    monkeypatch.setattr(cloud, "get", lambda: cloud._merge(cfg))
+    return styles
+
+
+def _press(widget):
+    from PySide6.QtCore import QEvent, QPointF, Qt
+    from PySide6.QtGui import QMouseEvent
+    QtWidgets.QApplication.sendEvent(widget, QMouseEvent(QEvent.MouseButtonPress, QPointF(5, 5), QPointF(5, 5),
+                                                         Qt.LeftButton, Qt.LeftButton, Qt.NoModifier))
+
+
+def test_typing_ends_when_player_clicks_back_to_game(panel, monkeypatch):
+    """搜索中途直接点回游戏，详情要马上改回不抢前台（只改样式，不抢回前台）；之后点候选也不再切前台。"""
+    from PySide6.QtCore import QEvent
+    p = panel.p
+    styles = _styles(panel, monkeypatch, {"features": {}})
+    body = int(p.body_win.winId())
+    panel.fg[0] = 4242  # 新做法：点图标后前台还是游戏
+    p.btn.click()
+    panel.app.processEvents()
+    panel.focused.clear()
+    _press(p.search)
+    assert styles[body] is False and panel.focused == [body] and p._typing_on
+    panel.fg[0] = 4242  # 玩家点回游戏
+    QtWidgets.QApplication.sendEvent(p.body_win, QEvent(QEvent.WindowDeactivate))
+    panel.app.processEvents()
+    assert styles[body] is True and not p._typing_on and panel.focused == [body]
+    p._set_candidates([{"id": "17", "name": "提莫"}])
+    p.cands.itemAt(0).widget().click()
+    panel.app.processEvents()
+    assert p.engine.picked == ["17"] and panel.focused == [body]  # 前台本来就在游戏：不再请求切换
+
+
+def test_typing_not_started_when_windows_refuses_foreground(panel, monkeypatch):
+    p = panel.p
+    styles = _styles(panel, monkeypatch, {"features": {}})
+    body = int(p.body_win.winId())
+    panel.fg[0] = 4242
+    monkeypatch.setattr(panel.overlay.win, "give_focus", panel.focused.append)  # 请求了，前台没换
+    p.btn.click()
+    panel.app.processEvents()
+    _press(p.search)
+    assert styles[body] is True and not p._typing_on
+
+
+def test_cloud_switch_reaches_shown_panel_before_next_click(panel, monkeypatch):
+    """浮窗开着时云控改了，下一轮摆放就把两个窗口的样式改好；正在打字的详情等打完再改。"""
+    p = panel.p
+    cfg = {"features": {}}
+    styles = _styles(panel, monkeypatch, cfg)
+    icon, body = int(p.winId()), int(p.body_win.winId())
+    rect = panel.overlay.win.Rect(0, 0, 1280, 720)
+    p.toggle()
+    p.place(rect)
+    assert styles == {icon: True, body: True}
+    cfg["features"]["panel_no_activate"] = False
+    p.place(rect)
+    assert styles == {icon: False, body: False}
+    cfg["features"]["panel_no_activate"] = True
+    p.place(rect)
+    assert styles == {icon: True, body: True}
+    panel.fg[0] = 4242
+    _press(p.search)
+    p.place(rect)
+    assert styles == {icon: True, body: False}  # 打字中：详情先不改
+    p.give_back_focus()
+    panel.app.processEvents()
+    assert styles == {icon: True, body: True} and panel.focused[-1] == 4242
+
+
+def test_give_back_skipped_when_player_is_in_another_app(panel, monkeypatch):
+    """点候选、重新识别时前台不是浮窗（在游戏或别的程序）就不请求切前台；目标换了也不还。"""
+    p = panel.p
+    _styles(panel, monkeypatch, {"features": {}})
+    panel.focused.clear()
+    panel.fg[0] = 777  # 别的程序
+    p._link("rescan")
+    panel.app.processEvents()
+    assert panel.focused == []
+    panel.fg[0] = int(p.winId())
+    p.give_back_focus()
+    p.target_hwnd = 5151  # 还没还就换了目标
+    panel.app.processEvents()
+    assert panel.focused == []
+    p.give_back_focus()
+    panel.app.processEvents()
+    assert panel.focused == [5151]
 
 
 @pytest.mark.parametrize("w,h", [(1024, 576), (1280, 720), (1600, 900), (1920, 1080)])

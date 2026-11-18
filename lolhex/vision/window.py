@@ -142,9 +142,10 @@ def set_vision_thread(priority: str = "below_normal", eco: bool = False, no_thro
         k = ctypes.windll.kernel32
         k.GetCurrentThread.restype = wintypes.HANDLE
         k.SetThreadPriority.argtypes = (wintypes.HANDLE, ctypes.c_int)
+        k.SetThreadPriority.restype = wintypes.BOOL
         k.SetThreadPriority(k.GetCurrentThread(), THREAD_PRIORITIES.get(priority, -1))
     except (OSError, AttributeError):
-        pass  # 设不了就按原样跑
+        pass  # 设不了就按原样跑；实际是多少用 vision_thread_priority 读回
     try:
         k = ctypes.windll.kernel32
         k.SetThreadInformation.argtypes = (wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD)
@@ -157,6 +158,24 @@ def set_vision_thread(priority: str = "below_normal", eco: bool = False, no_thro
         return ok and eco
     except (OSError, AttributeError):
         return False
+
+
+def vision_thread_priority() -> str | None:
+    """当前线程实际的优先级（1.1.9）：THREAD_PRIORITIES 里的名字，别的值写数字；不是 Windows 或读不到返回 None。
+    云控对照试验靠它确认设上了，不只看要求的值。"""
+    if not IS_WINDOWS:
+        return None
+    try:
+        k = ctypes.windll.kernel32
+        k.GetCurrentThread.restype = wintypes.HANDLE
+        k.GetThreadPriority.argtypes = (wintypes.HANDLE,)
+        k.GetThreadPriority.restype = ctypes.c_int
+        v = k.GetThreadPriority(k.GetCurrentThread())
+    except (OSError, AttributeError):
+        return None
+    if v == 0x7FFFFFFF:  # THREAD_PRIORITY_ERROR_RETURN
+        return None
+    return next((name for name, p in THREAD_PRIORITIES.items() if p == v), str(v))
 
 
 # 最近一次在前台的、不是自己悬浮小窗的窗口。点浮窗之前在前台的是客户端/游戏，才按它仍在前台算；
@@ -238,6 +257,36 @@ def give_focus(hwnd: int) -> None:
     u = ctypes.windll.user32
     if u.IsWindow(hwnd) and not u.IsIconic(hwnd) and u.GetForegroundWindow() != hwnd:
         u.SetForegroundWindow(hwnd)
+
+
+def foreground_window() -> int:
+    """现在的前台窗口；不是 Windows 为 0。"""
+    if not IS_WINDOWS:
+        return 0
+    return int(ctypes.windll.user32.GetForegroundWindow() or 0)
+
+
+def set_no_activate(hwnd: int, on: bool) -> bool:
+    """窗口点了也不变成前台（WS_EX_NOACTIVATE，1.1.9）：鼠标点击、悬停照常收到，键盘一直归游戏。
+    返回是否改成功；不是 Windows、窗口没了返回 False。"""
+    if not IS_WINDOWS or not hwnd:
+        return False
+    try:
+        u = ctypes.windll.user32
+        if not u.IsWindow(hwnd):  # 窗口没了读出来是 0，会被当成「已清掉」
+            return False
+        get = getattr(u, "GetWindowLongPtrW", None) or u.GetWindowLongW
+        put = getattr(u, "SetWindowLongPtrW", None) or u.SetWindowLongW
+        get.restype = put.restype = ctypes.c_ssize_t
+        get.argtypes = (wintypes.HWND, ctypes.c_int)
+        put.argtypes = (wintypes.HWND, ctypes.c_int, ctypes.c_ssize_t)
+        old = get(hwnd, -20)  # GWL_EXSTYLE
+        new = old | 0x08000000 if on else old & ~0x08000000
+        if new != old:
+            put(hwnd, -20, new)
+        return bool(get(hwnd, -20) & 0x08000000) == on
+    except (OSError, AttributeError):
+        return False
 
 
 def left_button_clicked() -> bool:

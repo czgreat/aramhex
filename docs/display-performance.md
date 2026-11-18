@@ -34,7 +34,7 @@
 - 四选一：云控 `features.four_choice=false` 一律按三选一认，也不做第一次认出后的布局核对。
 - 每局结束写「这局整块扫描：原因 次数 共几秒；半截名字没重扫：原因 次数；设置：…」。
 
-以上设置都在 `lolhex/cloudsettings.py` 的 `SPEC` 里，云控 `settings` 规则的 `defaults` / `force` 可改。
+以上设置都在 `lolhex/cloudsettings.py` 的 `SPEC` 里，云控 `settings` 规则的 `defaults` / `force` 可改。1.1.9 起另有一段 `settings_v2`，规则还能按电脑挑：`os`（`"10"` / `"11"`）、`hybrid`（大小核 `true` / `false`）、`vendor`（`intel` / `amd`）、`cpu`（型号片段）、`ids`（匿名编号），条件都满足后再按 `percent` 分组，例如只给 Win10 大小核的一半电脑改 `vision_priority`。1.1.8 及以前不读 `settings_v2`（只留认识的顶层段），所以条件只能写在这一段；写在 `settings` 里的条件规则 1.1.9 也整条跳过。`settings_v2` 每条都要写 `versions`，没写的整条跳过（免得以后的版本也被选中）；条件、`versions`、`percent` 格式不对的也整条跳过。对照试验用 `force`，`defaults` 写进设置文件、撤了也不改回。日志开头写「云控设置：本机命中规则 …（系统=… 大小核=… 厂商=…）」。
 
 ## 无边框下帧率封顶
 

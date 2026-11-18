@@ -233,6 +233,9 @@ class AugmentDetector:
         if not calibration.valid():
             log.warning("忽略无效三选一校准：尺寸、坐标类型错误，或标题区域越界、重叠、顺序错误")
             return None
+        if calibration.count == 4 and not cloud.feature("four_choice"):
+            log.info("云控关了四选一：不用本机存的四选一位置，按三选一重新定位")
+            return None  # 文件留着，按三选一认出后会被覆盖
         return calibration
 
     def restore_calibration(self) -> bool:
@@ -298,7 +301,9 @@ class AugmentDetector:
             self._color_check = value
 
     def calibrated_for(self, w: int, h: int) -> bool:
-        return self.calibration is not None and tuple(self.calibration.size) == (w, h)
+        # 云控 features.four_choice=false（1.1.9）：手上的四选一位置也不算数，ensure_calibration 换回三选一默认位置
+        return (self.calibration is not None and tuple(self.calibration.size) == (w, h)
+                and (self.calibration.count == 3 or cloud.feature("four_choice")))
 
     def confirmed_for(self, w: int, h: int) -> bool:
         return self.calibrated_for(w, h) and not self.calibration.guess

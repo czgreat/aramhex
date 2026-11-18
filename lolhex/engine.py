@@ -632,8 +632,16 @@ class Engine:
                 getattr(s, "vision_no_throttle", Settings.vision_no_throttle) is True)
         if want == getattr(self, "_vision_thread_mode", None):
             return
-        self._vision_thread_mode = want
         eco = win.set_vision_thread(*want)
+        actual = win.vision_thread_priority()
+        if actual is not None and actual != want[0]:
+            # 没设上（1.1.9）：下一轮再试，同一个要求只记一次；对照试验看到这行就不算进这一组
+            if getattr(self, "_vision_thread_failed", None) != want:
+                self._vision_thread_failed = want
+                log.info("识别线程：优先级要%s，没设上（实际%s），稍后重试", PRIORITY_CN.get(want[0], want[0]),
+                         PRIORITY_CN.get(actual, actual))
+            return
+        self._vision_thread_mode = want
         log.info("识别线程：优先级%s，效率模式%s", PRIORITY_CN.get(want[0], want[0]),
                  "已打开" if eco else "未打开（系统不支持）" if want[1] else "关（不让系统降频）" if want[2] else "关")
 

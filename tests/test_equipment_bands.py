@@ -11,6 +11,7 @@ HIGH_CORE = {"17": [
     {"items": ["3118", "6653", "3116"], "ordered": True, "games": 2444, "wins": 1286, "pick": 0.058},
     {"items": ["3118", "3118", "3116"], "ordered": True, "games": 5000, "wins": 2500, "pick": 0.1},  # 重复装备
     {"items": ["3118", "4645"], "ordered": True, "games": 5000, "wins": 2500, "pick": 0.1},          # 不是三件
+    {"items": ["3118", {}, "3116"], "ordered": True, "games": 5000, "wins": 2500, "pick": 0.1},      # ID 不是字符串（1.1.9）
     {"items": ["3118", "4645", "3089"], "ordered": False, "games": 5000, "wins": 2500, "pick": 0.1}, # 无序
     {"items": ["3118", "4645", "3089"], "ordered": True, "games": 10, "wins": 11, "pick": 0.1},      # 胜场超局数
     {"items": ["3118", "4645", "6653"], "ordered": True, "games": 5854, "wins": 2936, "pick": 0.139}]}

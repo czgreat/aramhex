@@ -13,6 +13,7 @@
                 overlay_fit 分数缩放时浮层收回多出的 1 像素、不反复重摆；cards_drop_early 选完英雄卡马上撤卡下胜率；
                 companion_last_fg 客户端被别的程序盖着时点浮窗，不再把标注画到那个程序上
                 four_choice（1.1.8）认四选一、第一次认出没认全时整块核对布局；关掉按三选一认（1.1.5 的认法）
+                panel_no_activate（1.1.9）点浮窗图标、详情不抢前台，只有点进搜英雄的输入框才抢；关掉退回 1.1.8（点了就抢、点完还回去）
     update      检查频率和分批推送（1.1.0 起）：
                   check_minutes   多久查一次云控和新版本（默认 180，30–1440）；启动时、手动「检查更新」照常查
                   data_minutes    多久查一次统计数据（默认 360，60–1440）
@@ -62,6 +63,7 @@ DEFAULT = {
     # 默认在头像右边「在线」那一行、铃铛左边；客户端改版挪了位置时云控改这三个数就行
     "ui": {"client_badge_right": 60, "client_badge_top": 53, "client_badge_size": 26},
     "settings": [],  # 云控设置规则，见 cloudsettings.py
+    "settings_v2": [],  # 1.1.9 起：可以按电脑挑的规则，1.1.8 及以前不读这一段，见 cloudsettings.py
     # 开发者点名上传日志（见 logupload.py）：request 里是匿名编号（可带「:单号」）
     # max_kb：上传最近多少 KB 日志（1.1.2，64–4096，默认 512）；当前日志不够长时接着读上一个日志文件
     # verbose：临时记详细日志的电脑 ["<匿名编号>:<单号>"]（1.1.2，每个单号最多 24 小时，不截图，见 logupload.py）
@@ -201,7 +203,7 @@ def _merge(raw: dict) -> dict:
                               "url": url if url.startswith(("https://", "http://")) else "",
                               "qr": qr if qr.startswith("https://") else "", "primary": bool(it.get("primary"))})
             out[k] = items
-        elif k == "settings" and isinstance(v, (dict, list)):
+        elif k in ("settings", "settings_v2") and isinstance(v, (dict, list)):
             # 云控设置规则（见 cloudsettings.py）：原样留着，用的时候逐项检查
             out[k] = [r for r in (v if isinstance(v, list) else [v]) if isinstance(r, dict)][:20]
         elif k == "logs" and isinstance(v, dict):

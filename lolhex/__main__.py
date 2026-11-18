@@ -107,7 +107,10 @@ def main(argv=None) -> int:
     logging.getLogger("lolhex").info("海克斯大乱斗助手 %s 启动；目录：%s；参数：%s", __version__,
                                      app_home(), " ".join(sys.argv[1:]) or "（无）")
     from .diagnostics import runtime_context
-    runtime_context(settings)
+    try:
+        runtime_context(settings)
+    except Exception:  # 只是记日志，读不到系统信息也要照常启动
+        logging.getLogger("lolhex").exception("记运行环境出错")
 
     from .engine import Engine
 

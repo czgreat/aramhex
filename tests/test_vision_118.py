@@ -159,6 +159,7 @@ def test_vision_thread_defaults_to_116_and_follows_cloud(monkeypatch, caplog):
     from lolhex.vision import window
     calls = []
     monkeypatch.setattr(window, "set_vision_thread", lambda p, e, n=False: calls.append((p, e, n)) or e)
+    monkeypatch.setattr(window, "vision_thread_priority", lambda: None)  # 假装设上了（Windows 上会读到真实优先级）
     engine = Engine.__new__(Engine)
     engine.settings = Settings()
     with caplog.at_level(logging.INFO):
@@ -173,6 +174,27 @@ def test_vision_thread_defaults_to_116_and_follows_cloud(monkeypatch, caplog):
     assert calls == [("below_normal", False, False), ("lowest", True, False), ("below_normal", False, True)]
     assert "优先级低于正常，效率模式关" in caplog.text and "优先级最低一档，效率模式已打开" in caplog.text
     assert "效率模式关（不让系统降频）" in caplog.text
+
+
+def test_vision_thread_priority_failure_is_logged_and_retried(monkeypatch, caplog):
+    """1.1.9：读回的优先级和要求的不一样，不记「优先级正常」，记一次没设上，下一轮再设。"""
+    from lolhex.engine import Engine
+    from lolhex.vision import window
+    calls, actual = [], ["below_normal"]
+    monkeypatch.setattr(window, "set_vision_thread", lambda p, e, n=False: calls.append(p) or False)
+    monkeypatch.setattr(window, "vision_thread_priority", lambda: actual[0])
+    engine = Engine.__new__(Engine)
+    engine.settings = Settings()
+    engine.settings.vision_priority = "normal"
+    with caplog.at_level(logging.INFO):
+        engine._sync_vision_thread()
+        engine._sync_vision_thread()
+        actual[0] = "normal"
+        engine._sync_vision_thread()
+        engine._sync_vision_thread()
+    assert calls == ["normal"] * 3
+    assert caplog.text.count("没设上（实际低于正常）") == 1
+    assert caplog.text.count("识别线程：优先级正常，效率模式关") == 1
 
 
 def test_cloud_accepts_the_new_items_and_rejects_bad_values():

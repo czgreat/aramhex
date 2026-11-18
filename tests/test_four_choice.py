@@ -76,6 +76,29 @@ def test_cloud_can_turn_four_choice_off(monkeypatch):
     assert AugmentDetector._layout_columns(four[:3], W, H) == (3, None)
 
 
+def test_cloud_four_choice_off_drops_saved_and_live_four_layout(monkeypatch, tmp_path):
+    """1.1.9：关了四选一，存下的和正在用的四选一位置都不用，换回三选一默认位置（重启和不重启都一样）。"""
+    import json
+    from lolhex import cloud
+    W, H = 1920, 1080
+    path = tmp_path / "calibration.json"
+    four = Calibration.default(W, H, count=4)
+    path.write_text(json.dumps({"boxes": four.boxes, "size": [W, H]}), encoding="utf-8")
+    cfg = {"features": {}}
+    monkeypatch.setattr(cloud, "get", lambda: cloud._merge(cfg))
+    det = AugmentDetector(NameMatcher(NAMES), calib_path=path)
+    assert det.calibrated_for(W, H) and det._n() == 4
+    cfg["features"]["four_choice"] = False  # 不重启
+    assert not det.calibrated_for(W, H)
+    det.ensure_calibration(W, H)
+    assert det._n() == 3 and len(det._cells) == 3 and det.calibration.guess
+    assert det.strip_rect(Rect(0, 0, W, H)) is not None
+    det = AugmentDetector(NameMatcher(NAMES), calib_path=path)  # 重启
+    assert det.calibration is None and path.exists()
+    cfg["features"]["four_choice"] = True  # 再打开：存下的四选一照用
+    assert AugmentDetector(NameMatcher(NAMES), calib_path=path)._n() == 4
+
+
 def test_offer_pending_columns_follow_card_count():
     assert Offer(["1"] * 4, [""] * 4, [0] * 4, [None] * 4).pending_columns == (False,) * 4
     assert Offer(["1"] * 3, [""] * 3, [0] * 3, [None] * 3).pending_columns == (False,) * 3
