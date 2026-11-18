@@ -127,7 +127,7 @@ def test_actual_engine_closes_only_after_new_negative_observations(monkeypatch,r
     monkeypatch.setattr(window,"find_game_window",lambda:1)
     monkeypatch.setattr(window,"client_rect",lambda _:rect)
     monkeypatch.setattr(window,"is_foreground",lambda _:True)
-    monkeypatch.setattr(window,"lower_thread_priority",lambda:None)
+    monkeypatch.setattr(window,"set_vision_thread",lambda *a:False)
     monkeypatch.setattr(capture,"grab",lambda *args:strip)
     engine=Engine.__new__(Engine)
     engine._stop=Stop();engine._rescan=threading.Event();engine._detector=det

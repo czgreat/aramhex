@@ -66,6 +66,16 @@ def test_pick_row_keeps_four_even_cards_but_not_uneven_extra_hits():
     assert len(AugmentDetector._pick_row(odd, H)) == 3
 
 
+def test_cloud_can_turn_four_choice_off(monkeypatch):
+    """1.1.8：云控 features.four_choice=false 一律按三选一认（1.1.5 的认法）。"""
+    from lolhex import cloud
+    monkeypatch.setattr(cloud, "get", lambda: cloud._merge({"features": {"four_choice": False}}))
+    W, H = 1920, 1080
+    four = [_line(f"卡{i}", cx, 0.41 * H, H) for i, cx in enumerate(_centers(W, H, [-1.5, -0.5, 0.5, 1.5]))]
+    assert len(AugmentDetector._pick_row(four, H)) == 3
+    assert AugmentDetector._layout_columns(four[:3], W, H) == (3, None)
+
+
 def test_offer_pending_columns_follow_card_count():
     assert Offer(["1"] * 4, [""] * 4, [0] * 4, [None] * 4).pending_columns == (False,) * 4
     assert Offer(["1"] * 3, [""] * 3, [0] * 3, [None] * 3).pending_columns == (False,) * 3

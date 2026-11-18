@@ -28,14 +28,12 @@ from .vision import window as win
 from .vision.matcher import NameMatcher, normalize
 
 log = logging.getLogger(__name__)
-# 标题条读到半截名字触发的整块扫描，两次之间至少隔这么久（整块扫描 4K 约 1 秒 CPU）
-GARBLED_RESCAN_S = 3.0
 # 没在选海克斯时标题条多久读一次，按这台电脑每次认字实际花的 CPU 时间自动定（1.1.7 起代替设置页的「识别频率」）：
-# 间隔 = 认字 CPU 时间 × AUTO_IDLE_FACTOR，即空闲时识别线程最多占一个核的 1/AUTO_IDLE_FACTOR；
+# 间隔 = 认字 CPU 时间 × auto_idle_factor（默认 5，云控可调，0 关掉），即空闲时识别线程最多占一个核的 1/5；
 # 不低于 scan_interval_ms，不超过 AUTO_IDLE_MAX_MS。出现海克斯后照旧按 scan_interval_ms 快扫。
 # 9800X3D 实测每次约 51 毫秒 → 约 0.3 秒，和以前一样；慢 3 倍的电脑约 0.75 秒。
-AUTO_IDLE_FACTOR = 5
 AUTO_IDLE_MAX_MS = 1200
+PRIORITY_CN = {"normal": "正常", "below_normal": "低于正常", "lowest": "最低一档"}
 
 
 _AUG_ALIASES: dict[str, list[str]] | None = None
@@ -601,7 +599,8 @@ class Engine:
     def auto_idle_ms(self) -> float:
         """空闲时标题条读一次的间隔下限（毫秒），按最近几次认字的 CPU 时间算；还没测到时为 0。"""
         cpu = getattr(self, "_read_cpu_ms", None)
-        return min(AUTO_IDLE_MAX_MS, cpu * AUTO_IDLE_FACTOR) if cpu else 0.0
+        factor = getattr(self.settings, "auto_idle_factor", Settings.auto_idle_factor)
+        return min(AUTO_IDLE_MAX_MS, cpu * factor) if cpu and factor > 0 else 0.0
 
     def _track_read_cpu(self, det) -> None:
         """标题条这次真的认了字（不是用缓存）：更新每次认字 CPU 时间的滑动平均。"""
@@ -626,12 +625,60 @@ class Engine:
         first = getattr(self.settings, "fallback_first_s", Settings.fallback_first_s)
         return float(min(self.settings.fallback_scan_s, first))
 
+    def _sync_vision_thread(self) -> None:
+        """识别线程的优先级、效率模式按设置来（云控可改，启动后才取到云控也跟着变）；变了才重设、记日志。"""
+        s = self.settings
+        want = (getattr(s, "vision_priority", Settings.vision_priority), getattr(s, "vision_eco", Settings.vision_eco) is True,
+                getattr(s, "vision_no_throttle", Settings.vision_no_throttle) is True)
+        if want == getattr(self, "_vision_thread_mode", None):
+            return
+        self._vision_thread_mode = want
+        eco = win.set_vision_thread(*want)
+        log.info("识别线程：优先级%s，效率模式%s", PRIORITY_CN.get(want[0], want[0]),
+                 "已打开" if eco else "未打开（系统不支持）" if want[1] else "关（不让系统降频）" if want[2] else "关")
+
+    def _garbled_due(self, proven: bool, done: int, since: float, waiting: bool) -> bool:
+        """标题条读到半截名字：要不要马上整块扫描重新定位。不扫的原因记下来，局末写日志。"""
+        s = self.settings
+        if since < getattr(s, "garbled_rescan_s", Settings.garbled_rescan_s):
+            return False  # 刚因为半截名字扫过
+        why = ("已认出" if proven else "到上限" if done >= getattr(s, "garbled_rescan_max", Settings.garbled_rescan_max)
+               else "整块间隔" if waiting else None)
+        if why:
+            skipped = self._garbled_skipped = getattr(self, "_garbled_skipped", {})
+            skipped[why] = skipped.get(why, 0) + 1
+        return why is None
+
+    def _full_gap_end(self, started: float) -> float:
+        """兜底、半截名字的整块扫描之后，下一次最早什么时候：按这次耗时 × full_scan_gap_x 拉开。"""
+        end = time.monotonic()
+        return end + (end - started) * getattr(self.settings, "full_scan_gap_x", Settings.full_scan_gap_x)
+
+    def _log_full_scans(self) -> None:
+        """局末：这局整块扫描按原因的次数和耗时、半截名字没重扫的原因，和当时的识别节奏设置（核对云控用）。"""
+        stats = getattr(self, "_full_stats", None) or {}
+        skipped = getattr(self, "_garbled_skipped", None) or {}
+        if not stats and not skipped:
+            return
+        s = self.settings
+        log.info("这局整块扫描：%s；半截名字没重扫：%s；设置：半截名字重扫间隔 %g 秒、每局最多 %d 次，整块间隔≥耗时×%g，"
+                 "未认出时兜底 %g 秒，空闲间隔=认字CPU×%g，优先级%s，效率模式%s",
+                 "，".join(f"{r} {n} 次共 {t:.1f} 秒" for r, (n, t) in stats.items()) or "无",
+                 "，".join(f"{k} {n} 次" for k, n in skipped.items()) or "无",
+                 getattr(s, "garbled_rescan_s", Settings.garbled_rescan_s),
+                 getattr(s, "garbled_rescan_max", Settings.garbled_rescan_max),
+                 getattr(s, "full_scan_gap_x", Settings.full_scan_gap_x),
+                 self._fallback_every(True), getattr(s, "auto_idle_factor", Settings.auto_idle_factor),
+                 PRIORITY_CN.get(getattr(s, "vision_priority", ""), "?"),
+                 "开" if getattr(s, "vision_eco", False) is True
+                 else "关（不让系统降频）" if getattr(s, "vision_no_throttle", False) is True else "关")
+        self._full_stats, self._garbled_skipped = {}, {}
+
     def _vision_loop(self) -> None:
         from .vision import capture
         from .vision.detector import AugmentDetector
 
-        eco = win.lower_thread_priority()  # 认字和游戏抢 CPU 时让游戏先
-        log.info("识别线程：优先级最低一档，效率模式%s", "已打开" if eco else "未打开（系统不支持）")
+        self._sync_vision_thread()  # 认字和游戏抢 CPU 时让游戏先
         try:
             import cv2
             cv2.setNumThreads(1)  # OpenCV 缩图也默认开满核的线程池
@@ -644,10 +691,14 @@ class Engine:
         misses = 0  # 刷新动画会短暂缺卡，连续 3 次识别不到才算关闭
         proven = None  # 这局标题条认出过三选一时的窗口尺寸：位置对了，兜底整块放慢
         verify_layout = False  # 这局标题条第一次认出后，整块核对一次是三张还是四张
+        garbled_n = 0  # 这局因读到半截名字整块扫描了几次
+        next_full = 0.0  # 兜底、半截名字整块扫描最早什么时候能再扫（按上次整块耗时拉开）
         while not self._stop.is_set():
+            self._sync_vision_thread()
             if self.state["phase"] != "ingame":
                 proven = None
                 verify_layout = False
+                garbled_n = 0
                 if visible:
                     self._on_offer(None)
                     visible = False
@@ -657,6 +708,7 @@ class Engine:
                                  max(self.settings.scan_interval_ms, self.settings.idle_scan_ms, self.auto_idle_ms())
                                  * self.settings.speed_factor, self._read_cpu_ms)
                     self._log_vision_cost(self._detector)
+                self._log_full_scans()
                 capture.release()  # 不在局内就关掉截屏实例：它占着上次截图大小的位图（4K 约 33MB），挂托盘时不该一直留着
                 self.state["vision"]["status"] = "idle"
                 self._rescan.wait(1.0)
@@ -703,7 +755,8 @@ class Engine:
                         self._track_read_cpu(det)
                         if offer is not None and not self._scan_discarded:
                             # 用错布局只能读到半截名字，不可能每张都认对；认全了就不用核对
-                            verify_layout = verify_layout or (proven is None and offer.matched() < len(offer.slots))
+                            verify_layout = verify_layout or (proven is None and offer.matched() < len(offer.slots)
+                                                              and cloud.feature("four_choice"))
                             proven = (rect.width, rect.height)
                         # 一直识别不到：整块扫描一次，防止卡片位置变了
                         every = self._fallback_every(det.confirmed_for(rect.width, rect.height),
@@ -711,15 +764,21 @@ class Engine:
                         suspect = getattr(det, "layout_suspect", False)
                         if suspect:
                             det.clear_layout_suspect()
-                        if offer is None and not self._scan_discarded and not visible and suspect \
-                                and now - last_garbled >= GARBLED_RESCAN_S:
+                        idle = offer is None and not self._scan_discarded and not visible
+                        if idle and suspect and self._garbled_due(proven is not None, garbled_n, now - last_garbled,
+                                                                  now < next_full):
                             # 标题条只读到半截名字：卡片数和定位不符（上一局三选一、这局四选一，或反过来），
                             # 马上整块扫描重新定位，不等兜底间隔（这局还没认出过时最长要等 fallback_first_s）
                             last_full = last_garbled = now
+                            garbled_n += 1
+                            started = time.monotonic()
                             offer = self._observed_scan(det, rect, full=True, reason="garbled", hwnd=hwnd)
-                        elif offer is None and not self._scan_discarded and not visible and now - last_full > every:
+                            next_full = self._full_gap_end(started)
+                        elif idle and now - last_full > every and now >= next_full:
                             last_full = now
+                            started = time.monotonic()
                             offer = self._observed_scan(det, rect, full=True, reason="fallback", hwnd=hwnd)
+                            next_full = self._full_gap_end(started)
                 elif forced or now - last_full >= self.settings.bootstrap_interval_s * self.settings.speed_factor:
                     last_full = now
                     offer = self._observed_scan(det, rect, full=True,
@@ -842,6 +901,10 @@ class Engine:
             capture_ms = ((captured if captured is not None else finished)-started)*1000
             work_ms = (finished-captured)*1000 if captured is not None else 0.0
             path = "full" if full else "strip"
+            if full:  # 局末按原因汇总（下面的扫描诊断一分钟最多记一条，数不全）
+                stats = self._full_stats = getattr(self, "_full_stats", None) or {}
+                n, secs = stats.get(reason, (0, 0.0))
+                stats[reason] = (n + 1, secs + finished - started)
             logged = getattr(self, "_slow_scan_logged", {})
             if finished-started >= 1 and finished-logged.get(path, float("-inf")) >= 60:
                 logged[path] = finished

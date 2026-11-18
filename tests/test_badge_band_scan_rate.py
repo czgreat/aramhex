@@ -104,9 +104,12 @@ def test_idle_interval_follows_this_pcs_read_cost():
     assert engine._read_cpu_ms > 0
 
 
-def test_lower_thread_priority_is_harmless_off_windows():
+def test_set_vision_thread_is_harmless_off_windows():
     from lolhex.vision import window
-    assert window.lower_thread_priority() is (False if not window.IS_WINDOWS else window.lower_thread_priority())
+    if not window.IS_WINDOWS:
+        assert window.set_vision_thread("lowest", True) is False
+    assert window.set_vision_thread("below_normal", False) is False  # 没要求打开效率模式：不报打开
+    assert window.set_vision_thread("below_normal", False, True) is False
 
 
 def test_fallback_full_scan_interval(tmp_path):
@@ -184,7 +187,7 @@ def test_fallback_proven_skips_3599_seconds_and_resets_next_game(monkeypatch, cl
     monkeypatch.setattr(window, "find_game_window", lambda: 1)
     monkeypatch.setattr(window, "client_rect", lambda _: size["rect"])
     monkeypatch.setattr(window, "is_foreground", lambda _: True)
-    monkeypatch.setattr(window, "lower_thread_priority", lambda: None)
+    monkeypatch.setattr(window, "set_vision_thread", lambda *a: False)
     engine._stop, engine._rescan, engine._detector = Stop(), Rescan(), det
     engine.state = {"phase": "ingame", "vision": {}}
     engine.settings = Settings()
@@ -257,7 +260,7 @@ def test_fallback_proven_cleared_when_window_size_changes_and_back(monkeypatch):
     monkeypatch.setattr(window, "find_game_window", lambda: 1)
     monkeypatch.setattr(window, "client_rect", lambda _: small if 300 <= clock[0] < 500 else big)
     monkeypatch.setattr(window, "is_foreground", lambda _: True)
-    monkeypatch.setattr(window, "lower_thread_priority", lambda: None)
+    monkeypatch.setattr(window, "set_vision_thread", lambda *a: False)
     engine._stop, engine._rescan, engine._detector = Stop(), Rescan(), det
     engine.state = {"phase": "ingame", "vision": {}}
     engine.settings = Settings()

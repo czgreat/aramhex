@@ -132,7 +132,7 @@ def test_real_vision_loop_applies_and_revokes_parameters_between_scans(monkeypat
         cloudsettings.apply(settings, cfg, "1.1.3")
         assert det._stable is stable
     monkeypatch.setattr(module.time, "monotonic", lambda: clock[0])
-    monkeypatch.setattr(window, "lower_thread_priority", lambda: None)
+    monkeypatch.setattr(window, "set_vision_thread", lambda *a: False)
     monkeypatch.setattr(window, "find_game_window", lambda: 1)
     monkeypatch.setattr(window, "client_rect", lambda _: window.Rect(0, 0, 1920, 1080))
     monkeypatch.setattr(window, "is_foreground", lambda _: True)

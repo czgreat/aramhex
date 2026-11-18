@@ -716,7 +716,11 @@ class MainWindow(QMainWindow):
                 seen.append(rid)
                 s.extra["seen_force"] = seen[-20:]
                 s.save()
-                self._toast(reason)
+                if self._busy():  # 1.1.8：对局中、选英雄时先攒着，回到游戏外再提示（1.1.7 会在对局里弹）
+                    logging.getLogger(__name__).info("对局中或选英雄中，云控设置提示推迟到打完")
+                    self._deferred_toast = reason
+                else:
+                    self._toast(reason)
 
     def _sync_settings_form(self) -> None:
         """设置页的控件按当前设置重新显示（云控改了值以后），不触发各自的处理函数。"""

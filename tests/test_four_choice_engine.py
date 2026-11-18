@@ -82,7 +82,7 @@ def _loop(monkeypatch, scan, until, settings=None, det=None):
     monkeypatch.setattr(window, "find_game_window", lambda: 1)
     monkeypatch.setattr(window, "client_rect", lambda _: window.Rect(0, 0, 1920, 1080))
     monkeypatch.setattr(window, "is_foreground", lambda _: True)
-    monkeypatch.setattr(window, "lower_thread_priority", lambda: None)
+    monkeypatch.setattr(window, "set_vision_thread", lambda *a: False)
     engine = Engine.__new__(Engine)
     engine._stop, engine._rescan, engine._detector = Stop(), Rescan(), det
     engine.state = {"phase": "ingame", "vision": {}}
@@ -156,5 +156,5 @@ def test_half_names_trigger_a_full_scan_right_away(monkeypatch):
     _loop(monkeypatch, scan, until=30, det=det)
     garbled = [t for t, r in full if r == "garbled"]
     assert garbled and 7.2 <= garbled[0] < 7.8  # 不等到 10 秒的兜底
-    assert all(b - a >= module.GARBLED_RESCAN_S for a, b in zip(garbled, garbled[1:]))
+    assert all(b - a >= module.Settings.garbled_rescan_s for a, b in zip(garbled, garbled[1:]))
     assert not [t for t, r in full if r == "fallback" and 7.2 <= t < 13]

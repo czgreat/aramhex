@@ -103,12 +103,12 @@ def test_existing_full_scan_cadence_is_preserved(monkeypatch):
     monkeypatch.setattr(window, "find_game_window", lambda: 1)
     monkeypatch.setattr(window, "client_rect", lambda _: window.Rect(0, 0, 1920, 1080))
     monkeypatch.setattr(window, "is_foreground", lambda _: True)
-    monkeypatch.setattr(window, "lower_thread_priority", lambda: None)
+    monkeypatch.setattr(window, "set_vision_thread", lambda *a: False)
     engine = Engine.__new__(Engine)
     engine._stop, engine._rescan, engine._detector = Stop(), threading.Event(), detector
     engine.state = {"phase": "ingame", "vision": {}}
     engine.settings = SimpleNamespace(scan_interval_ms=300, idle_scan_ms=300, speed_factor=1, bootstrap_interval_s=3, fallback_scan_s=30,
-                                      fallback_first_s=30)
+                                      fallback_first_s=30, full_scan_gap_x=0)  # 1.1.8 按耗时拉开间隔见 test_vision_118
     engine._observed_scan = scan
     engine._sync_augment_tables = lambda det: None  # 本测试只控制扫描节奏
     engine._vision_loop()

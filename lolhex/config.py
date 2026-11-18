@@ -105,6 +105,26 @@ class Settings:
     # 1.1.7：这局还没认出过第一次海克斯选择时，整块兜底按这个间隔（秒）。四选一和三选一卡位错开半张，
     # 上一局的定位读不到这局的卡，要靠整块扫描换布局；认出第一次后照旧按上面两项放慢。云控可调，写 30 退回 1.1.6
     fallback_first_s: float = 5.0
+    # 1.1.8：标题条读到半截名字时整块扫描重新定位（1.1.7 起，四选一和三选一卡位错开半张）。两次至少隔 garbled_rescan_s 秒，
+    # 每局最多 garbled_rescan_max 次，这局认出过海克斯后不再触发（布局已经对了）；max 写 0 = 不因半截名字整块扫描（1.1.6）。
+    # 1.1.7 每 3 秒一次、不限次数：商店价格、装备名、属性碎片也会读成半截名字，一局整块扫描从 1～4 次涨到 7～71 次
+    garbled_rescan_s: float = 3.0
+    garbled_rescan_max: int = 10
+    # 1.1.8：兜底、半截名字的整块扫描之后，下一次至少隔「上次整块扫描耗时 × 这个倍数」。整块扫描单线程，
+    # 慢的电脑一次 10～37 秒，扫的时候读不了标题条；1 秒的电脑不受影响。0 = 不限（1.1.7）
+    full_scan_gap_x: float = 4.0
+    # 1.1.8：没在选海克斯时标题条间隔 = 本机每次认字 CPU 时间 × 这个倍数（1.1.7 起，最长 engine.AUTO_IDLE_MAX_MS）。
+    # 0 = 不按本机速度放慢，按 idle_scan_ms（1.1.6）
+    auto_idle_factor: float = 5.0
+    # 1.1.8：识别线程优先级：below_normal 低于正常（1.1.6 及以前）/ lowest 最低一档（1.1.7）/ normal 正常（只留给云控试）。
+    # 1.1.7 变慢不是优先级引起的：受影响的电脑实际耗时 ≈ CPU 时间，是 CPU 时间本身涨了（效率模式）
+    vision_priority: str = "below_normal"
+    # 1.1.8：识别线程开 Windows 效率模式（EcoQoS）。1.1.7 默认开，Intel 12～14 代大小核电脑上认字慢 2～3 倍，
+    # 1.1.8 默认关（和 1.1.6 一样）；云控可以给一部分电脑打开试
+    vision_eco: bool = False
+    # 1.1.8：不开效率模式时，明确告诉系统这个线程不要降频（关掉 Windows 自己的后台降频）。默认 False = 交给系统决定，
+    # 和 1.1.6 一样；云控可以给大小核笔记本打开试，看认字 CPU 时间会不会比 1.1.5 还少
+    vision_no_throttle: bool = False
     # 已发布卡片不变时的逐列复查周期（秒，1–60）。
     recheck_seconds: float = 5.0
     # 单列待确认读数持续多久后暂时隐藏该列（秒，0.1–5）。
@@ -141,7 +161,7 @@ class Settings:
     # 参考数据的分数段：""=全体（默认），casual/mid/high=娱乐/中分/前 5%（1.1.0 以前的 top 读到当 high）。
     data_band: str = ""
     # 识别频率（见 SPEEDS）：standard / saver / low。1.1.7 起设置页没有这一项（空闲时按本机认字耗时自动放慢，
-    # 见 engine.AUTO_IDLE_FACTOR）；以前选过的读设置时改回 standard、不算玩家改的，只留给云控。
+    # 见 auto_idle_factor）；以前选过的读设置时改回 standard、不算玩家改的，只留给云控。
     speed: str = "standard"
     # 查分：自己的「名字#编号」和上次查到的结果（{"as_of", "results", "queried_at"}）
     riot_id: str = ""

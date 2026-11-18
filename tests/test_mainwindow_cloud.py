@@ -52,6 +52,23 @@ def test_cloud_force_then_player_change_then_removed(mw, monkeypatch):
     assert s.badge_position == "top" and w.set_badge.currentData() == "top" and s.speed == "saver"
 
 
+def test_cloud_force_reason_waits_until_the_game_is_over(mw, monkeypatch):
+    """1.1.8：云控强制的原因在对局中不提示，回到游戏外再出，也只出一次。"""
+    w, s, eng, cloud, _ = mw
+    cfg = cloud._merge({"settings": [{"id": "t-ingame", "force": {"badge_position": "bottom"}, "reason": "打完再说"}]})
+    monkeypatch.setattr(cloud, "get", lambda: cfg)
+    phase = {"phase": "ingame"}
+    monkeypatch.setattr(eng, "snapshot", lambda: dict(phase))
+    w._apply_cloud_settings(cfg)
+    assert w.toasts == [] and s.badge_position == "bottom"  # 设置照样马上生效
+    w._notify_tick()
+    assert w.toasts == []
+    phase["phase"] = "lobby"
+    w._notify_tick()
+    w._apply_cloud_settings(cfg)
+    assert w.toasts == ["打完再说"]
+
+
 def test_idle_guard_has_no_checkbox_and_only_cloud_can_turn_it_on(mw):
     """空闲时减少识别开销：设置页没有开关；测试包里勾过的读设置时关掉；云控还能打开、撤掉后关回去。"""
     w, s, _, cloud, home = mw

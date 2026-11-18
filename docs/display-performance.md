@@ -19,9 +19,22 @@
 
 识别只用 CPU（OCR 走 onnxruntime 的 CPU 推理，限定单线程；OpenCV 也限定单线程），不用显卡算。
 
-- 识别线程（`engine._vision_loop`）：1.1.7 起优先级为最低一档（`THREAD_PRIORITY_LOWEST`，1.1.6 及以前是低于正常），并打开 Windows 效率模式（EcoQoS，`SetThreadInformation` 的 `ThreadPowerThrottling`，Windows 10 1709 起）。Intel 大小核电脑上系统会把它放到小核；其他 CPU 上降频跑。优先级只决定抢不到核时谁先跑，管不了超线程两个逻辑核共用一个物理核时互相拖慢，效率模式能缓解一部分。没用 `IDLE`：低配电脑上游戏占满所有核时，识别会一直排不上队。日志开头一行写效率模式有没有打开。
-- 标题条间隔：出现海克斯和关掉后 5 秒内按 `scan_interval_ms`（300 毫秒）；其余时间按这台电脑最近几次认字的 CPU 时间 × 5 自动定（300～1200 毫秒），即空闲时识别线程最多占一个核的约五分之一。每局结束日志写「这局空闲时标题条间隔：自动 N 毫秒」。设置页的「识别频率」1.1.7 起去掉，`speed` 只留给云控。
+- 识别线程（`engine._vision_loop`）：优先级低于正常（`THREAD_PRIORITY_BELOW_NORMAL`），不开 Windows 效率模式（EcoQoS）。1.1.7 曾改成最低一档并打开效率模式，Intel 第 12～14 代大小核电脑上每次认字的 CPU 时间涨到 2～3 倍、整块扫描从 3～6 秒变成 11～32 秒，1.1.8 改回。两项都能云控：`vision_priority`（`normal` / `below_normal` / `lowest`）、`vision_eco`（`true` 打开效率模式，系统不支持时日志写「未打开」）、`vision_no_throttle`（`true` 明确不要降频，Windows 自己的后台降频也不要；默认交给系统）；改了马上生效，日志写「识别线程：优先级…，效率模式…」。没用 `IDLE`：低配电脑上游戏占满所有核时，识别会一直排不上队。
+- 判断是效率模式还是优先级：每局结束的「这局认字：标题条 N 次（平均 X 毫秒，CPU Y）」里，X ≈ Y 而 Y 比平时大，是线程被放到慢核或降频；X 远大于 Y，是排不上队（优先级）。日志开头「运行环境」一行写大小核（如 `P8+E16`，`否` 为只有一种核）。
+- 标题条间隔：出现海克斯和关掉后 5 秒内按 `scan_interval_ms`（300 毫秒）；其余时间按这台电脑最近几次认字的 CPU 时间 × `auto_idle_factor`（默认 5，云控可改，0 = 按 `idle_scan_ms`，即 1.1.5 的做法）自动定（300～1200 毫秒），即空闲时识别线程最多占一个核的约五分之一。每局结束日志写「这局空闲时标题条间隔：自动 N 毫秒」。设置页的「识别频率」1.1.7 起去掉，`speed` 只留给云控。
 - 一台 Ryzen 7 9800X3D、4K 的电脑实测：一局约 3.5 分钟，标题条认字 532 次，每次约 51 毫秒 CPU，约九成发生在没有海克斯的时候；合计约占一个逻辑核的 13%，16 线程的约 0.8%。按上面的规则这台电脑空闲间隔仍约 300 毫秒；同样的工作慢 3 倍的电脑空闲间隔约 0.75 秒。
+
+## 整块扫描
+
+标题条读不到时整块扫描整排重新定位，单线程，一次 1～6 秒（1.1.7 在受影响的大小核电脑上 10～37 秒），扫的时候读不了标题条。1.1.8 起：
+
+- 读到半截名字（定位框卡在两张卡之间）时马上整块重扫，间隔 `garbled_rescan_s`（3 秒），每局最多 `garbled_rescan_max` 次（10，0 = 不重扫，即 1.1.5 的做法）；这局认出过海克斯后不再因此重扫。商店价格、装备名、属性碎片也会读成半截名字，1.1.7 不限次数，一局整块扫描从 1～4 次涨到 7～71 次。
+- 兜底和半截名字两种整块扫描之间至少隔上次耗时 × `full_scan_gap_x`（4，0 = 不拉开）。
+- 这局还没认出过时兜底间隔 `fallback_first_s`（5 秒），与 `fallback_scan_s`（30 秒）取小的；改成 30 即 1.1.5 的做法。
+- 四选一：云控 `features.four_choice=false` 一律按三选一认，也不做第一次认出后的布局核对。
+- 每局结束写「这局整块扫描：原因 次数 共几秒；半截名字没重扫：原因 次数；设置：…」。
+
+以上设置都在 `lolhex/cloudsettings.py` 的 `SPEC` 里，云控 `settings` 规则的 `defaults` / `force` 可改。
 
 ## 无边框下帧率封顶
 
@@ -48,4 +61,4 @@
 
 ## 已核对的实现入口
 
-`lolhex/config.py`（设置项与旧设置迁移）、`lolhex/ui/mainwindow.py`（托盘菜单与设置页）、`lolhex/ui/overlay.py`（`set_visible`、`button_needed`、第一次选择前固定显示）、`lolhex/ui/hotkey.py`、`lolhex/vision/capture.py`（`grab`、`mask_drawn`）、`lolhex/vision/window.py`（`lower_thread_priority`）、`lolhex/engine.py`（识别循环、`auto_idle_ms`）。
+`lolhex/config.py`（设置项与旧设置迁移）、`lolhex/ui/mainwindow.py`（托盘菜单与设置页）、`lolhex/ui/overlay.py`（`set_visible`、`button_needed`、第一次选择前固定显示）、`lolhex/ui/hotkey.py`、`lolhex/vision/capture.py`（`grab`、`mask_drawn`）、`lolhex/vision/window.py`（`set_vision_thread`）、`lolhex/engine.py`（识别循环、`auto_idle_ms`）。

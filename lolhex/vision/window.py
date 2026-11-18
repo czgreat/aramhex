@@ -123,30 +123,38 @@ class _PowerThrottling(ctypes.Structure):
     _fields_ = [("Version", wintypes.ULONG), ("ControlMask", wintypes.ULONG), ("StateMask", wintypes.ULONG)]
 
 
-def lower_thread_priority() -> bool:
-    """识别线程让着游戏：
+# 识别线程优先级（设置 vision_priority）：below_normal 是 1.1.6 及以前、1.1.8 起的默认；lowest 是 1.1.7 的；
+# normal 留给云控试：核少的电脑（如 4 核 4 线程）识别线程排不上队时，实际耗时远大于 CPU 时间
+THREAD_PRIORITIES = {"normal": 0, "below_normal": -1, "lowest": -2}
 
-    - 优先级降到 THREAD_PRIORITY_LOWEST（1.1.6 及以前是低于正常）：游戏要用 CPU 时先让给游戏。
-      不用 IDLE：低配电脑游戏把核占满时，识别会一直排不上队、认不出海克斯。
-    - 打开效率模式（EcoQoS，Windows 10 1709 起）：Intel 大小核上系统把它放到小核，不占游戏用的大核；
-      其他 CPU 上降频跑。优先级只管排队，管不了同一个物理核上的超线程互相拖慢，效率模式能少占一点。
-    返回效率模式是否打开（旧系统不支持时返回 False，照常运行）。"""
+
+def set_vision_thread(priority: str = "below_normal", eco: bool = False, no_throttle: bool = False) -> bool:
+    """设置当前线程（识别线程）的优先级和效率模式，可以反复调用（云控改了就重设）：
+
+    - 优先级按 THREAD_PRIORITIES。不用 IDLE：低配电脑游戏把核占满时，识别会一直排不上队、认不出海克斯。
+    - eco=True 打开效率模式（EcoQoS，Windows 10 1709 起）：Intel 大小核上系统把它放到小核，其他 CPU 上降频跑。
+      1.1.7 默认打开，Intel 12～14 代大小核电脑上每次认字的 CPU 时间涨到 2～3 倍、整块扫描慢 4～8 倍。
+      eco=False 交还系统自己决定，和 1.1.6 没设置时一样；再加 no_throttle=True 是明确不要降频（系统的后台降频也不要）。
+    返回效率模式是否打开（没要求打开、旧系统不支持时返回 False，照常运行）。"""
     if not IS_WINDOWS:
         return False
     try:
         k = ctypes.windll.kernel32
         k.GetCurrentThread.restype = wintypes.HANDLE
         k.SetThreadPriority.argtypes = (wintypes.HANDLE, ctypes.c_int)
-        k.SetThreadPriority(k.GetCurrentThread(), -2)  # THREAD_PRIORITY_LOWEST
+        k.SetThreadPriority(k.GetCurrentThread(), THREAD_PRIORITIES.get(priority, -1))
     except (OSError, AttributeError):
-        pass  # 降不了就按原样跑
+        pass  # 设不了就按原样跑
     try:
         k = ctypes.windll.kernel32
         k.SetThreadInformation.argtypes = (wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD)
         k.SetThreadInformation.restype = wintypes.BOOL
-        state = _PowerThrottling(1, 1, 1)  # THREAD_POWER_THROTTLING_CURRENT_VERSION, EXECUTION_SPEED 开
-        return bool(k.SetThreadInformation(k.GetCurrentThread(), 3,  # ThreadPowerThrottling
-                                           ctypes.byref(state), ctypes.sizeof(state)))
+        # THREAD_POWER_THROTTLING_CURRENT_VERSION；ControlMask/StateMask 都是 EXECUTION_SPEED = 打开，
+        # ControlMask 是、StateMask 0 = 明确不降频，都是 0 = 交还系统
+        state = _PowerThrottling(1, 1, 1) if eco else _PowerThrottling(1, 1, 0) if no_throttle else _PowerThrottling(1, 0, 0)
+        ok = bool(k.SetThreadInformation(k.GetCurrentThread(), 3,  # ThreadPowerThrottling
+                                         ctypes.byref(state), ctypes.sizeof(state)))
+        return ok and eco
     except (OSError, AttributeError):
         return False
 

@@ -137,7 +137,7 @@ def test_vision_loop_keeps_labels_during_blank_then_confirms_the_cached_new_name
     monkeypatch.setattr(window, 'find_game_window', lambda: 1)
     monkeypatch.setattr(window, 'client_rect', lambda hwnd: rect)
     monkeypatch.setattr(window, 'is_foreground', lambda hwnd: True)
-    monkeypatch.setattr(window, 'lower_thread_priority', lambda: None)
+    monkeypatch.setattr(window, 'set_vision_thread', lambda *a: False)
     monkeypatch.setattr(capture, 'grab', lambda area: strip)
     scene(0)
     engine._vision_loop()

@@ -25,9 +25,58 @@ def runtime_context(settings) -> None:
         status = _system_memory()
         if status:
             memory = f"{status[0]}/{status[1]}MB"
-    log.info("运行环境：系统=%s %s CPU=%s 逻辑核=%s 可用/总内存=%s 识别语言=%s 速度=%s 标题间隔=%s毫秒 启动扫描间隔=%s秒",
-             platform.system(), platform.release(), cpu, os.cpu_count(), memory,
+    log.info("运行环境：系统=%s %s CPU=%s 逻辑核=%s 大小核=%s 可用/总内存=%s 识别语言=%s 速度=%s 标题间隔=%s毫秒 启动扫描间隔=%s秒",
+             platform.system(), platform.release(), cpu, os.cpu_count(), core_classes() or "unknown", memory,
              settings.game_lang, settings.speed, settings.scan_interval_ms, settings.bootstrap_interval_s)
+
+
+def core_classes() -> str:
+    """大小核（1.1.8）：按 Windows CPU Set 的 EfficiencyClass 数逻辑核，大核在前，如「P16+E8」；
+    只有一种核时为「否」；拿不到（Windows 10 以前、非 Windows）为空。"""
+    if os.name != "nt":
+        return ""
+    try:
+        import ctypes
+        from ctypes import wintypes
+        k = ctypes.windll.kernel32
+        k.GetSystemCpuSetInformation.argtypes = (ctypes.c_void_p, wintypes.ULONG, ctypes.POINTER(wintypes.ULONG),
+                                                 wintypes.HANDLE, wintypes.ULONG)
+        k.GetSystemCpuSetInformation.restype = wintypes.BOOL
+        need = wintypes.ULONG(0)
+        k.GetSystemCpuSetInformation(None, 0, ctypes.byref(need), None, 0)
+        if not need.value:
+            return ""
+        buf = ctypes.create_string_buffer(need.value)
+        if not k.GetSystemCpuSetInformation(buf, need, ctypes.byref(need), None, 0):
+            return ""
+        return format_core_classes(cpu_set_classes(buf.raw[:need.value]))
+    except (AttributeError, OSError, ValueError):
+        return ""
+
+
+def cpu_set_classes(raw: bytes) -> dict[int, int]:
+    """SYSTEM_CPU_SET_INFORMATION 数组 → {EfficiencyClass: 逻辑核数}。每条开头是 Size、Type（0 = CpuSet），
+    EfficiencyClass 在第 18 字节。"""
+    out: dict[int, int] = {}
+    pos = 0
+    while pos + 19 <= len(raw):
+        size = int.from_bytes(raw[pos:pos + 4], "little")
+        if size < 19:
+            break
+        if int.from_bytes(raw[pos + 4:pos + 8], "little") == 0:
+            cls = raw[pos + 18]
+            out[cls] = out.get(cls, 0) + 1
+        pos += size
+    return out
+
+
+def format_core_classes(classes: dict[int, int]) -> str:
+    if not classes:
+        return ""
+    if len(classes) == 1:
+        return "否"
+    counts = [classes[c] for c in sorted(classes, reverse=True)]  # EfficiencyClass 大的是大核
+    return "+".join(f"{'P' if i == 0 else 'E'}{n}" for i, n in enumerate(counts))
 
 
 def _system_memory() -> tuple[int, int] | None:

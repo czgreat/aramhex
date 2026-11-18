@@ -490,7 +490,7 @@ class AugmentDetector:
                     uniq.append(t)
             if len(uniq) > len(best):
                 best = uniq
-        if len(best) >= 4:
+        if len(best) >= 4 and cloud.feature("four_choice"):
             four = sorted(best[:4], key=lambda t: t[0].cx)
             if AugmentDetector._even([t[0].cx for t in four], H):
                 return four  # 四选一：四张等距排开
@@ -510,7 +510,10 @@ class AugmentDetector:
         """这一排是三选一还是四选一，每张在第几列。idx 为 None 表示按三选一的老办法推断。
 
         四选一的卡距和三选一一样，只是整组错开半张：三选一的卡心在中线和中线±1 个卡距，
-        四选一在中线±0.5、±1.5 个卡距。拿不准时一律按三选一，保持原来的行为。"""
+        四选一在中线±0.5、±1.5 个卡距。拿不准时一律按三选一，保持原来的行为。
+        云控 features.four_choice=false（1.1.8）：一律按三选一，退回 1.1.5 的认法。"""
+        if not cloud.feature("four_choice"):
+            return 3, None
         centers = [t[0].cx for t in group]
         if len(group) == 4:
             return 4, [0, 1, 2, 3]
