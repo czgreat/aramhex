@@ -1,0 +1,193 @@
+{
+ "bands": true,
+ "files": {
+  "augments.json": {
+   "sha256": "8d0f51c9e6db9bd72f7c7eba9f6a120d454c8a36b9b63dfc071ef79584e92cc1",
+   "size": 14147
+  },
+  "bands/casual/hero_augments.json": {
+   "sha256": "8f7855cf49eda333bfa8c5b0a7958edbc62c9b5e04786d7cea9aa929ba4e09b1",
+   "size": 2255743
+  },
+  "bands/casual/hero_spells.json": {
+   "sha256": "a871a9899864620a380fbd14ef49b07c7a85f5a212520537309ed01ffe0a63be",
+   "size": 456518
+  },
+  "bands/casual/heroes.json": {
+   "sha256": "8b46ad64854baab1cb8fd2f6fc853d5968813313be4b530313f82115be326ab3",
+   "size": 32199
+  },
+  "bands/high/core_builds.json": {
+   "sha256": "d9b70dacbd66e4f82f014a4119b01d17b06a9b50537b81b1810cbdfe5fc21a9d",
+   "size": 90421
+  },
+  "bands/high/equipment_heroes.json": {
+   "sha256": "14161702169b26aee4a4aab949a179bde792e75162e2d9a1dd30ddd66b7eeca1",
+   "size": 16575
+  },
+  "bands/high/equipment_recommendation_heroes.json": {
+   "sha256": "fb3bafcba32e9196e8aa34581dc853493b3af2eda74dedbe41d5d8fa1b242d0e",
+   "size": 16513
+  },
+  "bands/high/hero_augment_items.json": {
+   "sha256": "6218a2e652569a56925f7222c4bb925a42ecbf51370d3732603fdddbe3717a3a",
+   "size": 122526
+  },
+  "bands/high/hero_augments.json": {
+   "sha256": "452caedff0b5a1db7822758df12a77948742e32c6c1877f77c1c9eede27c4200",
+   "size": 2207767
+  },
+  "bands/high/hero_item_holdings.json": {
+   "sha256": "a3702f17276ccf282d878ea617e30542c03078f72e9ed3ad5a9c371fcb9ee804",
+   "size": 2999411
+  },
+  "bands/high/hero_item_recommendations.json": {
+   "sha256": "97b6e15efa6e09c4de727163b5762291cae761d5139579eb6f965f3b4c17c5e0",
+   "size": 1607675
+  },
+  "bands/high/hero_items.json": {
+   "sha256": "97b6e15efa6e09c4de727163b5762291cae761d5139579eb6f965f3b4c17c5e0",
+   "size": 1607675
+  },
+  "bands/high/hero_items_raw.json": {
+   "sha256": "187223c97a77b94bc769e0bd9db9197d0d83574c6b44af72bf3e58a334d0e01a",
+   "size": 1744463
+  },
+  "bands/high/hero_spells.json": {
+   "sha256": "81a1af42f69a263a4bad6ff12534b407c10c036979e1451337c859b7f9d1162b",
+   "size": 303806
+  },
+  "bands/high/heroes.json": {
+   "sha256": "9be5a8b20bb6df1950a41530a5e162f3b024deda87a8ca5338f2633667b4cad7",
+   "size": 31944
+  },
+  "bands/mid/hero_augments.json": {
+   "sha256": "13596285a7f023958b391b0cb5a12168222165298034431be8f0ea761b21e29b",
+   "size": 2249268
+  },
+  "bands/mid/hero_spells.json": {
+   "sha256": "7e0c257934a0d5f18eedbd0188982880e8cdef43516dcb7b04255d199dc0e8fa",
+   "size": 409841
+  },
+  "bands/mid/heroes.json": {
+   "sha256": "5bd6cc59ec3bd9a2abfb6681371f6a438219969b4beef5e3b9d57d56cea980f8",
+   "size": 32165
+  },
+  "bands/top/core_builds.json": {
+   "sha256": "d9b70dacbd66e4f82f014a4119b01d17b06a9b50537b81b1810cbdfe5fc21a9d",
+   "size": 90421
+  },
+  "bands/top/equipment_heroes.json": {
+   "sha256": "14161702169b26aee4a4aab949a179bde792e75162e2d9a1dd30ddd66b7eeca1",
+   "size": 16575
+  },
+  "bands/top/equipment_recommendation_heroes.json": {
+   "sha256": "fb3bafcba32e9196e8aa34581dc853493b3af2eda74dedbe41d5d8fa1b242d0e",
+   "size": 16513
+  },
+  "bands/top/hero_augment_items.json": {
+   "sha256": "6218a2e652569a56925f7222c4bb925a42ecbf51370d3732603fdddbe3717a3a",
+   "size": 122526
+  },
+  "bands/top/hero_augments.json": {
+   "sha256": "452caedff0b5a1db7822758df12a77948742e32c6c1877f77c1c9eede27c4200",
+   "size": 2207767
+  },
+  "bands/top/hero_item_holdings.json": {
+   "sha256": "a3702f17276ccf282d878ea617e30542c03078f72e9ed3ad5a9c371fcb9ee804",
+   "size": 2999411
+  },
+  "bands/top/hero_item_recommendations.json": {
+   "sha256": "97b6e15efa6e09c4de727163b5762291cae761d5139579eb6f965f3b4c17c5e0",
+   "size": 1607675
+  },
+  "bands/top/hero_items.json": {
+   "sha256": "97b6e15efa6e09c4de727163b5762291cae761d5139579eb6f965f3b4c17c5e0",
+   "size": 1607675
+  },
+  "bands/top/hero_items_raw.json": {
+   "sha256": "187223c97a77b94bc769e0bd9db9197d0d83574c6b44af72bf3e58a334d0e01a",
+   "size": 1744463
+  },
+  "bands/top/hero_spells.json": {
+   "sha256": "81a1af42f69a263a4bad6ff12534b407c10c036979e1451337c859b7f9d1162b",
+   "size": 303806
+  },
+  "bands/top/heroes.json": {
+   "sha256": "9be5a8b20bb6df1950a41530a5e162f3b024deda87a8ca5338f2633667b4cad7",
+   "size": 31944
+  },
+  "core_builds.json": {
+   "sha256": "f1ad44af251d241518ae7c768bea6efabfb19b8834b7e958e30e07eea37679b3",
+   "size": 95427
+  },
+  "equipment_heroes.json": {
+   "sha256": "30116ed8a5c87e388baef6066cdd9118c4156dc03c0e41b4e2a4c180bd3c0e9b",
+   "size": 16959
+  },
+  "equipment_recommendation_heroes.json": {
+   "sha256": "7fccec96fff51654b15b49b55274fa776fe8017ffda946cd5b20078c7db0b3fe",
+   "size": 16907
+  },
+  "hero_augment_items.json": {
+   "sha256": "44414326f8df457993f8d02fb01f1e281c7cee6431fe9fd35a96e6623daf654f",
+   "size": 135921
+  },
+  "hero_augments.json": {
+   "sha256": "c9863cb7232c38755e219f2ca36abe80e38ea312b7a2a0e70c25cc3477872a7b",
+   "size": 2272981
+  },
+  "hero_item_holdings.json": {
+   "sha256": "9fb32141113607d1ac7241f0455ede5741384788cdc2d13d90e1e09d5ffb545e",
+   "size": 3287309
+  },
+  "hero_item_recommendations.json": {
+   "sha256": "4ab0af92480f6c186ed28bf0168097b57ab698fedfd1e0ab2f97b48447b9c9d3",
+   "size": 1822223
+  },
+  "hero_items.json": {
+   "sha256": "4ab0af92480f6c186ed28bf0168097b57ab698fedfd1e0ab2f97b48447b9c9d3",
+   "size": 1822223
+  },
+  "hero_items_raw.json": {
+   "sha256": "45ccc19df5d5b0922c94831dcef82da8321c9f746f18d6f13fc7046175902f29",
+   "size": 1937020
+  },
+  "hero_spells.json": {
+   "sha256": "e5c694ec401a7c65e2dba837a3eea9836f002e16aa682541b9893a0f97f6ba8f",
+   "size": 466993
+  },
+  "heroes.json": {
+   "sha256": "f03d546de97b9f8513cf6155da505bbcfa9729228ba8424d3f467b81be8e2f48",
+   "size": 32310
+  },
+  "item_metadata.json": {
+   "sha256": "fabb404c1cf2dfffe0f61c78b98f48be1924bd1bfdabf5fb7a7d1d0dc7f93795",
+   "size": 69831
+  },
+  "meta.json": {
+   "sha256": "10629812368c33995c3bf76127e4eed7d53f219dcedd1c33683dbbd36e50274b",
+   "size": 10725
+  }
+ },
+ "matches": 57823093,
+ "matches_detail": {
+  "collected": 59702691,
+  "excluded": 1879598,
+  "valid": 57823093,
+  "validity_rule": "对局时长240至14400秒、截止前正常结束（GameComplete）、非私人对局；10名不同真人、无电脑、两队各5人且队内胜负一致，共5胜5负；数据不全的对局不计"
+ },
+ "mode": "normal",
+ "mode_label": "常规",
+ "patch": "16.22",
+ "path": "patches/16.22/normal",
+ "schema_version": 1,
+ "seq": 19,
+ "snapshot_at": "2026-11-17T18:00:00+08:00",
+ "window": {
+  "end_exclusive": "2026-11-17T18:00:00+08:00",
+  "periods": null,
+  "start": "2026-11-05T04:08:36.135+08:00",
+  "time_field": "16.22首局开局起，至截止时间前结束的对局（北京时间）；包含热修前后全部构建"
+ }
+}

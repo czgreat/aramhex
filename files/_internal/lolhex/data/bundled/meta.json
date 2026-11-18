@@ -1,0 +1,247 @@
+{
+ "augment_exposure": "对局结束时持有；同一玩家六个槽位去重，任意槽位持有即计入",
+ "bands": {
+  "bands": {
+   "casual": {
+    "hero_participations": 268653914,
+    "label": "娱乐",
+    "max_score_exclusive": 1600
+   },
+   "high": {
+    "hero_participations": 46168048,
+    "label": "前5%",
+    "min_score": 2400
+   },
+   "mid": {
+    "hero_participations": 218217456,
+    "label": "中分",
+    "max_score_exclusive": 2400,
+    "min_score": 1600
+   },
+   "top": {
+    "alias_of": "high",
+    "hero_participations": 46168048
+   }
+  },
+  "independently_strength_validated": false,
+  "method": "partition-fixed30-f-display-v1",
+  "minimum_30day_games": 31,
+  "note": "分段按玩家所在区的冻结显示分，不是官方段位；只计该段玩家自己的出场。",
+  "retrospective_buckets": true,
+  "score_as_of": "2026-11-17T18:00:00+08:00",
+  "unsegmented_participations": 45191512
+ },
+ "builds": [
+  "16.22.834.9083",
+  "16.22.836.1077"
+ ],
+ "components": {
+  "augments": "same-window",
+  "destiny": {
+   "baseline": "same hero same band all valid >=240s",
+   "builds": [
+    "16.22.834.9083",
+    "16.22.836.1077"
+   ],
+   "end_exclusive": "2026-11-17T18:00:00+08:00",
+   "excluded_coexisting_augment_ids": [
+    1152,
+    1154,
+    1156,
+    1317,
+    1318,
+    1319,
+    1320,
+    1336,
+    1337,
+    1338,
+    1340,
+    1343,
+    1361,
+    1379,
+    1411,
+    1996,
+    2140,
+    2141,
+    2143,
+    2157,
+    3049,
+    3150,
+    7001,
+    7007,
+    7009
+   ],
+   "file": "hero_augment_items.json",
+   "minimum_duration_s": 300,
+   "minimum_games": 1000,
+   "minimum_share": 0.02,
+   "ranking": "top3 usage then raw win rate",
+   "record": "first SUMMARY legendary_items record",
+   "share_denominator": "total includes all holders; eligible_total reports filtered population",
+   "smoothing": false,
+   "updated_this_release": true
+  },
+  "equipment_holdings": "same-window",
+  "heroes": "same-window",
+  "summoner_spells": "same-window"
+ },
+ "equipment": {
+  "bands": [
+   "all",
+   "high"
+  ],
+  "core_table": "core_builds.json",
+  "denominator": "equipment_heroes.json",
+  "excluded_augment_ids": [
+   1152,
+   1154,
+   1156,
+   1317,
+   1318,
+   1319,
+   1320,
+   1336,
+   1337,
+   1338,
+   1340,
+   1343,
+   1361,
+   1379,
+   1411,
+   1996,
+   2140,
+   2141,
+   2143,
+   2157,
+   3049,
+   3081,
+   3150,
+   7001,
+   7007,
+   7009
+  ],
+  "exclusion_unit": "only the participant holding any excluded augment in final six slots",
+  "minimum_duration_s": 300,
+  "raw_ids_preserved": true,
+  "recommendation_denominator": "equipment_recommendation_heroes.json",
+  "recommendation_participations": 385115919,
+  "recommendation_table": "hero_item_recommendations.json",
+  "tables": {
+   "hero_item_holdings.json": "全部装备（原始ID）",
+   "hero_items.json": "排除装备干扰后的普通成装统计",
+   "hero_items_raw.json": "原口径成装持有审计"
+  },
+  "valid_matches": 57732588
+ },
+ "excluded_augments": {
+  "1337": "任务完成后替换成其他强化，结算持有有偏差",
+  "3176": "五杀摇滚通用记录标记，不是常规可选强化"
+ },
+ "files": {
+  "augments.json": "8d0f51c9e6db9bd72f7c7eba9f6a120d454c8a36b9b63dfc071ef79584e92cc1",
+  "bands/casual/hero_augments.csv": "dc90cb62c0e2124ff3044703dd780d1e6389a467e8c97da5ea8b2090bff4aab9",
+  "bands/casual/hero_augments.json": "8f7855cf49eda333bfa8c5b0a7958edbc62c9b5e04786d7cea9aa929ba4e09b1",
+  "bands/casual/hero_spells.json": "a871a9899864620a380fbd14ef49b07c7a85f5a212520537309ed01ffe0a63be",
+  "bands/casual/heroes.csv": "dbd9d320dde2300096a672260dbc8897d860f1a533d256eccee90ef7e21ba768",
+  "bands/casual/heroes.json": "8b46ad64854baab1cb8fd2f6fc853d5968813313be4b530313f82115be326ab3",
+  "bands/high/core_builds.json": "d9b70dacbd66e4f82f014a4119b01d17b06a9b50537b81b1810cbdfe5fc21a9d",
+  "bands/high/equipment_heroes.json": "14161702169b26aee4a4aab949a179bde792e75162e2d9a1dd30ddd66b7eeca1",
+  "bands/high/equipment_recommendation_heroes.json": "fb3bafcba32e9196e8aa34581dc853493b3af2eda74dedbe41d5d8fa1b242d0e",
+  "bands/high/hero_augment_items.json": "6218a2e652569a56925f7222c4bb925a42ecbf51370d3732603fdddbe3717a3a",
+  "bands/high/hero_augments.csv": "d293ff570284d39c3c5c04d3c70aa9a6b7f86fb13bd311f403d65b35431c0a2d",
+  "bands/high/hero_augments.json": "452caedff0b5a1db7822758df12a77948742e32c6c1877f77c1c9eede27c4200",
+  "bands/high/hero_item_holdings.json": "a3702f17276ccf282d878ea617e30542c03078f72e9ed3ad5a9c371fcb9ee804",
+  "bands/high/hero_item_recommendations.json": "97b6e15efa6e09c4de727163b5762291cae761d5139579eb6f965f3b4c17c5e0",
+  "bands/high/hero_items.json": "97b6e15efa6e09c4de727163b5762291cae761d5139579eb6f965f3b4c17c5e0",
+  "bands/high/hero_items_raw.json": "187223c97a77b94bc769e0bd9db9197d0d83574c6b44af72bf3e58a334d0e01a",
+  "bands/high/hero_spells.json": "81a1af42f69a263a4bad6ff12534b407c10c036979e1451337c859b7f9d1162b",
+  "bands/high/heroes.csv": "75ff519a6e936c3c7081cf09ad4f92aa4aea648f2dd5c666d71572c942790dfe",
+  "bands/high/heroes.json": "9be5a8b20bb6df1950a41530a5e162f3b024deda87a8ca5338f2633667b4cad7",
+  "bands/mid/hero_augments.csv": "2b3f6a731939a77345315d67ba9275acdfcda8e7e84959269231133c026ef8ea",
+  "bands/mid/hero_augments.json": "13596285a7f023958b391b0cb5a12168222165298034431be8f0ea761b21e29b",
+  "bands/mid/hero_spells.json": "7e0c257934a0d5f18eedbd0188982880e8cdef43516dcb7b04255d199dc0e8fa",
+  "bands/mid/heroes.csv": "1485b1093f1eef790a97b36c6dd73a0b04c605c7517b9a08eb965646aecaa135",
+  "bands/mid/heroes.json": "5bd6cc59ec3bd9a2abfb6681371f6a438219969b4beef5e3b9d57d56cea980f8",
+  "bands/top/core_builds.json": "d9b70dacbd66e4f82f014a4119b01d17b06a9b50537b81b1810cbdfe5fc21a9d",
+  "bands/top/equipment_heroes.json": "14161702169b26aee4a4aab949a179bde792e75162e2d9a1dd30ddd66b7eeca1",
+  "bands/top/equipment_recommendation_heroes.json": "fb3bafcba32e9196e8aa34581dc853493b3af2eda74dedbe41d5d8fa1b242d0e",
+  "bands/top/hero_augment_items.json": "6218a2e652569a56925f7222c4bb925a42ecbf51370d3732603fdddbe3717a3a",
+  "bands/top/hero_augments.csv": "d293ff570284d39c3c5c04d3c70aa9a6b7f86fb13bd311f403d65b35431c0a2d",
+  "bands/top/hero_augments.json": "452caedff0b5a1db7822758df12a77948742e32c6c1877f77c1c9eede27c4200",
+  "bands/top/hero_item_holdings.json": "a3702f17276ccf282d878ea617e30542c03078f72e9ed3ad5a9c371fcb9ee804",
+  "bands/top/hero_item_recommendations.json": "97b6e15efa6e09c4de727163b5762291cae761d5139579eb6f965f3b4c17c5e0",
+  "bands/top/hero_items.json": "97b6e15efa6e09c4de727163b5762291cae761d5139579eb6f965f3b4c17c5e0",
+  "bands/top/hero_items_raw.json": "187223c97a77b94bc769e0bd9db9197d0d83574c6b44af72bf3e58a334d0e01a",
+  "bands/top/hero_spells.json": "81a1af42f69a263a4bad6ff12534b407c10c036979e1451337c859b7f9d1162b",
+  "bands/top/heroes.csv": "75ff519a6e936c3c7081cf09ad4f92aa4aea648f2dd5c666d71572c942790dfe",
+  "bands/top/heroes.json": "9be5a8b20bb6df1950a41530a5e162f3b024deda87a8ca5338f2633667b4cad7",
+  "core_builds.json": "f1ad44af251d241518ae7c768bea6efabfb19b8834b7e958e30e07eea37679b3",
+  "equipment_heroes.json": "30116ed8a5c87e388baef6066cdd9118c4156dc03c0e41b4e2a4c180bd3c0e9b",
+  "equipment_recommendation_heroes.json": "7fccec96fff51654b15b49b55274fa776fe8017ffda946cd5b20078c7db0b3fe",
+  "hero_augment_items.json": "44414326f8df457993f8d02fb01f1e281c7cee6431fe9fd35a96e6623daf654f",
+  "hero_augments.csv": "dfb8b831d02c64cea4f56d0233671f6b324e7e8f53bc80941586897187b3c2f0",
+  "hero_augments.json": "c9863cb7232c38755e219f2ca36abe80e38ea312b7a2a0e70c25cc3477872a7b",
+  "hero_item_holdings.json": "9fb32141113607d1ac7241f0455ede5741384788cdc2d13d90e1e09d5ffb545e",
+  "hero_item_recommendations.json": "4ab0af92480f6c186ed28bf0168097b57ab698fedfd1e0ab2f97b48447b9c9d3",
+  "hero_items.json": "4ab0af92480f6c186ed28bf0168097b57ab698fedfd1e0ab2f97b48447b9c9d3",
+  "hero_items_raw.json": "45ccc19df5d5b0922c94831dcef82da8321c9f746f18d6f13fc7046175902f29",
+  "hero_spells.json": "e5c694ec401a7c65e2dba837a3eea9836f002e16aa682541b9893a0f97f6ba8f",
+  "heroes.csv": "9485758e3f554988da372cb641fe255800c7b5a313e56031d0f2e7d8f1e4795c",
+  "heroes.json": "f03d546de97b9f8513cf6155da505bbcfa9729228ba8424d3f467b81be8e2f48",
+  "item_metadata.json": "fabb404c1cf2dfffe0f61c78b98f48be1924bd1bfdabf5fb7a7d1d0dc7f93795"
+ },
+ "hero_participations": 578230930,
+ "heroes": 173,
+ "label": "16.22 版本 · 常规",
+ "license": "CC BY-NC 4.0",
+ "limitations": [
+  "统计的是部分对局，不是全服数据。",
+  "对局时长240至14400秒、截止前正常结束（GameComplete）、非私人对局；10名不同真人、无电脑、两队各5人且队内胜负一致，共5胜5负；数据不全的对局不计。",
+  "海克斯按结算六槽持有、同人同ID去重；原始胜率与持有存在相关关系，不代表因果。",
+  "各区直接合并，不加权；少于3000人次标记low_sample，保留原始计数。",
+  "全部对局按2026-11-17T18:00:00+08:00冻结评分回溯分段，不是每场对局当时的评分。",
+  "装备使用至少300秒的独立分母；结算六格同人同ID去重，保留原始升级ID。",
+  "命运之武器按SUMMARY传说装备第一条记录统计；先按使用数取三件，再按原始胜率排序。"
+ ],
+ "low_sample_threshold": 3000,
+ "matches": {
+  "collected": 59702691,
+  "excluded": 1879598,
+  "valid": 57823093,
+  "validity_rule": "对局时长240至14400秒、截止前正常结束（GameComplete）、非私人对局；10名不同真人、无电脑、两队各5人且队内胜负一致，共5胜5负；数据不全的对局不计"
+ },
+ "mode": "normal",
+ "mode_label": "常规",
+ "mode_rule": "常规规则。",
+ "notes": [
+  "合并整个16.22版本的全部构建。",
+  "bands/top 与 bands/high 逐字节相同（兼容旧客户端）。",
+  "普通装备与三件套排除本人持有装备升级、合成、任务奖励、赠装及装甲冲击强化的人次；排除清单见equipment。",
+  "命运之武器保留目标持有者，装备统计排除共存装备干扰；total保留全部持有者，eligible_total为排除后的分母。",
+  "海克斯稀有度与冻结游戏数据逐个核对一致。"
+ ],
+ "patch": "16.22",
+ "rarity_check": {
+  "checked_ids": 225,
+  "mismatches": 0,
+  "source": "frozen16.22 game-data reference"
+ },
+ "regions": [
+  "联盟三区",
+  "联盟二区",
+  "艾欧尼亚",
+  "黑色玫瑰",
+  "联盟一区",
+  "联盟四区",
+  "联盟五区"
+ ],
+ "regions_combined": true,
+ "schema_version": 1,
+ "snapshot_at": "2026-11-17T18:00:00+08:00",
+ "window": {
+  "end_exclusive": "2026-11-17T18:00:00+08:00",
+  "periods": null,
+  "start": "2026-11-05T04:08:36.135+08:00",
+  "time_field": "16.22首局开局起，至截止时间前结束的对局（北京时间）；包含热修前后全部构建"
+ }
+}
