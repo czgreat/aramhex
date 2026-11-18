@@ -1,0 +1,1732 @@
+{
+ "1": {
+  "games": 86047,
+  "low_sample": false,
+  "name": "安妮",
+  "pick_rate": 0.002363,
+  "rank": 82,
+  "title": "黑暗之女",
+  "win_rate": 0.499727,
+  "wins": 43000
+ },
+ "10": {
+  "games": 172106,
+  "low_sample": false,
+  "name": "凯尔",
+  "pick_rate": 0.004726,
+  "rank": 22,
+  "title": "正义天使",
+  "win_rate": 0.535252,
+  "wins": 92120
+ },
+ "101": {
+  "games": 243631,
+  "low_sample": false,
+  "name": "泽拉斯",
+  "pick_rate": 0.00669,
+  "rank": 102,
+  "title": "远古巫灵",
+  "win_rate": 0.486313,
+  "wins": 118481
+ },
+ "102": {
+  "games": 101829,
+  "low_sample": false,
+  "name": "希瓦娜",
+  "pick_rate": 0.002796,
+  "rank": 51,
+  "title": "龙血武姬",
+  "win_rate": 0.5145,
+  "wins": 52391
+ },
+ "103": {
+  "games": 226171,
+  "low_sample": false,
+  "name": "阿狸",
+  "pick_rate": 0.006211,
+  "rank": 39,
+  "title": "九尾妖狐",
+  "win_rate": 0.518325,
+  "wins": 117230
+ },
+ "104": {
+  "games": 430943,
+  "low_sample": false,
+  "name": "格雷福斯",
+  "pick_rate": 0.011834,
+  "rank": 81,
+  "title": "法外狂徒",
+  "win_rate": 0.500345,
+  "wins": 215620
+ },
+ "105": {
+  "games": 343118,
+  "low_sample": false,
+  "name": "菲兹",
+  "pick_rate": 0.009422,
+  "rank": 69,
+  "title": "潮汐海灵",
+  "win_rate": 0.506485,
+  "wins": 173784
+ },
+ "106": {
+  "games": 262623,
+  "low_sample": false,
+  "name": "沃利贝尔",
+  "pick_rate": 0.007212,
+  "rank": 74,
+  "title": "不灭狂雷",
+  "win_rate": 0.503947,
+  "wins": 132348
+ },
+ "107": {
+  "games": 274294,
+  "low_sample": false,
+  "name": "雷恩加尔",
+  "pick_rate": 0.007532,
+  "rank": 79,
+  "title": "傲之追猎者",
+  "win_rate": 0.501061,
+  "wins": 137438
+ },
+ "11": {
+  "games": 372544,
+  "low_sample": false,
+  "name": "易",
+  "pick_rate": 0.01023,
+  "rank": 11,
+  "title": "无极剑圣",
+  "win_rate": 0.552727,
+  "wins": 205915
+ },
+ "110": {
+  "games": 349276,
+  "low_sample": false,
+  "name": "韦鲁斯",
+  "pick_rate": 0.009591,
+  "rank": 94,
+  "title": "惩戒之箭",
+  "win_rate": 0.491955,
+  "wins": 171828
+ },
+ "111": {
+  "games": 132510,
+  "low_sample": false,
+  "name": "诺提勒斯",
+  "pick_rate": 0.003639,
+  "rank": 72,
+  "title": "深海泰坦",
+  "win_rate": 0.505328,
+  "wins": 66961
+ },
+ "112": {
+  "games": 302431,
+  "low_sample": false,
+  "name": "维克托",
+  "pick_rate": 0.008305,
+  "rank": 14,
+  "title": "奥术先驱",
+  "win_rate": 0.541396,
+  "wins": 163735
+ },
+ "113": {
+  "games": 53250,
+  "low_sample": false,
+  "name": "瑟庄妮",
+  "pick_rate": 0.001462,
+  "rank": 132,
+  "title": "北地之怒",
+  "win_rate": 0.474423,
+  "wins": 25263
+ },
+ "114": {
+  "games": 280605,
+  "low_sample": false,
+  "name": "菲奥娜",
+  "pick_rate": 0.007706,
+  "rank": 3,
+  "title": "无双剑姬",
+  "win_rate": 0.579908,
+  "wins": 162725
+ },
+ "115": {
+  "games": 159494,
+  "low_sample": false,
+  "name": "吉格斯",
+  "pick_rate": 0.00438,
+  "rank": 125,
+  "title": "爆破鬼才",
+  "win_rate": 0.47815,
+  "wins": 76262
+ },
+ "117": {
+  "games": 95420,
+  "low_sample": false,
+  "name": "璐璐",
+  "pick_rate": 0.00262,
+  "rank": 47,
+  "title": "仙灵女巫",
+  "win_rate": 0.515259,
+  "wins": 49166
+ },
+ "119": {
+  "games": 309860,
+  "low_sample": false,
+  "name": "德莱文",
+  "pick_rate": 0.008509,
+  "rank": 54,
+  "title": "荣耀行刑官",
+  "win_rate": 0.512754,
+  "wins": 158882
+ },
+ "12": {
+  "games": 188627,
+  "low_sample": false,
+  "name": "阿利斯塔",
+  "pick_rate": 0.00518,
+  "rank": 15,
+  "title": "牛头酋长",
+  "win_rate": 0.541137,
+  "wins": 102073
+ },
+ "120": {
+  "games": 366730,
+  "low_sample": false,
+  "name": "赫卡里姆",
+  "pick_rate": 0.010071,
+  "rank": 78,
+  "title": "战争之影",
+  "win_rate": 0.501246,
+  "wins": 183822
+ },
+ "121": {
+  "games": 298771,
+  "low_sample": false,
+  "name": "卡兹克",
+  "pick_rate": 0.008204,
+  "rank": 37,
+  "title": "虚空掠夺者",
+  "win_rate": 0.519635,
+  "wins": 155252
+ },
+ "122": {
+  "games": 170421,
+  "low_sample": false,
+  "name": "德莱厄斯",
+  "pick_rate": 0.00468,
+  "rank": 86,
+  "title": "诺克萨斯之手",
+  "win_rate": 0.49799,
+  "wins": 84868
+ },
+ "126": {
+  "games": 451282,
+  "low_sample": false,
+  "name": "杰斯",
+  "pick_rate": 0.012392,
+  "rank": 85,
+  "title": "未来守护者",
+  "win_rate": 0.498635,
+  "wins": 225025
+ },
+ "127": {
+  "games": 130076,
+  "low_sample": false,
+  "name": "丽桑卓",
+  "pick_rate": 0.003572,
+  "rank": 76,
+  "title": "冰霜女巫",
+  "win_rate": 0.501853,
+  "wins": 65279
+ },
+ "13": {
+  "games": 369022,
+  "low_sample": false,
+  "name": "瑞兹",
+  "pick_rate": 0.010134,
+  "rank": 35,
+  "title": "符文法师",
+  "win_rate": 0.52176,
+  "wins": 192541
+ },
+ "131": {
+  "games": 109795,
+  "low_sample": false,
+  "name": "黛安娜",
+  "pick_rate": 0.003015,
+  "rank": 152,
+  "title": "皎月女神",
+  "win_rate": 0.458618,
+  "wins": 50354
+ },
+ "133": {
+  "games": 42375,
+  "low_sample": false,
+  "name": "奎因",
+  "pick_rate": 0.001164,
+  "rank": 157,
+  "title": "德玛西亚之翼",
+  "win_rate": 0.453735,
+  "wins": 19227
+ },
+ "134": {
+  "games": 305520,
+  "low_sample": false,
+  "name": "辛德拉",
+  "pick_rate": 0.00839,
+  "rank": 29,
+  "title": "暗黑元首",
+  "win_rate": 0.527468,
+  "wins": 161152
+ },
+ "136": {
+  "games": 379133,
+  "low_sample": false,
+  "name": "奥瑞利安索尔",
+  "pick_rate": 0.010411,
+  "rank": 118,
+  "title": "铸星龙王",
+  "win_rate": 0.481802,
+  "wins": 182667
+ },
+ "14": {
+  "games": 139138,
+  "low_sample": false,
+  "name": "赛恩",
+  "pick_rate": 0.003821,
+  "rank": 96,
+  "title": "亡灵战神",
+  "win_rate": 0.49185,
+  "wins": 68435
+ },
+ "141": {
+  "games": 290583,
+  "low_sample": false,
+  "name": "凯隐",
+  "pick_rate": 0.00798,
+  "rank": 60,
+  "title": "影流之镰",
+  "win_rate": 0.509596,
+  "wins": 148080
+ },
+ "142": {
+  "games": 147668,
+  "low_sample": false,
+  "name": "佐伊",
+  "pick_rate": 0.004055,
+  "rank": 107,
+  "title": "暮光星灵",
+  "win_rate": 0.485921,
+  "wins": 71755
+ },
+ "143": {
+  "games": 151256,
+  "low_sample": false,
+  "name": "婕拉",
+  "pick_rate": 0.004154,
+  "rank": 66,
+  "title": "荆棘之兴",
+  "win_rate": 0.507021,
+  "wins": 76690
+ },
+ "145": {
+  "games": 496136,
+  "low_sample": false,
+  "name": "卡莎",
+  "pick_rate": 0.013624,
+  "rank": 123,
+  "title": "虚空之女",
+  "win_rate": 0.479518,
+  "wins": 237906
+ },
+ "147": {
+  "games": 271952,
+  "low_sample": false,
+  "name": "萨勒芬妮",
+  "pick_rate": 0.007468,
+  "rank": 36,
+  "title": "星籁歌姬",
+  "win_rate": 0.520084,
+  "wins": 141438
+ },
+ "15": {
+  "games": 138621,
+  "low_sample": false,
+  "name": "希维尔",
+  "pick_rate": 0.003807,
+  "rank": 148,
+  "title": "战争女神",
+  "win_rate": 0.462628,
+  "wins": 64130
+ },
+ "150": {
+  "games": 176357,
+  "low_sample": false,
+  "name": "纳尔",
+  "pick_rate": 0.004843,
+  "rank": 164,
+  "title": "迷失之牙",
+  "win_rate": 0.447791,
+  "wins": 78971
+ },
+ "154": {
+  "games": 46587,
+  "low_sample": false,
+  "name": "扎克",
+  "pick_rate": 0.001279,
+  "rank": 167,
+  "title": "生化魔人",
+  "win_rate": 0.446927,
+  "wins": 20821
+ },
+ "157": {
+  "games": 490226,
+  "low_sample": false,
+  "name": "亚索",
+  "pick_rate": 0.013462,
+  "rank": 1,
+  "title": "疾风剑豪",
+  "win_rate": 0.619682,
+  "wins": 303784
+ },
+ "16": {
+  "games": 150667,
+  "low_sample": false,
+  "name": "索拉卡",
+  "pick_rate": 0.004137,
+  "rank": 44,
+  "title": "众星之子",
+  "win_rate": 0.516709,
+  "wins": 77851
+ },
+ "161": {
+  "games": 168149,
+  "low_sample": false,
+  "name": "维克兹",
+  "pick_rate": 0.004617,
+  "rank": 68,
+  "title": "虚空之眼",
+  "win_rate": 0.506759,
+  "wins": 85211
+ },
+ "163": {
+  "games": 142394,
+  "low_sample": false,
+  "name": "塔莉垭",
+  "pick_rate": 0.00391,
+  "rank": 38,
+  "title": "岩雀",
+  "win_rate": 0.519025,
+  "wins": 73906
+ },
+ "164": {
+  "games": 179288,
+  "low_sample": false,
+  "name": "卡蜜尔",
+  "pick_rate": 0.004923,
+  "rank": 42,
+  "title": "青钢影",
+  "win_rate": 0.517313,
+  "wins": 92748
+ },
+ "166": {
+  "games": 120138,
+  "low_sample": false,
+  "name": "阿克尚",
+  "pick_rate": 0.003299,
+  "rank": 169,
+  "title": "影哨",
+  "win_rate": 0.431629,
+  "wins": 51855
+ },
+ "17": {
+  "games": 442247,
+  "low_sample": false,
+  "name": "提莫",
+  "pick_rate": 0.012144,
+  "rank": 27,
+  "title": "迅捷斥候",
+  "win_rate": 0.531807,
+  "wins": 235190
+ },
+ "18": {
+  "games": 171279,
+  "low_sample": false,
+  "name": "崔丝塔娜",
+  "pick_rate": 0.004703,
+  "rank": 166,
+  "title": "麦林炮手",
+  "win_rate": 0.447037,
+  "wins": 76568
+ },
+ "19": {
+  "games": 66496,
+  "low_sample": false,
+  "name": "沃里克",
+  "pick_rate": 0.001826,
+  "rank": 100,
+  "title": "祖安怒兽",
+  "win_rate": 0.489909,
+  "wins": 32577
+ },
+ "2": {
+  "games": 72012,
+  "low_sample": false,
+  "name": "奥拉夫",
+  "pick_rate": 0.001977,
+  "rank": 128,
+  "title": "狂战士",
+  "win_rate": 0.47606,
+  "wins": 34282
+ },
+ "20": {
+  "games": 62145,
+  "low_sample": false,
+  "name": "努努和威朗普",
+  "pick_rate": 0.001707,
+  "rank": 150,
+  "title": "雪原双子",
+  "win_rate": 0.459554,
+  "wins": 28559
+ },
+ "200": {
+  "games": 244455,
+  "low_sample": false,
+  "name": "卑尔维斯",
+  "pick_rate": 0.006713,
+  "rank": 31,
+  "title": "虚空女皇",
+  "win_rate": 0.52741,
+  "wins": 128928
+ },
+ "201": {
+  "games": 53882,
+  "low_sample": false,
+  "name": "布隆",
+  "pick_rate": 0.00148,
+  "rank": 135,
+  "title": "弗雷尔卓德之心",
+  "win_rate": 0.474221,
+  "wins": 25552
+ },
+ "202": {
+  "games": 421426,
+  "low_sample": false,
+  "name": "烬",
+  "pick_rate": 0.011573,
+  "rank": 84,
+  "title": "戏命师",
+  "win_rate": 0.498951,
+  "wins": 210271
+ },
+ "203": {
+  "games": 80158,
+  "low_sample": false,
+  "name": "千珏",
+  "pick_rate": 0.002201,
+  "rank": 149,
+  "title": "永猎双子",
+  "win_rate": 0.459842,
+  "wins": 36860
+ },
+ "21": {
+  "games": 456608,
+  "low_sample": false,
+  "name": "厄运小姐",
+  "pick_rate": 0.012539,
+  "rank": 65,
+  "title": "赏金猎人",
+  "win_rate": 0.507021,
+  "wins": 231510
+ },
+ "22": {
+  "games": 444782,
+  "low_sample": false,
+  "name": "艾希",
+  "pick_rate": 0.012214,
+  "rank": 173,
+  "title": "寒冰射手",
+  "win_rate": 0.416069,
+  "wins": 185060
+ },
+ "221": {
+  "games": 102891,
+  "low_sample": false,
+  "name": "泽丽",
+  "pick_rate": 0.002825,
+  "rank": 114,
+  "title": "祖安花火",
+  "win_rate": 0.484357,
+  "wins": 49836
+ },
+ "222": {
+  "games": 212676,
+  "low_sample": false,
+  "name": "金克丝",
+  "pick_rate": 0.00584,
+  "rank": 138,
+  "title": "暴走萝莉",
+  "win_rate": 0.473119,
+  "wins": 100621
+ },
+ "223": {
+  "games": 471089,
+  "low_sample": false,
+  "name": "塔姆",
+  "pick_rate": 0.012936,
+  "rank": 9,
+  "title": "河流之王",
+  "win_rate": 0.558548,
+  "wins": 263126
+ },
+ "23": {
+  "games": 233524,
+  "low_sample": false,
+  "name": "泰达米尔",
+  "pick_rate": 0.006413,
+  "rank": 45,
+  "title": "蛮族之王",
+  "win_rate": 0.515544,
+  "wins": 120392
+ },
+ "233": {
+  "games": 141664,
+  "low_sample": false,
+  "name": "贝蕾亚",
+  "pick_rate": 0.00389,
+  "rank": 116,
+  "title": "狂厄蔷薇",
+  "win_rate": 0.482614,
+  "wins": 68369
+ },
+ "234": {
+  "games": 260985,
+  "low_sample": false,
+  "name": "佛耶戈",
+  "pick_rate": 0.007167,
+  "rank": 33,
+  "title": "破败之王",
+  "win_rate": 0.524168,
+  "wins": 136800
+ },
+ "235": {
+  "games": 228347,
+  "low_sample": false,
+  "name": "赛娜",
+  "pick_rate": 0.006271,
+  "rank": 106,
+  "title": "涤魂圣枪",
+  "win_rate": 0.485927,
+  "wins": 110960
+ },
+ "236": {
+  "games": 529553,
+  "low_sample": false,
+  "name": "卢锡安",
+  "pick_rate": 0.014542,
+  "rank": 24,
+  "title": "圣枪游侠",
+  "win_rate": 0.53263,
+  "wins": 282056
+ },
+ "238": {
+  "games": 446656,
+  "low_sample": false,
+  "name": "劫",
+  "pick_rate": 0.012265,
+  "rank": 71,
+  "title": "影流之主",
+  "win_rate": 0.505496,
+  "wins": 225783
+ },
+ "24": {
+  "games": 229898,
+  "low_sample": false,
+  "name": "贾克斯",
+  "pick_rate": 0.006313,
+  "rank": 25,
+  "title": "武器大师",
+  "win_rate": 0.53238,
+  "wins": 122393
+ },
+ "240": {
+  "games": 36507,
+  "low_sample": false,
+  "name": "克烈",
+  "pick_rate": 0.001002,
+  "rank": 109,
+  "title": "暴怒骑士",
+  "win_rate": 0.485606,
+  "wins": 17728
+ },
+ "245": {
+  "games": 398352,
+  "low_sample": false,
+  "name": "艾克",
+  "pick_rate": 0.010939,
+  "rank": 10,
+  "title": "时间刺客",
+  "win_rate": 0.556525,
+  "wins": 221693
+ },
+ "246": {
+  "games": 237527,
+  "low_sample": false,
+  "name": "奇亚娜",
+  "pick_rate": 0.006523,
+  "rank": 58,
+  "title": "元素女皇",
+  "win_rate": 0.510157,
+  "wins": 121176
+ },
+ "25": {
+  "games": 303829,
+  "low_sample": false,
+  "name": "莫甘娜",
+  "pick_rate": 0.008343,
+  "rank": 17,
+  "title": "堕落天使",
+  "win_rate": 0.539461,
+  "wins": 163904
+ },
+ "254": {
+  "games": 118677,
+  "low_sample": false,
+  "name": "蔚",
+  "pick_rate": 0.003259,
+  "rank": 151,
+  "title": "皮城执法官",
+  "win_rate": 0.458792,
+  "wins": 54448
+ },
+ "26": {
+  "games": 130765,
+  "low_sample": false,
+  "name": "基兰",
+  "pick_rate": 0.003591,
+  "rank": 19,
+  "title": "时光守护者",
+  "win_rate": 0.538669,
+  "wins": 70439
+ },
+ "266": {
+  "games": 255786,
+  "low_sample": false,
+  "name": "亚托克斯",
+  "pick_rate": 0.007024,
+  "rank": 120,
+  "title": "暗裔剑魔",
+  "win_rate": 0.481129,
+  "wins": 123066
+ },
+ "267": {
+  "games": 90148,
+  "low_sample": false,
+  "name": "娜美",
+  "pick_rate": 0.002476,
+  "rank": 73,
+  "title": "唤潮鲛姬",
+  "win_rate": 0.505302,
+  "wins": 45552
+ },
+ "268": {
+  "games": 115122,
+  "low_sample": false,
+  "name": "阿兹尔",
+  "pick_rate": 0.003161,
+  "rank": 108,
+  "title": "沙漠皇帝",
+  "win_rate": 0.485893,
+  "wins": 55937
+ },
+ "27": {
+  "games": 194973,
+  "low_sample": false,
+  "name": "辛吉德",
+  "pick_rate": 0.005354,
+  "rank": 48,
+  "title": "炼金术士",
+  "win_rate": 0.515256,
+  "wins": 100461
+ },
+ "28": {
+  "games": 47418,
+  "low_sample": false,
+  "name": "伊芙琳",
+  "pick_rate": 0.001302,
+  "rank": 113,
+  "title": "痛苦之拥",
+  "win_rate": 0.484436,
+  "wins": 22971
+ },
+ "29": {
+  "games": 258936,
+  "low_sample": false,
+  "name": "图奇",
+  "pick_rate": 0.00711,
+  "rank": 161,
+  "title": "瘟疫之源",
+  "win_rate": 0.451559,
+  "wins": 116925
+ },
+ "3": {
+  "games": 217732,
+  "low_sample": false,
+  "name": "加里奥",
+  "pick_rate": 0.005979,
+  "rank": 34,
+  "title": "正义巨像",
+  "win_rate": 0.522872,
+  "wins": 113846
+ },
+ "30": {
+  "games": 412933,
+  "low_sample": false,
+  "name": "卡尔萨斯",
+  "pick_rate": 0.011339,
+  "rank": 117,
+  "title": "死亡颂唱者",
+  "win_rate": 0.482347,
+  "wins": 199177
+ },
+ "31": {
+  "games": 140879,
+  "low_sample": false,
+  "name": "科加斯",
+  "pick_rate": 0.003869,
+  "rank": 155,
+  "title": "虚空恐惧",
+  "win_rate": 0.455192,
+  "wins": 64127
+ },
+ "32": {
+  "games": 91836,
+  "low_sample": false,
+  "name": "阿木木",
+  "pick_rate": 0.002522,
+  "rank": 141,
+  "title": "殇之木乃伊",
+  "win_rate": 0.471972,
+  "wins": 43344
+ },
+ "33": {
+  "games": 34040,
+  "low_sample": false,
+  "name": "拉莫斯",
+  "pick_rate": 0.000935,
+  "rank": 146,
+  "title": "披甲龙龟",
+  "win_rate": 0.463278,
+  "wins": 15770
+ },
+ "34": {
+  "games": 77827,
+  "low_sample": false,
+  "name": "艾尼维亚",
+  "pick_rate": 0.002137,
+  "rank": 156,
+  "title": "冰晶凤凰",
+  "win_rate": 0.454971,
+  "wins": 35409
+ },
+ "35": {
+  "games": 438961,
+  "low_sample": false,
+  "name": "萨科",
+  "pick_rate": 0.012054,
+  "rank": 23,
+  "title": "恶魔小丑",
+  "win_rate": 0.532838,
+  "wins": 233895
+ },
+ "350": {
+  "games": 136677,
+  "low_sample": false,
+  "name": "悠米",
+  "pick_rate": 0.003753,
+  "rank": 40,
+  "title": "魔法猫咪",
+  "win_rate": 0.517666,
+  "wins": 70753
+ },
+ "36": {
+  "games": 164778,
+  "low_sample": false,
+  "name": "蒙多医生",
+  "pick_rate": 0.004525,
+  "rank": 115,
+  "title": "祖安狂人",
+  "win_rate": 0.483766,
+  "wins": 79714
+ },
+ "360": {
+  "games": 170092,
+  "low_sample": false,
+  "name": "莎弥拉",
+  "pick_rate": 0.004671,
+  "rank": 131,
+  "title": "沙漠玫瑰",
+  "win_rate": 0.475219,
+  "wins": 80831
+ },
+ "37": {
+  "games": 200086,
+  "low_sample": false,
+  "name": "娑娜",
+  "pick_rate": 0.005494,
+  "rank": 13,
+  "title": "琴瑟仙女",
+  "win_rate": 0.546115,
+  "wins": 109270
+ },
+ "38": {
+  "games": 175744,
+  "low_sample": false,
+  "name": "卡萨丁",
+  "pick_rate": 0.004826,
+  "rank": 46,
+  "title": "虚空行者",
+  "win_rate": 0.51542,
+  "wins": 90582
+ },
+ "39": {
+  "games": 202451,
+  "low_sample": false,
+  "name": "艾瑞莉娅",
+  "pick_rate": 0.005559,
+  "rank": 59,
+  "title": "刀锋舞者",
+  "win_rate": 0.51,
+  "wins": 103250
+ },
+ "4": {
+  "games": 451386,
+  "low_sample": false,
+  "name": "崔斯特",
+  "pick_rate": 0.012395,
+  "rank": 2,
+  "title": "卡牌大师",
+  "win_rate": 0.582504,
+  "wins": 262934
+ },
+ "40": {
+  "games": 96417,
+  "low_sample": false,
+  "name": "迦娜",
+  "pick_rate": 0.002648,
+  "rank": 5,
+  "title": "风暴之怒",
+  "win_rate": 0.560586,
+  "wins": 54050
+ },
+ "41": {
+  "games": 394995,
+  "low_sample": false,
+  "name": "普朗克",
+  "pick_rate": 0.010847,
+  "rank": 62,
+  "title": "海洋之灾",
+  "win_rate": 0.508011,
+  "wins": 200662
+ },
+ "412": {
+  "games": 229386,
+  "low_sample": false,
+  "name": "锤石",
+  "pick_rate": 0.006299,
+  "rank": 32,
+  "title": "魂锁典狱长",
+  "win_rate": 0.526798,
+  "wins": 120840
+ },
+ "42": {
+  "games": 303387,
+  "low_sample": false,
+  "name": "库奇",
+  "pick_rate": 0.008331,
+  "rank": 18,
+  "title": "英勇投弹手",
+  "win_rate": 0.538869,
+  "wins": 163486
+ },
+ "420": {
+  "games": 68700,
+  "low_sample": false,
+  "name": "俄洛伊",
+  "pick_rate": 0.001887,
+  "rank": 163,
+  "title": "海兽祭司",
+  "win_rate": 0.447817,
+  "wins": 30765
+ },
+ "421": {
+  "games": 36881,
+  "low_sample": false,
+  "name": "雷克塞",
+  "pick_rate": 0.001013,
+  "rank": 80,
+  "title": "虚空遁地兽",
+  "win_rate": 0.500963,
+  "wins": 18476
+ },
+ "427": {
+  "games": 49429,
+  "low_sample": false,
+  "name": "艾翁",
+  "pick_rate": 0.001357,
+  "rank": 7,
+  "title": "翠神",
+  "win_rate": 0.558923,
+  "wins": 27627
+ },
+ "429": {
+  "games": 96444,
+  "low_sample": false,
+  "name": "卡莉丝塔",
+  "pick_rate": 0.002648,
+  "rank": 139,
+  "title": "复仇之矛",
+  "win_rate": 0.472855,
+  "wins": 45604
+ },
+ "43": {
+  "games": 171275,
+  "low_sample": false,
+  "name": "卡尔玛",
+  "pick_rate": 0.004703,
+  "rank": 53,
+  "title": "天启者",
+  "win_rate": 0.514074,
+  "wins": 88048
+ },
+ "432": {
+  "games": 44391,
+  "low_sample": false,
+  "name": "巴德",
+  "pick_rate": 0.001219,
+  "rank": 98,
+  "title": "星界游神",
+  "win_rate": 0.491654,
+  "wins": 21825
+ },
+ "44": {
+  "games": 24509,
+  "low_sample": false,
+  "name": "塔里克",
+  "pick_rate": 0.000673,
+  "rank": 26,
+  "title": "瓦洛兰之盾",
+  "win_rate": 0.531968,
+  "wins": 13038
+ },
+ "45": {
+  "games": 142851,
+  "low_sample": false,
+  "name": "维迦",
+  "pick_rate": 0.003923,
+  "rank": 103,
+  "title": "邪恶小法师",
+  "win_rate": 0.48629,
+  "wins": 69467
+ },
+ "48": {
+  "games": 377459,
+  "low_sample": false,
+  "name": "特朗德尔",
+  "pick_rate": 0.010365,
+  "rank": 41,
+  "title": "巨魔之王",
+  "win_rate": 0.517357,
+  "wins": 195281
+ },
+ "497": {
+  "games": 45306,
+  "low_sample": false,
+  "name": "洛",
+  "pick_rate": 0.001244,
+  "rank": 91,
+  "title": "幻翎",
+  "win_rate": 0.496071,
+  "wins": 22475
+ },
+ "498": {
+  "games": 144550,
+  "low_sample": false,
+  "name": "霞",
+  "pick_rate": 0.003969,
+  "rank": 127,
+  "title": "逆羽",
+  "win_rate": 0.476354,
+  "wins": 68857
+ },
+ "5": {
+  "games": 324335,
+  "low_sample": false,
+  "name": "赵信",
+  "pick_rate": 0.008906,
+  "rank": 12,
+  "title": "德邦总管",
+  "win_rate": 0.549466,
+  "wins": 178211
+ },
+ "50": {
+  "games": 191775,
+  "low_sample": false,
+  "name": "斯维因",
+  "pick_rate": 0.005266,
+  "rank": 111,
+  "title": "诺克萨斯统领",
+  "win_rate": 0.485251,
+  "wins": 93059
+ },
+ "51": {
+  "games": 434112,
+  "low_sample": false,
+  "name": "凯特琳",
+  "pick_rate": 0.011921,
+  "rank": 88,
+  "title": "皮城女警",
+  "win_rate": 0.497289,
+  "wins": 215879
+ },
+ "516": {
+  "games": 102481,
+  "low_sample": false,
+  "name": "奥恩",
+  "pick_rate": 0.002814,
+  "rank": 159,
+  "title": "山隐之焰",
+  "win_rate": 0.452338,
+  "wins": 46356
+ },
+ "517": {
+  "games": 359654,
+  "low_sample": false,
+  "name": "塞拉斯",
+  "pick_rate": 0.009876,
+  "rank": 77,
+  "title": "解脱者",
+  "win_rate": 0.501802,
+  "wins": 180475
+ },
+ "518": {
+  "games": 73020,
+  "low_sample": false,
+  "name": "妮蔻",
+  "pick_rate": 0.002005,
+  "rank": 147,
+  "title": "万花通灵",
+  "win_rate": 0.462723,
+  "wins": 33788
+ },
+ "523": {
+  "games": 158201,
+  "low_sample": false,
+  "name": "厄斐琉斯",
+  "pick_rate": 0.004344,
+  "rank": 97,
+  "title": "残月之肃",
+  "win_rate": 0.491729,
+  "wins": 77792
+ },
+ "526": {
+  "games": 96794,
+  "low_sample": false,
+  "name": "芮尔",
+  "pick_rate": 0.002658,
+  "rank": 20,
+  "title": "镕铁少女",
+  "win_rate": 0.537244,
+  "wins": 52002
+ },
+ "53": {
+  "games": 218836,
+  "low_sample": false,
+  "name": "布里茨",
+  "pick_rate": 0.006009,
+  "rank": 126,
+  "title": "蒸汽机器人",
+  "win_rate": 0.476713,
+  "wins": 104322
+ },
+ "54": {
+  "games": 278843,
+  "low_sample": false,
+  "name": "墨菲特",
+  "pick_rate": 0.007657,
+  "rank": 119,
+  "title": "熔岩巨兽",
+  "win_rate": 0.481436,
+  "wins": 134245
+ },
+ "55": {
+  "games": 395060,
+  "low_sample": false,
+  "name": "卡特琳娜",
+  "pick_rate": 0.010849,
+  "rank": 90,
+  "title": "不祥之刃",
+  "win_rate": 0.496446,
+  "wins": 196126
+ },
+ "555": {
+  "games": 249510,
+  "low_sample": false,
+  "name": "派克",
+  "pick_rate": 0.006852,
+  "rank": 92,
+  "title": "血港鬼影",
+  "win_rate": 0.495543,
+  "wins": 123643
+ },
+ "56": {
+  "games": 148051,
+  "low_sample": false,
+  "name": "魔腾",
+  "pick_rate": 0.004066,
+  "rank": 112,
+  "title": "永恒梦魇",
+  "win_rate": 0.485144,
+  "wins": 71826
+ },
+ "57": {
+  "games": 318934,
+  "low_sample": false,
+  "name": "茂凯",
+  "pick_rate": 0.008758,
+  "rank": 64,
+  "title": "扭曲树精",
+  "win_rate": 0.507108,
+  "wins": 161734
+ },
+ "58": {
+  "games": 125719,
+  "low_sample": false,
+  "name": "雷克顿",
+  "pick_rate": 0.003452,
+  "rank": 144,
+  "title": "荒漠屠夫",
+  "win_rate": 0.465188,
+  "wins": 58483
+ },
+ "59": {
+  "games": 329503,
+  "low_sample": false,
+  "name": "嘉文四世",
+  "pick_rate": 0.009048,
+  "rank": 162,
+  "title": "德玛西亚皇子",
+  "win_rate": 0.450451,
+  "wins": 148425
+ },
+ "6": {
+  "games": 61424,
+  "low_sample": false,
+  "name": "厄加特",
+  "pick_rate": 0.001687,
+  "rank": 171,
+  "title": "无畏战车",
+  "win_rate": 0.426088,
+  "wins": 26172
+ },
+ "60": {
+  "games": 59213,
+  "low_sample": false,
+  "name": "伊莉丝",
+  "pick_rate": 0.001626,
+  "rank": 104,
+  "title": "蜘蛛女皇",
+  "win_rate": 0.486076,
+  "wins": 28782
+ },
+ "61": {
+  "games": 192191,
+  "low_sample": false,
+  "name": "奥莉安娜",
+  "pick_rate": 0.005278,
+  "rank": 70,
+  "title": "发条魔灵",
+  "win_rate": 0.505809,
+  "wins": 97212
+ },
+ "62": {
+  "games": 224541,
+  "low_sample": false,
+  "name": "孙悟空",
+  "pick_rate": 0.006166,
+  "rank": 75,
+  "title": "齐天大圣",
+  "win_rate": 0.502389,
+  "wins": 112807
+ },
+ "63": {
+  "games": 342968,
+  "low_sample": false,
+  "name": "布兰德",
+  "pick_rate": 0.009418,
+  "rank": 136,
+  "title": "复仇焰魂",
+  "win_rate": 0.473554,
+  "wins": 162414
+ },
+ "64": {
+  "games": 325861,
+  "low_sample": false,
+  "name": "李青",
+  "pick_rate": 0.008948,
+  "rank": 130,
+  "title": "盲僧",
+  "win_rate": 0.475255,
+  "wins": 154867
+ },
+ "67": {
+  "games": 276031,
+  "low_sample": false,
+  "name": "薇恩",
+  "pick_rate": 0.00758,
+  "rank": 99,
+  "title": "暗夜猎手",
+  "win_rate": 0.491361,
+  "wins": 135631
+ },
+ "68": {
+  "games": 305392,
+  "low_sample": false,
+  "name": "兰博",
+  "pick_rate": 0.008386,
+  "rank": 93,
+  "title": "机械公敌",
+  "win_rate": 0.492348,
+  "wins": 150359
+ },
+ "69": {
+  "games": 72193,
+  "low_sample": false,
+  "name": "卡西奥佩娅",
+  "pick_rate": 0.001982,
+  "rank": 160,
+  "title": "魔蛇之拥",
+  "win_rate": 0.451623,
+  "wins": 32604
+ },
+ "7": {
+  "games": 151635,
+  "low_sample": false,
+  "name": "乐芙兰",
+  "pick_rate": 0.004164,
+  "rank": 165,
+  "title": "诡术妖姬",
+  "win_rate": 0.447225,
+  "wins": 67815
+ },
+ "711": {
+  "games": 73270,
+  "low_sample": false,
+  "name": "薇古丝",
+  "pick_rate": 0.002012,
+  "rank": 67,
+  "title": "愁云使者",
+  "win_rate": 0.506892,
+  "wins": 37140
+ },
+ "72": {
+  "games": 122710,
+  "low_sample": false,
+  "name": "斯卡纳",
+  "pick_rate": 0.00337,
+  "rank": 83,
+  "title": "上古领主",
+  "win_rate": 0.499519,
+  "wins": 61296
+ },
+ "74": {
+  "games": 79887,
+  "low_sample": false,
+  "name": "黑默丁格",
+  "pick_rate": 0.002194,
+  "rank": 124,
+  "title": "大发明家",
+  "win_rate": 0.479189,
+  "wins": 38281
+ },
+ "75": {
+  "games": 157327,
+  "low_sample": false,
+  "name": "内瑟斯",
+  "pick_rate": 0.00432,
+  "rank": 52,
+  "title": "沙漠死神",
+  "win_rate": 0.514406,
+  "wins": 80930
+ },
+ "76": {
+  "games": 239030,
+  "low_sample": false,
+  "name": "奈德丽",
+  "pick_rate": 0.006564,
+  "rank": 105,
+  "title": "狂野女猎手",
+  "win_rate": 0.485985,
+  "wins": 116165
+ },
+ "77": {
+  "games": 241612,
+  "low_sample": false,
+  "name": "乌迪尔",
+  "pick_rate": 0.006635,
+  "rank": 134,
+  "title": "兽灵行者",
+  "win_rate": 0.474302,
+  "wins": 114597
+ },
+ "777": {
+  "games": 425935,
+  "low_sample": false,
+  "name": "永恩",
+  "pick_rate": 0.011696,
+  "rank": 4,
+  "title": "封魔剑魂",
+  "win_rate": 0.572007,
+  "wins": 243638
+ },
+ "78": {
+  "games": 85777,
+  "low_sample": false,
+  "name": "波比",
+  "pick_rate": 0.002355,
+  "rank": 28,
+  "title": "圣锤之毅",
+  "win_rate": 0.529373,
+  "wins": 45408
+ },
+ "79": {
+  "games": 271692,
+  "low_sample": false,
+  "name": "古拉加斯",
+  "pick_rate": 0.007461,
+  "rank": 61,
+  "title": "酒桶",
+  "win_rate": 0.509157,
+  "wins": 138334
+ },
+ "799": {
+  "games": 297111,
+  "low_sample": false,
+  "name": "安蓓萨",
+  "pick_rate": 0.008159,
+  "rank": 21,
+  "title": "铁血狼母",
+  "win_rate": 0.535867,
+  "wins": 159212
+ },
+ "8": {
+  "games": 282473,
+  "low_sample": false,
+  "name": "弗拉基米尔",
+  "pick_rate": 0.007757,
+  "rank": 95,
+  "title": "猩红收割者",
+  "win_rate": 0.491927,
+  "wins": 138956
+ },
+ "80": {
+  "games": 273239,
+  "low_sample": false,
+  "name": "潘森",
+  "pick_rate": 0.007503,
+  "rank": 55,
+  "title": "不屈之枪",
+  "win_rate": 0.512646,
+  "wins": 140075
+ },
+ "800": {
+  "games": 147697,
+  "low_sample": false,
+  "name": "梅尔",
+  "pick_rate": 0.004056,
+  "rank": 137,
+  "title": "流光镜影",
+  "win_rate": 0.473449,
+  "wins": 69927
+ },
+ "804": {
+  "games": 237546,
+  "low_sample": false,
+  "name": "芸阿娜",
+  "pick_rate": 0.006523,
+  "rank": 122,
+  "title": "不破之誓",
+  "win_rate": 0.480307,
+  "wins": 114095
+ },
+ "805": {
+  "games": 237605,
+  "low_sample": false,
+  "name": "洛克",
+  "pick_rate": 0.006525,
+  "rank": 145,
+  "title": "灰烬驱魔人",
+  "win_rate": 0.464228,
+  "wins": 110303
+ },
+ "81": {
+  "games": 474308,
+  "low_sample": false,
+  "name": "伊泽瑞尔",
+  "pick_rate": 0.013025,
+  "rank": 110,
+  "title": "探险家",
+  "win_rate": 0.485452,
+  "wins": 230254
+ },
+ "82": {
+  "games": 135426,
+  "low_sample": false,
+  "name": "莫德凯撒",
+  "pick_rate": 0.003719,
+  "rank": 172,
+  "title": "铁铠冥魂",
+  "win_rate": 0.424224,
+  "wins": 57451
+ },
+ "83": {
+  "games": 18240,
+  "low_sample": false,
+  "name": "约里克",
+  "pick_rate": 0.000501,
+  "rank": 170,
+  "title": "牧魂人",
+  "win_rate": 0.427029,
+  "wins": 7789
+ },
+ "84": {
+  "games": 174756,
+  "low_sample": false,
+  "name": "阿卡丽",
+  "pick_rate": 0.004799,
+  "rank": 168,
+  "title": "离群之刺",
+  "win_rate": 0.444917,
+  "wins": 77752
+ },
+ "85": {
+  "games": 85122,
+  "low_sample": false,
+  "name": "凯南",
+  "pick_rate": 0.002337,
+  "rank": 154,
+  "title": "狂暴之心",
+  "win_rate": 0.457132,
+  "wins": 38912
+ },
+ "86": {
+  "games": 174984,
+  "low_sample": false,
+  "name": "盖伦",
+  "pick_rate": 0.004805,
+  "rank": 158,
+  "title": "德玛西亚之力",
+  "win_rate": 0.452699,
+  "wins": 79215
+ },
+ "875": {
+  "games": 321675,
+  "low_sample": false,
+  "name": "瑟提",
+  "pick_rate": 0.008833,
+  "rank": 133,
+  "title": "腕豪",
+  "win_rate": 0.474404,
+  "wins": 152604
+ },
+ "876": {
+  "games": 274764,
+  "low_sample": false,
+  "name": "莉莉娅",
+  "pick_rate": 0.007545,
+  "rank": 49,
+  "title": "含羞蓓蕾",
+  "win_rate": 0.515235,
+  "wins": 141568
+ },
+ "887": {
+  "games": 176902,
+  "low_sample": false,
+  "name": "格温",
+  "pick_rate": 0.004858,
+  "rank": 8,
+  "title": "灵罗娃娃",
+  "win_rate": 0.558818,
+  "wins": 98856
+ },
+ "888": {
+  "games": 79679,
+  "low_sample": false,
+  "name": "烈娜塔 · 戈拉斯克",
+  "pick_rate": 0.002188,
+  "rank": 43,
+  "title": "炼金男爵",
+  "win_rate": 0.51705,
+  "wins": 41198
+ },
+ "89": {
+  "games": 106963,
+  "low_sample": false,
+  "name": "蕾欧娜",
+  "pick_rate": 0.002937,
+  "rank": 63,
+  "title": "曙光女神",
+  "win_rate": 0.50768,
+  "wins": 54303
+ },
+ "893": {
+  "games": 293430,
+  "low_sample": false,
+  "name": "阿萝拉",
+  "pick_rate": 0.008058,
+  "rank": 89,
+  "title": "双界灵兔",
+  "win_rate": 0.496538,
+  "wins": 145699
+ },
+ "895": {
+  "games": 30917,
+  "low_sample": false,
+  "name": "尼菈",
+  "pick_rate": 0.000849,
+  "rank": 30,
+  "title": "不羁之悦",
+  "win_rate": 0.527444,
+  "wins": 16307
+ },
+ "897": {
+  "games": 126604,
+  "low_sample": false,
+  "name": "奎桑提",
+  "pick_rate": 0.003477,
+  "rank": 153,
+  "title": "纳祖芒荣耀",
+  "win_rate": 0.458485,
+  "wins": 58046
+ },
+ "9": {
+  "games": 106045,
+  "low_sample": false,
+  "name": "费德提克",
+  "pick_rate": 0.002912,
+  "rank": 129,
+  "title": "远古恐惧",
+  "win_rate": 0.475449,
+  "wins": 50419
+ },
+ "90": {
+  "games": 218321,
+  "low_sample": false,
+  "name": "玛尔扎哈",
+  "pick_rate": 0.005995,
+  "rank": 50,
+  "title": "虚空先知",
+  "win_rate": 0.514582,
+  "wins": 112344
+ },
+ "901": {
+  "games": 347044,
+  "low_sample": false,
+  "name": "斯莫德",
+  "pick_rate": 0.00953,
+  "rank": 121,
+  "title": "炽炎雏龙",
+  "win_rate": 0.480743,
+  "wins": 166839
+ },
+ "902": {
+  "games": 95314,
+  "low_sample": false,
+  "name": "米利欧",
+  "pick_rate": 0.002617,
+  "rank": 57,
+  "title": "明烛",
+  "win_rate": 0.510555,
+  "wins": 48663
+ },
+ "904": {
+  "games": 159376,
+  "low_sample": false,
+  "name": "亚恒",
+  "pick_rate": 0.004377,
+  "rank": 6,
+  "title": "不落魔锋",
+  "win_rate": 0.56026,
+  "wins": 89292
+ },
+ "91": {
+  "games": 261196,
+  "low_sample": false,
+  "name": "泰隆",
+  "pick_rate": 0.007173,
+  "rank": 87,
+  "title": "刀锋之影",
+  "win_rate": 0.497573,
+  "wins": 129964
+ },
+ "910": {
+  "games": 228772,
+  "low_sample": false,
+  "name": "彗",
+  "pick_rate": 0.006282,
+  "rank": 16,
+  "title": "异画师",
+  "win_rate": 0.540905,
+  "wins": 123744
+ },
+ "92": {
+  "games": 135560,
+  "low_sample": false,
+  "name": "锐雯",
+  "pick_rate": 0.003723,
+  "rank": 56,
+  "title": "放逐之刃",
+  "win_rate": 0.512496,
+  "wins": 69474
+ },
+ "950": {
+  "games": 189441,
+  "low_sample": false,
+  "name": "纳亚菲利",
+  "pick_rate": 0.005202,
+  "rank": 143,
+  "title": "百裂冥犬",
+  "win_rate": 0.465723,
+  "wins": 88227
+ },
+ "96": {
+  "games": 170715,
+  "low_sample": false,
+  "name": "克格莫",
+  "pick_rate": 0.004688,
+  "rank": 140,
+  "title": "深渊巨口",
+  "win_rate": 0.472138,
+  "wins": 80601
+ },
+ "98": {
+  "games": 76758,
+  "low_sample": false,
+  "name": "慎",
+  "pick_rate": 0.002108,
+  "rank": 101,
+  "title": "暮光之眼",
+  "win_rate": 0.488405,
+  "wins": 37489
+ },
+ "99": {
+  "games": 145241,
+  "low_sample": false,
+  "name": "拉克丝",
+  "pick_rate": 0.003988,
+  "rank": 142,
+  "title": "光辉女郎",
+  "win_rate": 0.466865,
+  "wins": 67808
+ }
+}

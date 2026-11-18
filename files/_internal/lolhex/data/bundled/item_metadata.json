@@ -1,0 +1,3167 @@
+{
+ "1001": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/1001.png",
+  "into": [
+   "3117",
+   "3158",
+   "3047",
+   "3009",
+   "3111",
+   "3006",
+   "3005",
+   "3008",
+   "3010",
+   "3020"
+  ],
+  "name": "鞋子",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 300,
+  "types": [
+   "Boots"
+  ]
+ },
+ "1004": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/1004.png",
+  "into": [
+   "3114",
+   "3012",
+   "4642"
+  ],
+  "name": "仙女护符",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 200,
+  "types": [
+   "ManaRegen"
+  ]
+ },
+ "1006": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/1006.png",
+  "into": [
+   "3801",
+   "3211",
+   "323109",
+   "3109"
+  ],
+  "name": "治疗宝珠",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 300,
+  "types": [
+   "HealthRegen"
+  ]
+ },
+ "1011": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/1011.png",
+  "into": [
+   "3119",
+   "8001",
+   "3748",
+   "3083",
+   "3039",
+   "2525",
+   "3084",
+   "3116",
+   "3143",
+   "323119",
+   "6665",
+   "4637",
+   "6609",
+   "6667"
+  ],
+  "name": "巨人腰带",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 900,
+  "types": [
+   "Health"
+  ]
+ },
+ "1018": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/1018.png",
+  "into": [
+   "6670",
+   "123430",
+   "3086",
+   "3095",
+   "3039",
+   "6676",
+   "3031",
+   "3033",
+   "3508",
+   "667666"
+  ],
+  "name": "灵巧披风",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 600,
+  "types": [
+   "CriticalStrike"
+  ]
+ },
+ "1026": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/1026.png",
+  "into": [
+   "3115",
+   "326657",
+   "326621",
+   "3100",
+   "3118",
+   "2510",
+   "2522",
+   "3116",
+   "324005",
+   "3135",
+   "3165",
+   "4637",
+   "6621",
+   "6657"
+  ],
+  "name": "爆裂魔杖",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 850,
+  "types": [
+   "SpellDamage"
+  ]
+ },
+ "1027": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/1027.png",
+  "into": [
+   "3803",
+   "3024",
+   "3802"
+  ],
+  "name": "蓝水晶",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 300,
+  "types": [
+   "Mana"
+  ]
+ },
+ "1028": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/1028.png",
+  "into": [
+   "323075",
+   "323107",
+   "1011",
+   "323222",
+   "4635",
+   "6035",
+   "3801",
+   "2526",
+   "2021",
+   "3211",
+   "4401",
+   "3023",
+   "3161",
+   "6662",
+   "6660",
+   "3803",
+   "3068",
+   "2502",
+   "3012",
+   "3044",
+   "3053",
+   "3066",
+   "3067",
+   "3075",
+   "326617",
+   "3147",
+   "3152",
+   "322526",
+   "3742"
+  ],
+  "name": "红水晶",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 400,
+  "types": [
+   "Health"
+  ]
+ },
+ "1029": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/1029.png",
+  "into": [
+   "1031",
+   "3047",
+   "323190",
+   "323050",
+   "3190",
+   "2019",
+   "2524",
+   "2421",
+   "3023",
+   "3082",
+   "2420",
+   "3024",
+   "3193",
+   "3050",
+   "3076",
+   "3105"
+  ],
+  "name": "布甲",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 300,
+  "types": [
+   "Armor"
+  ]
+ },
+ "1031": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/1031.png",
+  "into": [
+   "323075",
+   "6662",
+   "3068",
+   "2502",
+   "3002",
+   "323109",
+   "3075",
+   "3109",
+   "323002",
+   "3742",
+   "6665"
+  ],
+  "name": "锁子甲",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 800,
+  "types": [
+   "Armor"
+  ]
+ },
+ "1033": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/1033.png",
+  "into": [
+   "1057",
+   "4632",
+   "323190",
+   "323050",
+   "3190",
+   "2524",
+   "3211",
+   "3001",
+   "3111",
+   "3155",
+   "3193",
+   "3050",
+   "3105",
+   "3140"
+  ],
+  "name": "抗魔斗篷",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 400,
+  "types": [
+   "SpellBlock"
+  ]
+ },
+ "1036": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/1036.png",
+  "into": [
+   "3032",
+   "6670",
+   "1053",
+   "3133",
+   "3004",
+   "2015",
+   "2019",
+   "2021",
+   "2517",
+   "6692",
+   "3123",
+   "3051",
+   "6671",
+   "3134",
+   "323004",
+   "3155",
+   "3035",
+   "3077",
+   "2523",
+   "3044",
+   "4003",
+   "3142",
+   "6690",
+   "6699",
+   "6701"
+  ],
+  "name": "长剑",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 350,
+  "types": [
+   "Damage",
+   "Lane"
+  ]
+ },
+ "1037": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/1037.png",
+  "into": [
+   "3181",
+   "6035",
+   "3139",
+   "2020",
+   "2517",
+   "6692",
+   "3071",
+   "3072",
+   "6673",
+   "3161",
+   "6676",
+   "2523",
+   "3031",
+   "3053",
+   "3087",
+   "3124",
+   "3153",
+   "6695",
+   "6029",
+   "6333",
+   "667666",
+   "6701"
+  ],
+  "name": "十字镐",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 875,
+  "types": [
+   "Damage"
+  ]
+ },
+ "1038": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/1038.png",
+  "into": [
+   "3032",
+   "3072",
+   "6671",
+   "3095",
+   "3026",
+   "3031",
+   "4403"
+  ],
+  "name": "暴风之剑",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 1300,
+  "types": [
+   "Damage"
+  ]
+ },
+ "1042": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/1042.png",
+  "into": [
+   "6631",
+   "1043",
+   "3046",
+   "3051",
+   "6675",
+   "6677",
+   "3144",
+   "3086",
+   "3006",
+   "2510",
+   "3073",
+   "3131"
+  ],
+  "name": "短剑",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 250,
+  "types": [
+   "AttackSpeed"
+  ]
+ },
+ "1043": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/1043.png",
+  "into": [
+   "3115",
+   "3302",
+   "3091",
+   "3124",
+   "3153",
+   "6672"
+  ],
+  "name": "反曲之弓",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 700,
+  "types": [
+   "AttackSpeed",
+   "OnHit"
+  ]
+ },
+ "1052": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/1052.png",
+  "into": [
+   "4635",
+   "4632",
+   "124011",
+   "3146",
+   "3145",
+   "2421",
+   "3108",
+   "2508",
+   "2420",
+   "4628",
+   "3113",
+   "3116",
+   "3124",
+   "3147",
+   "323504",
+   "326616",
+   "3802",
+   "3916",
+   "4005",
+   "4630",
+   "4637",
+   "4642",
+   "4644",
+   "6656"
+  ],
+  "name": "增幅典籍",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 400,
+  "types": [
+   "SpellDamage"
+  ]
+ },
+ "1053": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/1053.png",
+  "into": [
+   "3139",
+   "3146",
+   "3072",
+   "3074",
+   "3153",
+   "4403"
+  ],
+  "name": "吸血鬼节杖",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 900,
+  "types": [
+   "Damage",
+   "LifeSteal"
+  ]
+ },
+ "1057": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/1057.png",
+  "into": [
+   "4401",
+   "2504",
+   "3091",
+   "328020",
+   "6665",
+   "8020"
+  ],
+  "name": "负极斗篷",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 850,
+  "types": [
+   "SpellBlock"
+  ]
+ },
+ "1058": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/1058.png",
+  "into": [
+   "3128",
+   "3102",
+   "3157",
+   "4645",
+   "3089",
+   "4403"
+  ],
+  "name": "无用大棒",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 1200,
+  "types": [
+   "SpellDamage"
+  ]
+ },
+ "123430": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/123430.png",
+  "into": [],
+  "name": "毁坏仪式",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3000,
+  "types": [
+   "CriticalStrike",
+   "SpellDamage",
+   "CooldownReduction",
+   "NonbootsMovement"
+  ]
+ },
+ "124011": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/124011.png",
+  "into": [],
+  "name": "花晓之剑",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2350,
+  "types": [
+   "Health",
+   "SpellDamage",
+   "CooldownReduction",
+   "OnHit",
+   "AbilityHaste"
+  ]
+ },
+ "126697": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/126697.png",
+  "into": [],
+  "name": "狂妄",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2950,
+  "types": [
+   "Damage",
+   "Active",
+   "CooldownReduction",
+   "ArmorPenetration",
+   "AbilityHaste"
+  ]
+ },
+ "2003": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/2003.png",
+  "into": [],
+  "name": "生命药水",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 50,
+  "types": [
+   "HealthRegen",
+   "Consumable",
+   "Lane",
+   "Jungle"
+  ]
+ },
+ "2019": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/2019.png",
+  "into": [
+   "3026",
+   "6333",
+   "6700"
+  ],
+  "name": "钢铁印章",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 1100,
+  "types": [
+   "Armor",
+   "Damage"
+  ]
+ },
+ "2020": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/2020.png",
+  "into": [
+   "6696",
+   "2520",
+   "6698",
+   "6699"
+  ],
+  "name": "残暴之力",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 1337,
+  "types": [
+   "Damage",
+   "CooldownReduction",
+   "ArmorPenetration"
+  ]
+ },
+ "2021": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/2021.png",
+  "into": [
+   "3181",
+   "3748",
+   "3161",
+   "3814",
+   "6610",
+   "2501",
+   "3053",
+   "3073"
+  ],
+  "name": "掘道钻头",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 1150,
+  "types": [
+   "Health",
+   "Damage"
+  ]
+ },
+ "2022": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/2022.png",
+  "into": [
+   "3158",
+   "3133",
+   "2020",
+   "3108",
+   "6660",
+   "3024",
+   "3057",
+   "3067",
+   "3802",
+   "4642"
+  ],
+  "name": "荧尘",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 250,
+  "types": [
+   "CooldownReduction"
+  ]
+ },
+ "2031": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/2031.png",
+  "into": [
+   "2033"
+  ],
+  "name": "复用型药水",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 150,
+  "types": [
+   "HealthRegen",
+   "Consumable",
+   "Active",
+   "Lane",
+   "Jungle"
+  ]
+ },
+ "2051": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/2051.png",
+  "into": [],
+  "name": "守护者号角",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 950,
+  "types": [
+   "Health",
+   "HealthRegen",
+   "Lane"
+  ]
+ },
+ "2065": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/2065.png",
+  "into": [],
+  "name": "舒瑞娅的战歌",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2200,
+  "types": [
+   "SpellDamage",
+   "ManaRegen",
+   "Active",
+   "CooldownReduction",
+   "NonbootsMovement",
+   "AbilityHaste"
+  ]
+ },
+ "2138": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/2138.png",
+  "into": [],
+  "name": "钢铁合剂",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 500,
+  "types": [
+   "Health",
+   "Consumable",
+   "NonbootsMovement",
+   "Tenacity"
+  ]
+ },
+ "2139": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/2139.png",
+  "into": [],
+  "name": "巫术合剂",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 500,
+  "types": [
+   "Consumable",
+   "ManaRegen",
+   "SpellDamage"
+  ]
+ },
+ "2140": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/2140.png",
+  "into": [],
+  "name": "愤怒合剂",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 500,
+  "types": [
+   "Consumable",
+   "Damage",
+   "LifeSteal",
+   "SpellVamp"
+  ]
+ },
+ "223069": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/223069.png",
+  "into": [],
+  "name": "虚空献祭",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 6000,
+  "types": [
+   "Health",
+   "SpellBlock",
+   "HealthRegen",
+   "Armor",
+   "Aura",
+   "CooldownReduction",
+   "MagicResist",
+   "AbilityHaste"
+  ]
+ },
+ "226668": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/226668.png",
+  "into": [],
+  "name": "终极九头蛇",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 6000,
+  "types": [
+   "Damage",
+   "LifeSteal",
+   "AbilityHaste"
+  ]
+ },
+ "228002": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/228002.png",
+  "into": [],
+  "name": "沃格勒特的巫师帽",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 6000,
+  "types": [
+   "Armor",
+   "SpellDamage",
+   "Active"
+  ]
+ },
+ "2420": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/2420.png",
+  "into": [
+   "3157"
+  ],
+  "name": "探索者的护臂",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 1600,
+  "types": [
+   "Armor",
+   "SpellDamage",
+   "Active"
+  ]
+ },
+ "2421": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/2421.png",
+  "into": [
+   "3157"
+  ],
+  "name": "碎裂的护臂",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 1600,
+  "types": []
+ },
+ "2501": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/2501.png",
+  "into": [],
+  "name": "霸王血铠",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3300,
+  "types": [
+   "Health",
+   "Damage"
+  ]
+ },
+ "2502": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/2502.png",
+  "into": [],
+  "name": "无终恨意",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2800,
+  "types": [
+   "Health",
+   "Armor",
+   "CooldownReduction",
+   "AbilityHaste"
+  ]
+ },
+ "2503": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/2503.png",
+  "into": [],
+  "name": "黯炎火炬",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2800,
+  "types": [
+   "SpellDamage",
+   "Mana",
+   "CooldownReduction",
+   "AbilityHaste"
+  ]
+ },
+ "2504": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/2504.png",
+  "into": [],
+  "name": "败魔",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2900,
+  "types": [
+   "Health",
+   "SpellBlock",
+   "HealthRegen"
+  ]
+ },
+ "2508": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/2508.png",
+  "into": [
+   "6653",
+   "2503"
+  ],
+  "name": "命定灰烬",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 900,
+  "types": [
+   "SpellDamage"
+  ]
+ },
+ "2510": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/2510.png",
+  "into": [],
+  "name": "黄昏与黎明",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3100,
+  "types": [
+   "Health",
+   "AttackSpeed",
+   "SpellDamage",
+   "OnHit",
+   "AbilityHaste"
+  ]
+ },
+ "2512": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/2512.png",
+  "into": [],
+  "name": "猎魔人弩箭",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2650,
+  "types": [
+   "CriticalStrike",
+   "AttackSpeed",
+   "NonbootsMovement",
+   "AbilityHaste"
+  ]
+ },
+ "2517": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/2517.png",
+  "into": [],
+  "name": "无穷饥渴",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3100,
+  "types": [
+   "Damage",
+   "LifeSteal",
+   "SpellVamp",
+   "Tenacity",
+   "AbilityHaste"
+  ]
+ },
+ "2522": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/2522.png",
+  "into": [],
+  "name": "实现器",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2800,
+  "types": [
+   "SpellDamage",
+   "Mana",
+   "AbilityHaste"
+  ]
+ },
+ "2523": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/2523.png",
+  "into": [],
+  "name": "海克斯镜片 C44",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2800,
+  "types": [
+   "Damage",
+   "CriticalStrike"
+  ]
+ },
+ "2524": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/2524.png",
+  "into": [],
+  "name": "班德尔音管",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2300,
+  "types": [
+   "Health",
+   "SpellBlock",
+   "Armor",
+   "AttackSpeed",
+   "NonbootsMovement",
+   "AbilityHaste"
+  ]
+ },
+ "2525": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/2525.png",
+  "into": [],
+  "name": "原生质护带",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2600,
+  "types": [
+   "Health",
+   "NonbootsMovement",
+   "Tenacity",
+   "AbilityHaste"
+  ]
+ },
+ "2526": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/2526.png",
+  "into": [
+   "2530"
+  ],
+  "name": "耳语头环",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2250,
+  "types": [
+   "Health",
+   "Mana",
+   "ManaRegen"
+  ]
+ },
+ "2530": {
+  "category": "complete_equipment",
+  "icon": "https://ddragon.leagueoflegends.com/cdn/16.21.1/img/item/2530.png",
+  "icon_source": "prior published RiotDataDragon16.21.1 icon; item identity unchanged",
+  "into": [],
+  "name": "歌之权冠",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2250,
+  "types": [
+   "Health",
+   "Mana",
+   "ManaRegen",
+   "AbilityHaste"
+  ]
+ },
+ "3003": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3003.png",
+  "into": [],
+  "name": "大天使之杖",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2900,
+  "types": [
+   "SpellDamage",
+   "Mana",
+   "AbilityHaste"
+  ]
+ },
+ "3004": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3004.png",
+  "into": [],
+  "name": "魔宗",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2900,
+  "types": [
+   "Damage",
+   "Mana",
+   "CooldownReduction",
+   "OnHit",
+   "AbilityHaste"
+  ]
+ },
+ "3006": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3006.png",
+  "into": [
+   "3172"
+  ],
+  "name": "狂战士胫甲",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 1100,
+  "types": [
+   "AttackSpeed",
+   "Boots"
+  ]
+ },
+ "3008": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3008.png",
+  "into": [
+   "3168"
+  ],
+  "name": "暴食胫甲",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 1100,
+  "types": [
+   "LifeSteal",
+   "SpellVamp",
+   "Boots"
+  ]
+ },
+ "3009": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3009.png",
+  "into": [
+   "3170"
+  ],
+  "name": "轻灵之靴",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 1000,
+  "types": [
+   "Boots"
+  ]
+ },
+ "3020": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3020.png",
+  "into": [
+   "3175"
+  ],
+  "name": "法师之靴",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 1100,
+  "types": [
+   "Boots",
+   "MagicPenetration"
+  ]
+ },
+ "3024": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3024.png",
+  "into": [
+   "3110",
+   "323110"
+  ],
+  "name": "冰川圆盾",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 900,
+  "types": [
+   "Armor",
+   "Mana",
+   "CooldownReduction",
+   "AbilityHaste"
+  ]
+ },
+ "3031": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3031.png",
+  "into": [],
+  "name": "无尽之刃",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3500,
+  "types": [
+   "CriticalStrike",
+   "Damage"
+  ]
+ },
+ "3032": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3032.png",
+  "into": [],
+  "name": "育恩塔尔荒野箭",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3000,
+  "types": [
+   "Damage",
+   "CriticalStrike",
+   "AttackSpeed"
+  ]
+ },
+ "3033": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3033.png",
+  "into": [],
+  "name": "凡性的提醒",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3000,
+  "types": [
+   "Damage",
+   "CriticalStrike",
+   "ArmorPenetration"
+  ]
+ },
+ "3035": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3035.png",
+  "into": [
+   "6694",
+   "3033",
+   "3036"
+  ],
+  "name": "最后的轻语",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 1450,
+  "types": [
+   "ArmorPenetration",
+   "Damage"
+  ]
+ },
+ "3036": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3036.png",
+  "into": [],
+  "name": "多米尼克领主的致意",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3300,
+  "types": [
+   "Damage",
+   "CriticalStrike",
+   "ArmorPenetration"
+  ]
+ },
+ "3039": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3039.png",
+  "into": [],
+  "name": "阿塔玛的清算",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2900,
+  "types": [
+   "Health",
+   "CriticalStrike"
+  ]
+ },
+ "3040": {
+  "category": "complete_equipment",
+  "icon": "https://ddragon.leagueoflegends.com/cdn/16.21.1/img/item/3040.png",
+  "icon_source": "prior published RiotDataDragon16.21.1 icon; item identity unchanged",
+  "into": [],
+  "name": "炽天使之拥",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2900,
+  "types": [
+   "SpellDamage",
+   "Mana",
+   "AbilityHaste"
+  ]
+ },
+ "3042": {
+  "category": "complete_equipment",
+  "icon": "https://ddragon.leagueoflegends.com/cdn/16.21.1/img/item/3042.png",
+  "icon_source": "prior published RiotDataDragon16.21.1 icon; item identity unchanged",
+  "into": [],
+  "name": "魔切",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2900,
+  "types": [
+   "Damage",
+   "Mana",
+   "CooldownReduction",
+   "OnHit",
+   "ArmorPenetration"
+  ]
+ },
+ "3044": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3044.png",
+  "into": [
+   "6631",
+   "6630",
+   "3071",
+   "3073",
+   "3078"
+  ],
+  "name": "净蚀",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 1100,
+  "types": [
+   "Health",
+   "Damage",
+   "NonbootsMovement"
+  ]
+ },
+ "3046": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3046.png",
+  "into": [],
+  "name": "幻影之舞",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2650,
+  "types": [
+   "CriticalStrike",
+   "AttackSpeed",
+   "NonbootsMovement"
+  ]
+ },
+ "3047": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3047.png",
+  "into": [
+   "3174"
+  ],
+  "name": "铁板靴",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 1200,
+  "types": [
+   "Armor",
+   "Boots"
+  ]
+ },
+ "3050": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3050.png",
+  "into": [],
+  "name": "基克的聚合",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2200,
+  "types": [
+   "Health",
+   "SpellBlock",
+   "Armor",
+   "AbilityHaste"
+  ]
+ },
+ "3051": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3051.png",
+  "into": [
+   "3302",
+   "3078",
+   "6672"
+  ],
+  "name": "缚炉之斧",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 1200,
+  "types": [
+   "Damage",
+   "AttackSpeed"
+  ]
+ },
+ "3053": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3053.png",
+  "into": [],
+  "name": "斯特拉克的挑战护手",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3200,
+  "types": [
+   "Health",
+   "Damage",
+   "Tenacity"
+  ]
+ },
+ "3057": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3057.png",
+  "into": [
+   "3100",
+   "6662",
+   "2510",
+   "3508",
+   "3078",
+   "6632"
+  ],
+  "name": "耀光",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 900,
+  "types": [
+   "OnHit",
+   "AbilityHaste"
+  ]
+ },
+ "3065": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3065.png",
+  "into": [],
+  "name": "振奋盔甲",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2700,
+  "types": [
+   "Health",
+   "SpellBlock",
+   "HealthRegen",
+   "CooldownReduction",
+   "AbilityHaste"
+  ]
+ },
+ "3066": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3066.png",
+  "into": [
+   "3181",
+   "4401",
+   "3002",
+   "323002",
+   "3742"
+  ],
+  "name": "带翼的月板甲",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 800,
+  "types": [
+   "Health",
+   "NonbootsMovement"
+  ]
+ },
+ "3067": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3067.png",
+  "into": [
+   "323107",
+   "323222",
+   "6630",
+   "124011",
+   "323190",
+   "323050",
+   "3119",
+   "8001",
+   "3190",
+   "2524",
+   "3071",
+   "6620",
+   "2502",
+   "2510",
+   "2525",
+   "3050",
+   "323109",
+   "3065",
+   "3109",
+   "326617",
+   "3152",
+   "3165",
+   "3222",
+   "323119",
+   "326620",
+   "328020",
+   "4403",
+   "4629",
+   "4644",
+   "6617",
+   "6632",
+   "6656",
+   "8020"
+  ],
+  "name": "燃烧宝石",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 800,
+  "types": [
+   "Health",
+   "CooldownReduction",
+   "AbilityHaste"
+  ]
+ },
+ "3068": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3068.png",
+  "into": [],
+  "name": "日炎圣盾",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2800,
+  "types": [
+   "Health",
+   "Armor",
+   "Aura",
+   "AbilityHaste"
+  ]
+ },
+ "3070": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3070.png",
+  "into": [
+   "3003",
+   "3004",
+   "3119",
+   "2526"
+  ],
+  "name": "女神之泪",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 400,
+  "types": [
+   "Mana",
+   "ManaRegen"
+  ]
+ },
+ "3071": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3071.png",
+  "into": [],
+  "name": "黑色切割者",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3000,
+  "types": [
+   "Health",
+   "Damage",
+   "CooldownReduction",
+   "OnHit",
+   "NonbootsMovement",
+   "ArmorPenetration",
+   "AbilityHaste"
+  ]
+ },
+ "3072": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3072.png",
+  "into": [],
+  "name": "饮血剑",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3400,
+  "types": [
+   "Damage",
+   "LifeSteal"
+  ]
+ },
+ "3073": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3073.png",
+  "into": [],
+  "name": "海克斯注力刚壁",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3000,
+  "types": [
+   "Health",
+   "Damage",
+   "AttackSpeed",
+   "CooldownReduction",
+   "NonbootsMovement",
+   "AbilityHaste"
+  ]
+ },
+ "3074": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3074.png",
+  "into": [],
+  "name": "贪欲九头蛇",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3300,
+  "types": [
+   "Damage",
+   "LifeSteal",
+   "CooldownReduction",
+   "OnHit",
+   "AbilityHaste"
+  ]
+ },
+ "3075": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3075.png",
+  "into": [],
+  "name": "荆棘之甲",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2450,
+  "types": [
+   "Health",
+   "Armor"
+  ]
+ },
+ "3076": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3076.png",
+  "into": [
+   "323075",
+   "3075"
+  ],
+  "name": "棘刺背心",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 800,
+  "types": [
+   "Armor"
+  ]
+ },
+ "3077": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3077.png",
+  "into": [
+   "3074",
+   "3748",
+   "6698",
+   "6631"
+  ],
+  "name": "提亚马特",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 1200,
+  "types": [
+   "Damage",
+   "OnHit"
+  ]
+ },
+ "3078": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3078.png",
+  "into": [],
+  "name": "三相之力",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3333,
+  "types": [
+   "Health",
+   "Damage",
+   "AttackSpeed",
+   "CooldownReduction",
+   "OnHit",
+   "NonbootsMovement",
+   "AbilityHaste"
+  ]
+ },
+ "3082": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3082.png",
+  "into": [
+   "3110",
+   "323110",
+   "3143"
+  ],
+  "name": "守望者铠甲",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 1000,
+  "types": [
+   "Armor"
+  ]
+ },
+ "3083": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3083.png",
+  "into": [],
+  "name": "狂徒铠甲",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3100,
+  "types": [
+   "Health",
+   "HealthRegen"
+  ]
+ },
+ "3084": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3084.png",
+  "into": [],
+  "name": "心之钢",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3000,
+  "types": [
+   "Health",
+   "HealthRegen"
+  ]
+ },
+ "3085": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3085.png",
+  "into": [],
+  "name": "卢安娜的飓风",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2650,
+  "types": [
+   "CriticalStrike",
+   "AttackSpeed",
+   "OnHit",
+   "NonbootsMovement"
+  ]
+ },
+ "3086": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3086.png",
+  "into": [
+   "3046",
+   "6675",
+   "6671",
+   "2512",
+   "3085",
+   "3094",
+   "4403"
+  ],
+  "name": "狂热",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 1200,
+  "types": [
+   "CriticalStrike",
+   "AttackSpeed",
+   "NonbootsMovement"
+  ]
+ },
+ "3087": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3087.png",
+  "into": [],
+  "name": "斯塔缇克电刃",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3000,
+  "types": [
+   "Damage",
+   "AttackSpeed",
+   "SpellDamage",
+   "OnHit",
+   "NonbootsMovement"
+  ]
+ },
+ "3089": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3089.png",
+  "into": [],
+  "name": "灭世者的死亡之帽",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3500,
+  "types": [
+   "SpellDamage"
+  ]
+ },
+ "3091": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3091.png",
+  "into": [],
+  "name": "智慧末刃",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2800,
+  "types": [
+   "SpellBlock",
+   "AttackSpeed",
+   "OnHit",
+   "Tenacity"
+  ]
+ },
+ "3094": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3094.png",
+  "into": [],
+  "name": "疾射火炮",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2650,
+  "types": [
+   "CriticalStrike",
+   "AttackSpeed",
+   "NonbootsMovement"
+  ]
+ },
+ "3095": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3095.png",
+  "into": [],
+  "name": "岚切",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3200,
+  "types": [
+   "Damage",
+   "CriticalStrike",
+   "AttackSpeed",
+   "NonbootsMovement"
+  ]
+ },
+ "3100": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3100.png",
+  "into": [],
+  "name": "巫妖之祸",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2900,
+  "types": [
+   "SpellDamage",
+   "OnHit",
+   "NonbootsMovement",
+   "AbilityHaste"
+  ]
+ },
+ "3102": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3102.png",
+  "into": [],
+  "name": "女妖面纱",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3000,
+  "types": [
+   "SpellBlock",
+   "SpellDamage"
+  ]
+ },
+ "3107": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3107.png",
+  "into": [],
+  "name": "救赎",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2300,
+  "types": [
+   "SpellDamage",
+   "ManaRegen",
+   "CooldownReduction",
+   "AbilityHaste"
+  ]
+ },
+ "3108": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3108.png",
+  "into": [
+   "323003",
+   "3128",
+   "3115",
+   "123430",
+   "3003",
+   "4628",
+   "3137",
+   "3107",
+   "326616",
+   "4636",
+   "4629",
+   "4633",
+   "6616",
+   "8010"
+  ],
+  "name": "恶魔法典",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 850,
+  "types": [
+   "SpellDamage",
+   "CooldownReduction",
+   "AbilityHaste"
+  ]
+ },
+ "3109": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3109.png",
+  "into": [],
+  "name": "骑士之誓",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2300,
+  "types": [
+   "Health",
+   "HealthRegen",
+   "Armor",
+   "Aura",
+   "Active",
+   "CooldownReduction",
+   "AbilityHaste"
+  ]
+ },
+ "3110": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3110.png",
+  "into": [],
+  "name": "冰霜之心",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2500,
+  "types": [
+   "Armor",
+   "Mana",
+   "Aura",
+   "CooldownReduction",
+   "AbilityHaste"
+  ]
+ },
+ "3111": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3111.png",
+  "into": [
+   "3173"
+  ],
+  "name": "水银之靴",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 1250,
+  "types": [
+   "Boots",
+   "SpellBlock",
+   "Tenacity"
+  ]
+ },
+ "3112": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3112.png",
+  "into": [],
+  "name": "守护者法球",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 950,
+  "types": [
+   "Health",
+   "SpellDamage",
+   "ManaRegen",
+   "Lane"
+  ]
+ },
+ "3113": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3113.png",
+  "into": [
+   "123430",
+   "322065",
+   "4646",
+   "3504",
+   "2065",
+   "3100",
+   "3087",
+   "323504",
+   "4629"
+  ],
+  "name": "以太精魂",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 900,
+  "types": [
+   "NonbootsMovement",
+   "SpellDamage"
+  ]
+ },
+ "3114": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3114.png",
+  "into": [
+   "323107",
+   "323222",
+   "124011",
+   "223011",
+   "2526",
+   "3504",
+   "326621",
+   "3011",
+   "3107",
+   "3222",
+   "322526",
+   "323504",
+   "326616",
+   "6616",
+   "6621"
+  ],
+  "name": "禁忌雕像",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 600,
+  "types": [
+   "ManaRegen"
+  ]
+ },
+ "3115": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3115.png",
+  "into": [],
+  "name": "纳什之牙",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2900,
+  "types": [
+   "AttackSpeed",
+   "SpellDamage",
+   "OnHit",
+   "AbilityHaste"
+  ]
+ },
+ "3116": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3116.png",
+  "into": [],
+  "name": "瑞莱的冰晶节杖",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2600,
+  "types": [
+   "Health",
+   "SpellDamage",
+   "Slow"
+  ]
+ },
+ "3118": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3118.png",
+  "into": [],
+  "name": "残疫",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2700,
+  "types": [
+   "SpellDamage",
+   "Mana",
+   "AbilityHaste"
+  ]
+ },
+ "3119": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3119.png",
+  "into": [],
+  "name": "凛冬之临",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2400,
+  "types": [
+   "Health",
+   "Mana",
+   "AbilityHaste"
+  ]
+ },
+ "3121": {
+  "category": "complete_equipment",
+  "icon": "https://ddragon.leagueoflegends.com/cdn/16.21.1/img/item/3121.png",
+  "icon_source": "prior published RiotDataDragon16.21.1 icon; item identity unchanged",
+  "into": [],
+  "name": "末日寒冬",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2400,
+  "types": [
+   "Health",
+   "Mana",
+   "AbilityHaste"
+  ]
+ },
+ "3123": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3123.png",
+  "into": [
+   "3033",
+   "6609"
+  ],
+  "name": "死刑宣告",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 800,
+  "types": [
+   "Damage"
+  ]
+ },
+ "3124": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3124.png",
+  "into": [],
+  "name": "鬼索的狂暴之刃",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3000,
+  "types": [
+   "Damage",
+   "AttackSpeed",
+   "SpellDamage",
+   "OnHit"
+  ]
+ },
+ "3133": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3133.png",
+  "into": [
+   "6693",
+   "126697",
+   "3004",
+   "6694",
+   "3156",
+   "6696",
+   "2517",
+   "6692",
+   "6691",
+   "323004",
+   "3074",
+   "6610",
+   "6697",
+   "4402",
+   "3508",
+   "3179",
+   "6333",
+   "6609",
+   "6632"
+  ],
+  "name": "考尔菲德的战锤",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 1050,
+  "types": [
+   "Damage",
+   "CooldownReduction",
+   "AbilityHaste"
+  ]
+ },
+ "3134": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3134.png",
+  "into": [
+   "3142",
+   "6693",
+   "126697",
+   "2520",
+   "6691",
+   "3814",
+   "4004",
+   "6676",
+   "6697",
+   "3131",
+   "3179",
+   "6695",
+   "667666",
+   "6701"
+  ],
+  "name": "锯齿短匕",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 1000,
+  "types": [
+   "Damage",
+   "ArmorPenetration"
+  ]
+ },
+ "3135": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3135.png",
+  "into": [],
+  "name": "虚空之杖",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3000,
+  "types": [
+   "MagicPenetration",
+   "SpellDamage"
+  ]
+ },
+ "3137": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3137.png",
+  "into": [],
+  "name": "蜕生",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3000,
+  "types": [
+   "SpellDamage",
+   "MagicPenetration",
+   "AbilityHaste"
+  ]
+ },
+ "3139": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3139.png",
+  "into": [],
+  "name": "水银弯刀",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3200,
+  "types": [
+   "SpellBlock",
+   "Damage",
+   "LifeSteal",
+   "Active",
+   "NonbootsMovement",
+   "Tenacity"
+  ]
+ },
+ "3140": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3140.png",
+  "into": [
+   "6035",
+   "3139"
+  ],
+  "name": "水银饰带",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 1300,
+  "types": [
+   "Active",
+   "SpellBlock"
+  ]
+ },
+ "3142": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3142.png",
+  "into": [],
+  "name": "幽梦之灵",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2800,
+  "types": [
+   "Damage",
+   "Active",
+   "NonbootsMovement",
+   "ArmorPenetration"
+  ]
+ },
+ "3143": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3143.png",
+  "into": [],
+  "name": "兰顿之兆",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2700,
+  "types": [
+   "Health",
+   "Armor",
+   "Active",
+   "Slow"
+  ]
+ },
+ "3144": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3144.png",
+  "into": [
+   "3032",
+   "3095",
+   "2512",
+   "3087",
+   "3085",
+   "3094"
+  ],
+  "name": "斥候弹弓",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 600,
+  "types": [
+   "AttackSpeed"
+  ]
+ },
+ "3145": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3145.png",
+  "into": [
+   "3146",
+   "4646",
+   "4645",
+   "3152",
+   "4636",
+   "6655"
+  ],
+  "name": "海克斯科技发电机",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 1100,
+  "types": [
+   "SpellDamage"
+  ]
+ },
+ "3146": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3146.png",
+  "into": [],
+  "name": "海克斯科技枪刃",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3000,
+  "types": [
+   "Damage",
+   "LifeSteal",
+   "SpellDamage",
+   "Active",
+   "SpellVamp"
+  ]
+ },
+ "3147": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3147.png",
+  "into": [
+   "6653",
+   "4633",
+   "8010"
+  ],
+  "name": "幽魂面具",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 1300,
+  "types": [
+   "Health",
+   "SpellDamage"
+  ]
+ },
+ "3152": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3152.png",
+  "into": [],
+  "name": "海克斯科技火箭腰带",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2650,
+  "types": [
+   "Health",
+   "SpellDamage",
+   "Active",
+   "CooldownReduction",
+   "NonbootsMovement",
+   "AbilityHaste"
+  ]
+ },
+ "3153": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3153.png",
+  "into": [],
+  "name": "破败王者之刃",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3200,
+  "types": [
+   "Damage",
+   "AttackSpeed",
+   "LifeSteal",
+   "Slow",
+   "OnHit"
+  ]
+ },
+ "3155": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3155.png",
+  "into": [
+   "3156"
+  ],
+  "name": "海克斯饮魔刀",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 1300,
+  "types": [
+   "Damage",
+   "SpellBlock"
+  ]
+ },
+ "3156": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3156.png",
+  "into": [],
+  "name": "玛莫提乌斯之噬",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3100,
+  "types": [
+   "SpellBlock",
+   "Damage",
+   "LifeSteal",
+   "SpellVamp",
+   "AbilityHaste"
+  ]
+ },
+ "3157": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3157.png",
+  "into": [],
+  "name": "中娅沙漏",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3250,
+  "types": [
+   "Armor",
+   "SpellDamage",
+   "Active"
+  ]
+ },
+ "3158": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3158.png",
+  "into": [
+   "3171"
+  ],
+  "name": "明朗之靴",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 900,
+  "types": [
+   "Boots",
+   "CooldownReduction"
+  ]
+ },
+ "3161": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3161.png",
+  "into": [],
+  "name": "朔极之矛",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3100,
+  "types": [
+   "Health",
+   "Damage",
+   "AbilityHaste"
+  ]
+ },
+ "3165": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3165.png",
+  "into": [],
+  "name": "莫雷洛秘典",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2850,
+  "types": [
+   "Health",
+   "SpellDamage",
+   "CooldownReduction",
+   "AbilityHaste"
+  ]
+ },
+ "3177": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3177.png",
+  "into": [],
+  "name": "守护者之刃",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 950,
+  "types": [
+   "Health",
+   "Damage",
+   "Lane",
+   "AbilityHaste"
+  ]
+ },
+ "3179": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3179.png",
+  "into": [],
+  "name": "黯影阔剑",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2800,
+  "types": [
+   "Damage",
+   "Vision",
+   "CooldownReduction",
+   "ArmorPenetration",
+   "AbilityHaste"
+  ]
+ },
+ "3181": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3181.png",
+  "into": [],
+  "name": "破舰者",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3000,
+  "types": [
+   "Health",
+   "Damage",
+   "NonbootsMovement"
+  ]
+ },
+ "3184": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3184.png",
+  "into": [],
+  "name": "守护者战锤",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 950,
+  "types": [
+   "Health",
+   "Damage",
+   "LifeSteal",
+   "Lane"
+  ]
+ },
+ "3190": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3190.png",
+  "into": [],
+  "name": "钢铁烈阳之匣",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2200,
+  "types": [
+   "Health",
+   "SpellBlock",
+   "Armor",
+   "Aura",
+   "Active",
+   "MagicResist",
+   "AbilityHaste"
+  ]
+ },
+ "3211": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3211.png",
+  "into": [
+   "2504",
+   "3065",
+   "6664"
+  ],
+  "name": "幽魂斗篷",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 1250,
+  "types": [
+   "Health",
+   "HealthRegen",
+   "SpellBlock"
+  ]
+ },
+ "3222": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3222.png",
+  "into": [],
+  "name": "米凯尔的祝福",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2300,
+  "types": [
+   "Health",
+   "ManaRegen",
+   "Active",
+   "CooldownReduction",
+   "Tenacity",
+   "AbilityHaste"
+  ]
+ },
+ "3302": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3302.png",
+  "into": [],
+  "name": "界弓",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3000,
+  "types": [
+   "Damage",
+   "AttackSpeed",
+   "OnHit",
+   "MagicPenetration",
+   "ArmorPenetration"
+  ]
+ },
+ "3400": {
+  "category": "other",
+  "icon": "https://ddragon.leagueoflegends.com/cdn/16.21.1/img/item/3400.png",
+  "icon_source": "prior published RiotDataDragon16.21.1 icon; item identity unchanged",
+  "into": [],
+  "name": "你也有份",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 0,
+  "types": [
+   "Consumable",
+   "GoldPer"
+  ]
+ },
+ "3504": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3504.png",
+  "into": [],
+  "name": "炽热香炉",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2200,
+  "types": [
+   "AttackSpeed",
+   "SpellDamage",
+   "ManaRegen",
+   "NonbootsMovement"
+  ]
+ },
+ "3508": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3508.png",
+  "into": [],
+  "name": "夺萃之镰",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3050,
+  "types": [
+   "Damage",
+   "CriticalStrike",
+   "ManaRegen",
+   "CooldownReduction",
+   "OnHit",
+   "AbilityHaste"
+  ]
+ },
+ "3599": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3599.png",
+  "into": [],
+  "name": "卡莉丝塔的黑色长矛",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 0,
+  "types": [
+   "Consumable"
+  ]
+ },
+ "3600": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3600.png",
+  "into": [],
+  "name": "卡莉丝塔的黑色长矛",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 0,
+  "types": [
+   "Consumable"
+  ]
+ },
+ "3742": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3742.png",
+  "into": [],
+  "name": "亡者的板甲",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2900,
+  "types": [
+   "Health",
+   "Armor",
+   "Slow",
+   "NonbootsMovement"
+  ]
+ },
+ "3748": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3748.png",
+  "into": [],
+  "name": "巨型九头蛇",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3300,
+  "types": [
+   "Health",
+   "HealthRegen",
+   "Damage",
+   "OnHit"
+  ]
+ },
+ "3801": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3801.png",
+  "into": [
+   "3083",
+   "3084"
+  ],
+  "name": "晶体护腕",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 800,
+  "types": [
+   "Health",
+   "HealthRegen"
+  ]
+ },
+ "3802": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3802.png",
+  "into": [
+   "323003",
+   "3003",
+   "3118",
+   "2503",
+   "2522",
+   "4644",
+   "6655",
+   "6656"
+  ],
+  "name": "遗失的章节",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 1200,
+  "types": [
+   "SpellDamage",
+   "Mana",
+   "ManaRegen",
+   "CooldownReduction",
+   "AbilityHaste"
+  ]
+ },
+ "3803": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3803.png",
+  "into": [
+   "326657",
+   "4402",
+   "6657"
+  ],
+  "name": "万世催化石",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 1300,
+  "types": [
+   "Health",
+   "HealthRegen",
+   "Mana",
+   "ManaRegen"
+  ]
+ },
+ "3814": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3814.png",
+  "into": [],
+  "name": "夜之锋刃",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3000,
+  "types": [
+   "Health",
+   "Damage",
+   "ArmorPenetration"
+  ]
+ },
+ "3916": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/3916.png",
+  "into": [
+   "223011",
+   "3011",
+   "3165"
+  ],
+  "name": "湮灭宝珠",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 800,
+  "types": [
+   "SpellDamage"
+  ]
+ },
+ "4003": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/4003.png",
+  "into": [
+   "4004"
+  ],
+  "name": "救生索",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 1600,
+  "types": [
+   "Damage",
+   "NonbootsMovement",
+   "ArmorPenetration"
+  ]
+ },
+ "4004": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/4004.png",
+  "into": [],
+  "name": "幽魂弯刀",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2800,
+  "types": [
+   "Damage",
+   "NonbootsMovement",
+   "ArmorPenetration"
+  ]
+ },
+ "4005": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/4005.png",
+  "into": [],
+  "name": "帝国指令",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2400,
+  "types": [
+   "SpellDamage",
+   "ManaRegen",
+   "CooldownReduction",
+   "AbilityHaste"
+  ]
+ },
+ "4401": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/4401.png",
+  "into": [],
+  "name": "自然之力",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2800,
+  "types": [
+   "Health",
+   "SpellBlock",
+   "NonbootsMovement"
+  ]
+ },
+ "4628": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/4628.png",
+  "into": [],
+  "name": "视界专注",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2700,
+  "types": [
+   "SpellDamage",
+   "AbilityHaste"
+  ]
+ },
+ "4629": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/4629.png",
+  "into": [],
+  "name": "星界驱驰",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3000,
+  "types": [
+   "Health",
+   "SpellDamage",
+   "NonbootsMovement",
+   "AbilityHaste"
+  ]
+ },
+ "4630": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/4630.png",
+  "into": [
+   "3137",
+   "3135"
+  ],
+  "name": "枯萎珠宝",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 1100,
+  "types": [
+   "MagicPenetration",
+   "SpellDamage"
+  ]
+ },
+ "4632": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/4632.png",
+  "into": [
+   "3102"
+  ],
+  "name": "翠绿屏障",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 1600,
+  "types": [
+   "SpellBlock",
+   "SpellDamage"
+  ]
+ },
+ "4633": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/4633.png",
+  "into": [],
+  "name": "裂隙制造者",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3100,
+  "types": [
+   "Health",
+   "SpellDamage",
+   "CooldownReduction",
+   "SpellVamp"
+  ]
+ },
+ "4642": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/4642.png",
+  "into": [
+   "322065",
+   "2065",
+   "6620",
+   "324005",
+   "326617",
+   "326620",
+   "4005",
+   "6617"
+  ],
+  "name": "班德尔玻璃镜",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 900,
+  "types": [
+   "SpellDamage",
+   "ManaRegen",
+   "CooldownReduction",
+   "AbilityHaste"
+  ]
+ },
+ "4645": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/4645.png",
+  "into": [],
+  "name": "影焰",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3200,
+  "types": [
+   "SpellDamage",
+   "MagicPenetration"
+  ]
+ },
+ "4646": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/4646.png",
+  "into": [],
+  "name": "风暴狂涌",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2800,
+  "types": [
+   "SpellDamage",
+   "GoldPer",
+   "NonbootsMovement",
+   "MagicPenetration"
+  ]
+ },
+ "6333": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/6333.png",
+  "into": [],
+  "name": "死亡之舞",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3300,
+  "types": [
+   "Armor",
+   "Damage",
+   "AbilityHaste"
+  ]
+ },
+ "6609": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/6609.png",
+  "into": [],
+  "name": "炼金朋克链锯剑",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3000,
+  "types": [
+   "Health",
+   "Damage",
+   "CooldownReduction",
+   "AbilityHaste"
+  ]
+ },
+ "6610": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/6610.png",
+  "into": [],
+  "name": "焚天",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3100,
+  "types": [
+   "Health",
+   "Damage",
+   "CooldownReduction",
+   "AbilityHaste"
+  ]
+ },
+ "6616": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/6616.png",
+  "into": [],
+  "name": "流水法杖",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2250,
+  "types": [
+   "SpellDamage",
+   "ManaRegen",
+   "CooldownReduction",
+   "AbilityHaste"
+  ]
+ },
+ "6617": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/6617.png",
+  "into": [],
+  "name": "月石再生器",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2200,
+  "types": [
+   "Health",
+   "SpellDamage",
+   "ManaRegen",
+   "CooldownReduction",
+   "AbilityHaste"
+  ]
+ },
+ "6620": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/6620.png",
+  "into": [],
+  "name": "海力亚的回响",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2200,
+  "types": [
+   "Health",
+   "SpellDamage",
+   "ManaRegen",
+   "CooldownReduction",
+   "AbilityHaste"
+  ]
+ },
+ "6621": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/6621.png",
+  "into": [],
+  "name": "黎明核心",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2500,
+  "types": [
+   "SpellDamage",
+   "ManaRegen"
+  ]
+ },
+ "6631": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/6631.png",
+  "into": [],
+  "name": "挺进破坏者",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3300,
+  "types": [
+   "Health",
+   "Damage",
+   "AttackSpeed",
+   "Slow"
+  ]
+ },
+ "6653": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/6653.png",
+  "into": [],
+  "name": "兰德里的折磨",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3000,
+  "types": [
+   "Health",
+   "SpellDamage"
+  ]
+ },
+ "6655": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/6655.png",
+  "into": [],
+  "name": "卢登的回声",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2750,
+  "types": [
+   "SpellDamage",
+   "Mana",
+   "CooldownReduction",
+   "AbilityHaste"
+  ]
+ },
+ "6657": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/6657.png",
+  "into": [],
+  "name": "时光之杖",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2600,
+  "types": [
+   "Health",
+   "HealthRegen",
+   "SpellDamage",
+   "Mana",
+   "ManaRegen"
+  ]
+ },
+ "6660": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/6660.png",
+  "into": [
+   "3068",
+   "6664"
+  ],
+  "name": "斑比的熔渣",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 900,
+  "types": [
+   "Health",
+   "AbilityHaste"
+  ]
+ },
+ "6662": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/6662.png",
+  "into": [],
+  "name": "冰脉护手",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2900,
+  "types": [
+   "Health",
+   "Armor",
+   "CooldownReduction",
+   "Slow",
+   "OnHit",
+   "AbilityHaste"
+  ]
+ },
+ "6664": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/6664.png",
+  "into": [],
+  "name": "璀璨回响",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2800,
+  "types": [
+   "Health",
+   "SpellBlock",
+   "HealthRegen",
+   "Aura",
+   "MagicResist",
+   "AbilityHaste"
+  ]
+ },
+ "6665": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/6665.png",
+  "into": [],
+  "name": "千变者贾修",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3200,
+  "types": [
+   "Health",
+   "SpellBlock",
+   "Armor",
+   "MagicResist"
+  ]
+ },
+ "6670": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/6670.png",
+  "into": [
+   "6673",
+   "2523",
+   "3036"
+  ],
+  "name": "正午箭袋",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 1300,
+  "types": [
+   "Damage",
+   "CriticalStrike"
+  ]
+ },
+ "6672": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/6672.png",
+  "into": [],
+  "name": "海妖杀手",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3000,
+  "types": [
+   "Damage",
+   "AttackSpeed",
+   "OnHit",
+   "NonbootsMovement"
+  ]
+ },
+ "6673": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/6673.png",
+  "into": [],
+  "name": "不朽盾弓",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3000,
+  "types": [
+   "Damage",
+   "CriticalStrike"
+  ]
+ },
+ "6675": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/6675.png",
+  "into": [],
+  "name": "纳沃利烁刃",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2650,
+  "types": [
+   "CriticalStrike",
+   "AttackSpeed",
+   "NonbootsMovement"
+  ]
+ },
+ "6676": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/6676.png",
+  "into": [],
+  "name": "收集者",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3000,
+  "types": [
+   "Damage",
+   "CriticalStrike",
+   "ArmorPenetration"
+  ]
+ },
+ "6690": {
+  "category": "other",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/6690.png",
+  "into": [
+   "4003",
+   "3142",
+   "6672",
+   "6700"
+  ],
+  "name": "剑翎",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 775,
+  "types": [
+   "Damage",
+   "NonbootsMovement"
+  ]
+ },
+ "6692": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/6692.png",
+  "into": [],
+  "name": "星蚀",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2900,
+  "types": [
+   "Damage",
+   "CooldownReduction",
+   "AbilityHaste"
+  ]
+ },
+ "6694": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/6694.png",
+  "into": [],
+  "name": "赛瑞尔达的怨恨",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3000,
+  "types": [
+   "Damage",
+   "CooldownReduction",
+   "ArmorPenetration",
+   "AbilityHaste"
+  ]
+ },
+ "6695": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/6695.png",
+  "into": [],
+  "name": "巨蛇之牙",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2500,
+  "types": [
+   "Damage",
+   "ArmorPenetration"
+  ]
+ },
+ "6696": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/6696.png",
+  "into": [],
+  "name": "公理圆弧",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2750,
+  "types": [
+   "Damage",
+   "ArmorPenetration",
+   "AbilityHaste"
+  ]
+ },
+ "6698": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/6698.png",
+  "into": [],
+  "name": "亵渎九头蛇",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2850,
+  "types": [
+   "Damage",
+   "Active",
+   "CooldownReduction",
+   "ArmorPenetration",
+   "AbilityHaste"
+  ]
+ },
+ "6699": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/6699.png",
+  "into": [],
+  "name": "电震涡流剑",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 3000,
+  "types": [
+   "Damage",
+   "Active",
+   "CooldownReduction",
+   "ArmorPenetration",
+   "AbilityHaste"
+  ]
+ },
+ "8010": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/8010.png",
+  "into": [],
+  "name": "放血者的诅咒",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2900,
+  "types": [
+   "Health",
+   "SpellDamage",
+   "CooldownReduction",
+   "MagicPenetration"
+  ]
+ },
+ "8020": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/8020.png",
+  "into": [],
+  "name": "深渊面具",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2650,
+  "types": [
+   "Health",
+   "SpellBlock",
+   "CooldownReduction",
+   "MagicResist",
+   "AbilityHaste"
+  ]
+ },
+ "994403": {
+  "category": "complete_equipment",
+  "icon": "https://game.gtimg.cn/images/lol/act/img/item/994403.png",
+  "into": [],
+  "name": "金铲铲",
+  "source": "Frozen16.22 items-zh_cn (CommunityDragon game data; Tencent names)",
+  "total": 2500,
+  "types": [
+   "Health",
+   "SpellBlock",
+   "HealthRegen",
+   "Armor",
+   "Damage",
+   "CriticalStrike",
+   "AttackSpeed",
+   "LifeSteal",
+   "SpellDamage",
+   "Mana",
+   "ManaRegen",
+   "CooldownReduction",
+   "NonbootsMovement"
+  ]
+ }
+}
