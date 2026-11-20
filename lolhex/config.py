@@ -21,6 +21,8 @@ from pathlib import Path
 APP_DIR_NAME = "AramHex"
 # 默认不注册游戏快捷键；系统占用检查无法发现游戏内部的录像等键位。
 DEFAULT_OVERLAY_HOTKEY = ""
+# 详情的背景（1.2.0，只在详情里点「背景」按钮换，设置页没有）：透明 = 1.1.9 的样子（详情几乎透明）；有玩家说看不清字，可以换到盖住后面的游戏画面
+OVERLAY_BGS = (("standard", "透明"), ("dark", "半透明"), ("solid", "不透明"))
 # 去掉的设置项：老设置文件里有也不再写回（1.1.1 删了 2999 接口；浮窗不再对截图隐身，录屏开关也删了；
 # 自动截图只是调试用，设置页去掉，只在调试模式（debug.txt）下截）
 REMOVED = {"use_liveclient", "allow_capture", "auto_screenshot"}
@@ -156,6 +158,8 @@ class Settings:
     overlay_hotkey: str = DEFAULT_OVERLAY_HOTKEY
     # 悬浮按钮的位置：top-right / top-left。
     overlay_corner: str = "top-right"
+    # 详情的背景（1.2.0）：standard / dark / solid（见 OVERLAY_BGS）。只改右上角详情，三选一标签不变
+    overlay_bg: str = "standard"
     # 三选一标签放在卡片哪里：top=标题上方（压在图标下半，默认）/ bottom=描述下面的空白处。
     badge_position: str = "top"
     # 参考数据的分数段：""=全体（默认），casual/mid/high=娱乐/中分/前 5%（1.1.0 以前的 top 读到当 high）。
@@ -247,10 +251,16 @@ class Settings:
         s.overlay_on_demand = True
         if "overlay_on_demand" in s.user_set:
             s.user_set = [k for k in s.user_set if k != "overlay_on_demand"]
+        if s.overlay_bg not in dict(OVERLAY_BGS):
+            s.overlay_bg = "standard"  # 手改坏了：回到透明（1.1.9 的样子）
         if not isinstance(s.overlay_hotkey, str):
             s.overlay_hotkey = DEFAULT_OVERLAY_HOTKEY
         # 1.1.1：设置页去掉「显示胜率数字」（用这个软件就是要看胜率），以前关掉的也打开
         s.show_winrate = True
+        # 1.2.0：托盘去掉「显示游戏浮窗」（开着助手就显示浮窗），以前在托盘关掉的也打开，不再算玩家改的；
+        # 云控 force 仍能临时关（不写进设置文件）
+        s.overlay = True
+        s.user_set = [k for k in s.user_set if k != "overlay"]
         if s.data_band == "top":
             s.data_band = "high"  # 1.1.1 去掉「顶尖」，和「高分」合成「前 5%」
         if broken:

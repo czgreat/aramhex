@@ -3,7 +3,7 @@
     python scripts/mix_recommendations.py --static 静态资料.json --heroes 腾讯英雄资料.json --output 合并后.json
     python scripts/mix_recommendations.py --heroes 腾讯英雄资料.json --core core.json --shoes shoes.json --output 合并后.json
 
-第一种：出装用腾讯（1.1.5 的做法）。第二种：出装用自采。
+第一种：出装用腾讯（1.1.5 的做法）。第二种：出装用统计数据。
 腾讯原始资料带海克斯评级。发布前必须先过这一步，再交给 official_data.py candidate，
 否则这些字段会随资料包回到客户端。
 """
@@ -25,13 +25,13 @@ BASE_BOOTS = frozenset({'1001'})  # 基础鞋不推荐，鞋子栏只显示二�
 
 
 def self_collected_recommendations(payload: dict, core: dict, shoes: dict) -> dict:
-    """输入/输出均为 official payload；缺自采推荐的英雄显式留空。"""
+    """输入/输出均为 official payload；缺统计推荐的英雄显式留空。"""
     mixed = deepcopy(payload)
     heroes = mixed['heroes']['heroes']
     if (set(core) | set(shoes)) - set(heroes):
-        raise ValueError('自采装备包含英雄资料中不存在的英雄')
+        raise ValueError('统计装备包含英雄资料中不存在的英雄')
     for hid, hero in heroes.items():
-        # 英雄海克斯行的 tier/rank 会触发腾讯评级兜底；推荐只取公开自采表。
+        # 英雄海克斯行的 tier/rank 会触发腾讯评级兜底；推荐只取公开统计表。
         hero['augments'] = []
         hero['partners'] = []
         hero['builds'] = {
@@ -82,8 +82,8 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--heroes', type=Path, required=True)
     parser.add_argument('--static', type=Path, help='出装用腾讯时必填，用来去掉字典里没有的装备')
-    parser.add_argument('--core', type=Path, help='出装用自采时必填')
-    parser.add_argument('--shoes', type=Path, help='出装用自采时必填')
+    parser.add_argument('--core', type=Path, help='出装用统计数据时必填')
+    parser.add_argument('--shoes', type=Path, help='出装用统计数据时必填')
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args(argv)
     if args.output.exists():
@@ -95,7 +95,7 @@ def main(argv=None) -> int:
     elif args.core and args.shoes and not args.static:
         mixed = self_collected_recommendations({'heroes': read(args.heroes)}, read(args.core), read(args.shoes))
     else:
-        parser.exit(1, '要么给 --static（腾讯出装），要么同时给 --core 和 --shoes（自采出装）\n')
+        parser.exit(1, '要么给 --static（腾讯出装），要么同时给 --core 和 --shoes（统计出装）\n')
     args.output.write_text(json.dumps(mixed['heroes'], ensure_ascii=False, sort_keys=True, separators=(',', ':')),
                            encoding='utf-8')
     print(json.dumps(recommendation_residue(mixed['heroes']['heroes'])))

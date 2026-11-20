@@ -89,7 +89,7 @@ def test_apply_updates_only_matching_installed_copy(tmp_path, monkeypatch, porta
     import winreg
 
     # 每个用例只使用独立的临时键，不触碰真实卸载信息。
-    key_path = "Software\\AramHexCodexTest-" + uuid.uuid4().hex
+    key_path = "Software\\AramHexTest-" + uuid.uuid4().hex
     monkeypatch.setattr(patch, "UNINSTALL_KEY", key_path)
     root = tmp_path / "应用 目录"
     root.mkdir()

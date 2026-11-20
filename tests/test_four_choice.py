@@ -239,3 +239,193 @@ def test_right_layout_never_flags_a_mismatch(tmp_path):
             det._last_fp = None
             det.check_strip(frame[sr.top:sr.bottom, sr.left:sr.right], win)
         assert not det.layout_suspect and det._garbled_reads == 0
+
+
+THREE = ["炽燃利息", "虚幻武器", "泰坦的坚决"]
+
+
+def _strip(det, frame, win):
+    sr = det.strip_rect(win)
+    return frame[sr.top:sr.bottom, sr.left:sr.right]
+
+
+@needs_font
+@pytest.mark.parametrize("switch", [True, False])
+def test_partial_full_scan_after_four_choice_never_breaks_the_strip(switch, tmp_path, monkeypatch):
+    """1.1.9 实录：上一局四选一，这局三选一，整块扫描只认出两张：张数改成 3 张、定位还是 4 张，
+    标题条每读一次报一次错。1.2.0 张数和位置一起换；云控关掉新做法时也只是从头跟踪，不报错。"""
+    from lolhex import cloud
+    monkeypatch.setattr(cloud, "get", lambda: cloud._merge({"features": {"count_switch": switch}}))
+    size = (1920, 1080)
+    win = Rect(0, 0, *size)
+    det = AugmentDetector(NameMatcher(NAMES), calib_path=tmp_path / "calibration.json")
+    assert det.scan_full(synth.render_offer(FOUR, size)) and det._n() == 4
+    det.clear_tracking()
+    partial = synth.render_offer([THREE[0], None, THREE[2]], size, seed=4)
+    offer = det.scan_full(partial)
+    assert len(offer.slots) == 3 and offer.matched() == 2
+    assert det._n() == (3 if switch else 4)
+    for _ in range(3):
+        det._last_fp = None
+        got = det.check_strip(_strip(det, partial, win), win)  # 1.1.9 这里 IndexError
+    assert len(det._pending) == len(det._cells) == det._n()
+    if switch:
+        assert names(got) == [THREE[0], None, THREE[2]] and det.calibration.guess
+        full = synth.render_offer(THREE, size, seed=6)
+        for _ in range(3):
+            det._last_fp = None
+            got = det.check_strip(_strip(det, full, win), win)
+        assert names(got) == THREE and not det.calibration.guess  # 认全了才存
+        assert AugmentDetector(NameMatcher(NAMES), calib_path=tmp_path / "calibration.json")._n() == 3
+
+
+def _garble(det, frame, win):
+    for _ in range(2):
+        det._last_fp, det._cells = None, [None] * len(det._cells)
+        det.check_strip(_strip(det, frame, win), win)
+    assert det.layout_suspect
+    det.clear_layout_suspect()
+
+
+@needs_font
+@pytest.mark.parametrize("old, new", [(THREE, FOUR), (FOUR, THREE)])
+def test_half_names_try_the_other_card_count_on_the_strip(old, new, tmp_path):
+    """读到半截名字：先按另一种张数的位置读标题条，不等整块扫描；认全后存下新位置。"""
+    size = (1920, 1080)
+    win = Rect(0, 0, *size)
+    det = AugmentDetector(NameMatcher(NAMES), calib_path=tmp_path / "calibration.json")
+    assert det.scan_full(synth.render_offer(old, size))
+    det.clear_tracking()
+    frame = synth.render_offer(new, size, seed=7)
+    _garble(det, frame, win)
+    assert det.try_other_count(*size)
+    assert det._n() == len(new) and det.calibration.guess and det.calibration.valid()
+    for _ in range(3):
+        det._last_fp = None
+        got = det.check_strip(_strip(det, frame, win), win)
+    assert names(got) == new and det._trial_from is None and not det.calibration.guess
+    assert AugmentDetector(NameMatcher(NAMES), calib_path=tmp_path / "calibration.json")._n() == len(new)
+
+
+@needs_font
+def test_other_card_count_trial_goes_back_when_it_reads_nothing(tmp_path, monkeypatch):
+    """试读的位置也读到半截名字，或几秒内没认出卡（商店里的字之类）：换回原来的位置，交给整块扫描。"""
+    from lolhex.vision import detector as module
+    size = (1920, 1080)
+    win = Rect(0, 0, *size)
+    clock = [100.0]
+    monkeypatch.setattr(module.time, "monotonic", lambda: clock[0])
+    det = AugmentDetector(NameMatcher(NAMES), calib_path=tmp_path / "calibration.json")
+    assert det.scan_full(synth.render_offer(THREE, size))
+    saved = det.calibration
+    assert det.try_other_count(*size) and det._n() == 4
+    assert not det.try_other_count(*size)  # 又读到半截名字：换回，返回 False 走整块扫描
+    assert det.calibration is saved and det._trial_from is None
+    blank = synth.render_offer([None, None, None], size)
+    assert det.try_other_count(*size)
+    det.check_strip(_strip(det, blank, win), win)
+    assert det._n() == 4
+    clock[0] += module.TRIAL_S
+    assert det.check_strip(_strip(det, blank, win), win) is None
+    assert det.calibration is saved and len(det._cells) == 3
+    assert det.try_other_count(*size)
+    det.clear_tracking()  # 这局结束时还在试读：也换回
+    assert det.calibration is saved
+
+
+def test_other_card_count_trial_follows_cloud_switch(monkeypatch, tmp_path):
+    from lolhex import cloud
+    cfg = {"features": {"count_switch": False}}
+    monkeypatch.setattr(cloud, "get", lambda: cloud._merge(cfg))
+    det = AugmentDetector(NameMatcher(NAMES), calib_path=tmp_path / "calibration.json")
+    det.ensure_calibration(1920, 1080)
+    assert not det.try_other_count(1920, 1080) and det._n() == 3
+    cfg["features"] = {"four_choice": False}
+    assert not det.try_other_count(1920, 1080) and det._n() == 3
+    cfg["features"] = {}
+    assert det.try_other_count(1920, 1080) and det._n() == 4
+
+
+@pytest.mark.parametrize("size", [(1920, 1080), (1440, 1080), (1280, 1024), (3440, 1440)])
+def test_switched_layout_stays_on_screen(size):
+    from lolhex.vision.detector import _layout_boxes
+    for count, other in ((3, 4), (4, 3)):
+        base = Calibration.default(*size, count=count)
+        boxes = _layout_boxes(base.boxes, other)
+        c0 = [(b[0] + b[2]) / 2 for b in base.boxes]
+        c1 = [(b[0] + b[2]) / 2 for b in boxes]
+        assert Calibration(boxes, size).valid() and len(boxes) == other
+        assert np.isclose(np.mean(c1), np.mean(c0), atol=1e-3) and np.allclose(np.diff(c1), c0[1] - c0[0], atol=1e-3)
+
+
+def _saved(size, count):
+    return Calibration(list(Calibration.default(*size, count=count).boxes), size)
+
+
+def four_from(three):
+    from lolhex.vision.detector import _layout_boxes
+    return _layout_boxes(three.boxes, 4)
+
+
+def test_calibration_file_keeps_both_card_counts(tmp_path):
+    """1.2.0：calibration.json 三张、四张的位置各留一份；boxes 还是最近认出的那份（1.1.9 只读它）。"""
+    import json
+    path = tmp_path / "calibration.json"
+    det = AugmentDetector(NameMatcher(NAMES), calib_path=path)
+    det.calibration = _saved((1920, 1080), 3)
+    det._save_calibration()
+    det.calibration = _saved((1920, 1080), 4)
+    det._save_calibration()
+    d = json.loads(path.read_text(encoding="utf-8"))
+    assert len(d["boxes"]) == 4 and sorted(d["layouts"]) == ["3", "4"]
+    again = AugmentDetector(NameMatcher(NAMES), calib_path=path)
+    assert again._n() == 4 and sorted(again._layouts) == [3, 4]
+    assert again._layouts[3].boxes == det._layouts[3].boxes and not again._layouts[3].guess
+    # 1.1.9 写的文件没有 layouts：照常读，只有那一份
+    path.write_text(json.dumps({"boxes": d["layouts"]["3"]["boxes"], "size": [1920, 1080]}), encoding="utf-8")
+    old = AugmentDetector(NameMatcher(NAMES), calib_path=path)
+    assert old._n() == 3 and sorted(old._layouts) == [3]
+    # layouts 里坏了一份：丢掉那份，别的照用
+    d["layouts"]["3"]["boxes"] = [[0.9, 0.1, 0.1, 0.2]] * 3
+    path.write_text(json.dumps(d), encoding="utf-8")
+    assert sorted(AugmentDetector(NameMatcher(NAMES), calib_path=path)._layouts) == [4]
+
+
+def test_alternate_between_saved_card_counts(tmp_path, monkeypatch):
+    """这局还没认出：三张、四张的位置轮流读。认出过的用存的那份，没见过四选一按三张的卡距推算；
+    推算的那份兜底整块扫描照确认过的间隔，换了窗口大小不轮流。"""
+    from lolhex import cloud
+    cfg = {"features": {}}
+    monkeypatch.setattr(cloud, "get", lambda: cloud._merge(cfg))
+    size = (1920, 1080)
+    det = AugmentDetector(NameMatcher(NAMES), calib_path=tmp_path / "calibration.json")
+    det.calibration = three = _saved(size, 3)
+    det._save_calibration()
+    assert det.alternate_count(*size) and det._n() == 4 and det.calibration.guess  # 没见过四选一：推算
+    assert det.confirmed_for(*size)
+    assert [b[0] for b in det.calibration.boxes] == pytest.approx([b[0] for b in four_from(three)])
+    assert det.alternate_count(*size) and det.calibration is three
+    det.calibration = four = _saved(size, 4)
+    det._save_calibration()
+    assert det.alternate_count(*size) and det.calibration is three and len(det._cells) == 3
+    assert det.alternate_count(*size) and det.calibration is four and len(det._pending) == 4
+    assert not det.alternate_count(2560, 1440)  # 窗口大小不对
+    assert det.try_other_count(*size) and det.calibration is three  # 读到半截名字时也直接用存的那份
+    assert not det.alternate_count(*size)  # 正在试读时不轮流
+    det.clear_tracking()
+    for off in ("layout_memory", "count_switch", "four_choice"):
+        cfg["features"] = {off: False}
+        det.calibration = three
+        assert not det.alternate_count(*size) and det.calibration is three
+    cfg["features"] = {"layout_memory": False}
+    assert det.try_other_count(*size) and det.calibration.guess  # 关掉后按卡距排，不用存的那份
+
+
+def test_four_layout_from_three_matches_a_real_four_choice():
+    """1.2.0-test.5 实录（3840x2160）：本机三张的位置推算出的四张，和后来整块扫描认出的四张差不到千分之一屏宽。"""
+    from lolhex.vision.detector import _layout_boxes
+    three = [(0.22725130208333333, 0.38708333333333333, 0.38863411458333336, 0.43374999999999997),
+             (0.4190481770833333, 0.38708333333333333, 0.5804309895833334, 0.43374999999999997),
+             (0.61149609375, 0.38708333333333333, 0.77287890625, 0.43374999999999997)]
+    seen = [0.1313880208333333, 0.3231848958333333, 0.5149817708333333, 0.7070390624999999]
+    assert [b[0] for b in _layout_boxes(three, 4)] == pytest.approx(seen, abs=0.001)

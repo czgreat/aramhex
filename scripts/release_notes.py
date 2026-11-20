@@ -17,6 +17,8 @@ def notes(version: str, changelog: str) -> str:
     body = m.group(1).strip() if m else f"AramHex {version}"
     # 软件里「有新版本」横条只显示前 200 字：发布说明只放关键几条，「完整更新内容：」以下留在 CHANGELOG.md
     body = body.split("完整更新内容：")[0].strip()
+    # 横条不认换行（1.1.9 发版时几条挤成一段、「- 」也露出来）：去掉「- 」，几条用分号接成一句
+    body = "；".join(re.sub(r"^[-*]\s+", "", ln.strip()) for ln in body.splitlines() if ln.strip())
     return body + "\n"  # 只写这次更新了什么；下载文件发布页下面自己列着
 
 

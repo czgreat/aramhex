@@ -1,7 +1,7 @@
 """核心调度：英雄识别、海克斯识别与推荐。**不接入 LCU**。
 
 线程：
-- data：启动时及定期刷新数据（腾讯官方资料；自采统计数据有新版本时下载）；
+- data：启动时及定期刷新数据（腾讯官方资料；统计数据有新版本时下载）；
 - observer：只看窗口是否存在——客户端在前台且游戏没开时，截图识别选英雄界面：
   头像比对认出预选栏和我方的英雄（标胜率），OCR 认出自己的英雄名；
 - vision：游戏窗口在前台时截屏识别海克斯三选一。
@@ -761,10 +761,15 @@ class Engine:
                         offer = self._observed_scan(det, rect, full=False, reason="titles", hwnd=hwnd)
                         ran = True
                         self._track_read_cpu(det)
+                        hold = False
                         if offer is not None and not self._scan_discarded:
                             # 用错布局只能读到半截名字，不可能每张都认对；认全了就不用核对
-                            verify_layout = verify_layout or (proven is None and offer.matched() < len(offer.slots)
-                                                              and cloud.feature("four_choice"))
+                            check = (proven is None and offer.matched() < len(offer.slots)
+                                     and cloud.feature("four_choice"))
+                            # 1.2.0：这局第一次认出就没认全，张数还没确认，先不出推荐，等下一轮整块核对；
+                            # 云控 features.count_switch=false 退回 1.1.9（先按标题条出推荐）
+                            hold = check and not visible and cloud.feature("count_switch")
+                            verify_layout = verify_layout or check
                             proven = (rect.width, rect.height)
                         # 一直识别不到：整块扫描一次，防止卡片位置变了
                         every = self._fallback_every(det.confirmed_for(rect.width, rect.height),
@@ -773,8 +778,13 @@ class Engine:
                         if suspect:
                             det.clear_layout_suspect()
                         idle = offer is None and not self._scan_discarded and not visible
-                        if idle and suspect and self._garbled_due(proven is not None, garbled_n, now - last_garbled,
-                                                                  now < next_full):
+                        try_other = getattr(det, "try_other_count", None)
+                        if idle and suspect and proven is None and try_other and try_other(rect.width, rect.height):
+                            # 1.2.0：先按另一种张数的位置读一次标题条（很快），不等整块扫描；
+                            # 又读到半截名字时 try_other_count 换回原来的位置、返回 False，走下面的整块扫描
+                            pass
+                        elif idle and suspect and self._garbled_due(proven is not None, garbled_n, now - last_garbled,
+                                                                    now < next_full):
                             # 标题条只读到半截名字：卡片数和定位不符（上一局三选一、这局四选一，或反过来），
                             # 马上整块扫描重新定位，不等兜底间隔（这局还没认出过时最长要等 fallback_first_s）
                             last_full = last_garbled = now
@@ -787,6 +797,11 @@ class Engine:
                             started = time.monotonic()
                             offer = self._observed_scan(det, rect, full=True, reason="fallback", hwnd=hwnd)
                             next_full = self._full_gap_end(started)
+                        elif idle and proven is None and hasattr(det, "alternate_count"):
+                            # 1.2.0：这局还没认出，本机三张、四张都认出过：下次换另一种张数的位置读标题条
+                            det.alternate_count(rect.width, rect.height)
+                        if hold:
+                            offer = None  # 下一轮整块核对后再出推荐
                 elif forced or now - last_full >= self.settings.bootstrap_interval_s * self.settings.speed_factor:
                     last_full = now
                     offer = self._observed_scan(det, rect, full=True,

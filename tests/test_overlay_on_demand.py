@@ -12,6 +12,9 @@ from lolhex.engine import Engine
 from lolhex.ui import overlay
 from lolhex.vision import window
 
+# 模拟的游戏、客户端句柄：别和 Qt 离屏窗口的 winId（从 1 起编）撞上
+GAME, CLIENT = 0x7F0001, 0x7F0002
+
 
 @pytest.fixture
 def scene(store, tmp_path, monkeypatch):
@@ -21,8 +24,8 @@ def scene(store, tmp_path, monkeypatch):
     monkeypatch.setattr(window, "IS_WINDOWS", False)
     monkeypatch.setattr(window, "watch_foreground", lambda: None)
     monkeypatch.setattr(window, "_drawn", {})
-    monkeypatch.setattr(window, "find_game_window", lambda: 1)
-    monkeypatch.setattr(window, "find_client_window", lambda: 2)
+    monkeypatch.setattr(window, "find_game_window", lambda: GAME)
+    monkeypatch.setattr(window, "find_client_window", lambda: CLIENT)
     monkeypatch.setattr(window, "client_rect", lambda hwnd: rect)
     monkeypatch.setattr(window, "is_foreground", lambda hwnd: front[0])
     monkeypatch.setattr(overlay.time, "monotonic", lambda: clock[0])
@@ -179,6 +182,115 @@ def test_unknown_hero_prompt_remains_until_choice_or_manual_close(scene):
     assert not scene.p.isVisible() and not scene.p.expanded
     scene.ov._tick()
     assert not scene.p.expanded  # 手动收起后不重复弹。
+
+
+def _typing_scene(scene, monkeypatch, fg):
+    """没认出英雄、三选一出着推荐；前台窗口和换前台按 fg 模拟（详情是 companion：游戏仍按在前台算由 scene.front 决定）。"""
+    from lolhex import cloud
+    cfg = {"features": {"overlay_hotkey": True}}  # 1.2.0 起快捷键默认不用，这里看的是打开时的行为
+    monkeypatch.setattr(cloud, "get", lambda: cloud._merge(cfg))
+    monkeypatch.setattr(window, "foreground_window", lambda: fg[0])
+    monkeypatch.setattr(window, "set_no_activate", lambda hwnd, on: True)
+    monkeypatch.setattr(window, "give_focus", lambda hwnd: fg.__setitem__(0, hwnd))
+    offer = {"boxes": [[700, 430, 1000, 470]], "slots": ["1029"]}
+    ev = {"advice": "参考", "slots": [{"index": 0, "verdict": "best", "score": 2}]}
+    scene.engine._set(hero_id=None, offer=offer, evaluation=ev)
+    return cfg
+
+
+def test_typing_in_details_keeps_panel_over_game(scene, monkeypatch):
+    """1.2.0：没认出英雄、从游戏点进详情搜英雄时前台是详情窗口（或补全列表），游戏还在后面：浮窗不藏、
+    三选一标签照常画，快捷键不生效。1.1.9 可能把浮窗藏掉，焦点跟着丢，字打不进去（test.9 实测）。
+    云控 features.panel_typing_in_game=false 退回 1.1.9。"""
+    fg = [GAME]
+    cfg = _typing_scene(scene, monkeypatch, fg)
+    hot = []
+    monkeypatch.setattr(scene.ov.hotkey, "sync", lambda key, active: hot.append(active))
+    scene.ov._tick()
+    assert scene.p.isVisible() and scene.p.expanded and scene.ov.badges.isVisible()
+    scene.p._start_typing()  # 从游戏点进了搜索框
+    assert fg[0] == int(scene.p.body_win.winId())
+    scene.front[0] = False  # 前台不是游戏（补全列表、或前台记录被别的窗口改写）
+    for _ in range(3):
+        scene.ov._tick()
+        assert scene.p.isVisible() and scene.p.body_win.isVisible() and scene.ov.badges.isVisible()
+    assert hot[-1] is False
+    fg[0] = 999  # 玩家切到别的程序：照常藏
+    scene.ov._tick()
+    assert not scene.p.isVisible() and not scene.ov.badges.isVisible()
+    cfg["features"]["panel_typing_in_game"] = False  # 云控关掉：退回 1.1.9，打字时也藏
+    scene.front[0], fg[0] = True, 1
+    scene.ov._tick()
+    assert scene.p.isVisible()
+    scene.p._start_typing()
+    scene.front[0] = False
+    scene.ov._tick()
+    assert not scene.p.isVisible()
+
+
+def test_hotkey_off_while_typing_in_details(scene, monkeypatch):
+    """详情是 companion，从游戏点进来时 is_foreground(游戏) 仍为真；
+    这时快捷键不能注册，排队到的按键也不能收起详情。云控关掉退回 1.1.9（照常注册）。"""
+    from test_overlay_hotkey import Backend, TEST_HOTKEY
+    fg = [GAME]
+    cfg = _typing_scene(scene, monkeypatch, fg)
+    scene.engine.settings.overlay_hotkey = TEST_HOTKEY
+    backend = Backend()
+    scene.ov.hotkey.backend = backend
+    scene.ov._tick()
+    assert backend.bound and scene.p.expanded
+    scene.p._start_typing()  # scene.front 仍为真：和 1.1.9 一样按游戏在前台算
+    scene.ov.hotkey.activated.emit()  # 切换前已排队的按键
+    assert scene.p.expanded and backend.bound is None
+    scene.ov._tick()
+    assert scene.p.expanded and backend.bound is None
+    cfg["features"]["panel_typing_in_game"] = False
+    scene.ov._tick()
+    assert backend.bound
+
+
+def test_typing_entered_from_other_program_draws_no_badges(scene, monkeypatch):
+    """常显（overlay_on_demand=false）时别的程序盖着游戏，从那个程序点进详情搜英雄：
+    浮窗照常在，三选一标签不画到那个程序上。"""
+    fg = [999]
+    _typing_scene(scene, monkeypatch, fg)
+    scene.engine.settings.overlay_on_demand = False
+    scene.front[0] = False
+    scene.ov._tick()
+    assert scene.p.isVisible() and not scene.ov.badges.isVisible()
+    scene.p._start_typing()
+    assert fg[0] == int(scene.p.body_win.winId())
+    for _ in range(3):
+        scene.ov._tick()
+        assert scene.p.isVisible() and not scene.ov.badges.isVisible()
+    # 前台监听没装上时，旧判断（_last_other）可能还记着游戏，打字期间以这次记下的来源为准
+    scene.front[0] = True
+    scene.ov._tick()
+    assert scene.p.isVisible() and not scene.ov.badges.isVisible()
+
+
+
+def test_typing_when_details_already_foreground_keeps_panel(scene, monkeypatch):
+    """云控 panel_no_activate=false 时点了详情就变前台，点进搜索框时已经不知道是从哪来的：
+    按旧判断（is_foreground 记着游戏）算，浮窗不藏。上一次从别的程序点进来记下的来源也不能留着用。"""
+    fg = [999]
+    cfg = _typing_scene(scene, monkeypatch, fg)
+    cfg["features"]["panel_no_activate"] = False
+    scene.front[0] = False
+    scene.p._start_typing()  # 上一次：从别的程序点进来
+    fg[0] = GAME  # 回到游戏，打字结束
+    scene.front[0] = True
+    scene.ov._tick()
+    assert scene.p.isVisible() and scene.p.expanded and not scene.p._typing_on
+    fg[0] = int(scene.p.body_win.winId())  # 点详情就变了前台，再点进搜索框
+    scene.p._start_typing()
+    assert scene.p.typing_source() is None
+    for _ in range(3):
+        scene.ov._tick()
+        assert scene.p.isVisible() and scene.p.body_win.isVisible() and scene.ov.badges.isVisible()
+    scene.front[0] = False  # 旧判断也说游戏不在前台：照常藏
+    scene.ov._tick()
+    assert not scene.p.isVisible()
 
 
 def test_champion_select_keeps_winrates_and_details(scene, monkeypatch):

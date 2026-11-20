@@ -259,6 +259,20 @@ def give_focus(hwnd: int) -> None:
         u.SetForegroundWindow(hwnd)
 
 
+def describe(hwnd: int) -> str:
+    """日志用：窗口类名，是本程序的窗口时注明。"""
+    if not IS_WINDOWS or not hwnd:
+        return str(hwnd or "无")
+    u = ctypes.windll.user32
+    buf = ctypes.create_unicode_buffer(128)
+    u.GetClassNameW(hwnd, buf, 128)
+    pid = wintypes.DWORD()
+    u.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+    own = "，本程序" if pid.value == os.getpid() else ""
+    mark = "，浮窗" if int(hwnd) in _companions else ""
+    return f"{buf.value or '?'}{own}{mark}"
+
+
 def foreground_window() -> int:
     """现在的前台窗口；不是 Windows 为 0。"""
     if not IS_WINDOWS:

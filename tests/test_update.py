@@ -203,7 +203,10 @@ def test_release_notes_only_key_part_fits_update_bar():
     m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
     body = m.notes("1.1.1", (root / "CHANGELOG.md").read_text(encoding="utf-8"))
     assert "完整更新内容" not in body and body.strip().endswith("更多详情见 GitHub") and len(body) <= 200
-    assert m.notes("9.9.9", "## 9.9.9\n\n- a\n") == "- a\n"   # 没有「完整更新内容」的老格式照旧
+    assert m.notes("9.9.9", "## 9.9.9\n\n- a\n") == "a\n"   # 没有「完整更新内容」的老格式照旧
+    # 横条不认换行：几条去掉「- 」、用分号接成一句（1.1.9 起）
+    assert m.notes("9.9.9", "## 9.9.9\n\n- a\n- b\n\n完整更新内容：\n\n- c\n") == "a；b\n"
+    assert m.notes("1.1.9", (root / "CHANGELOG.md").read_text(encoding="utf-8")) == "进一步修复大小核问题\n"
 
 
 def test_test_builds_sort_before_their_release():

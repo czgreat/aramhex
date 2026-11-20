@@ -20,6 +20,7 @@ settings_v2 比 settings 严：每条都要写 versions（不写整条跳过，�
 有本版不认识的键（以后的新条件）也整条跳过，以 "_" 开头的键当注释。
 settings 里写这些条件的规则整条跳过：1.1.8 及以前会当成没写、对所有电脑生效，所以条件只能写在 settings_v2。
 点名、对照试验用 force：defaults 写进设置文件，规则撤了、电脑不再符合条件也不会改回去。
+NO_FORCE 里的项只能改默认值，写在 force 里忽略（overlay_bg 详情的背景是个人喜好，1.2.0）。
 
 能云控的项和取值范围见 SPEC；不在表里的项、取值不对的都忽略（记日志）。
 云控配置存在本地（cloud.json），断网时照样按上次的生效。
@@ -31,7 +32,7 @@ import logging
 import re
 
 from . import cloud
-from .config import SPEEDS, Settings
+from .config import OVERLAY_BGS, SPEEDS, Settings
 from .i18n import LANG_CODES
 
 log = logging.getLogger(__name__)
@@ -88,11 +89,14 @@ SPEC = {
     "match_threshold": _num(50, 99),
     "smoothing_games": _num(0, 10000, integer=True),
     "overlay_corner": _one_of({"top-right", "top-left"}),
+    "overlay_bg": _one_of({k for k, _ in OVERLAY_BGS}),
     "badge_position": _one_of({"top", "bottom"}),
     "data_band": _one_of({"", "casual", "mid", "high"}),
     "speed": _one_of(set(SPEEDS)),
     "game_lang": _one_of(LANG_CODES),
 }
+
+NO_FORCE = {"overlay_bg"}
 
 
 def rules(cfg: dict) -> list[dict]:
@@ -246,6 +250,9 @@ def apply(settings: Settings, cfg: dict, version: str, machine: dict | None = No
         hit.append(rid)
         defaults.update(_valid(r.get("defaults"), f"规则 {rid} defaults"))
         f = _valid(r.get("force"), f"规则 {rid} force")
+        for k in NO_FORCE & f.keys():
+            log.info("云控设置：规则 %s 的 %s 只能写在 defaults，force 里忽略", rid, k)
+            del f[k]
         force.update(f)
         if f and r.get("reason"):
             reasons.append((rid, str(r["reason"])[:200]))

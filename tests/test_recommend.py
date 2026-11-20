@@ -34,7 +34,7 @@ def test_win_rate_beats_official_tier(store):
     assert ev["slots"][0]["tier"] == "S"
     assert ev["slots"][1]["sample"] == "high" and ev["slots"][1]["source"] == "public"
     assert "首选「虚幻武器」" in ev["advice"]
-    assert any("自采统计·16.20版本" in x for x in ev["slots"][1]["reasons"])
+    assert any("统计数据·16.20版本" in x for x in ev["slots"][1]["reasons"])
 
 
 def test_unknown_slot_and_rare_augment(store):
@@ -104,7 +104,7 @@ def test_resolve_hero_variants(store):
 
 def test_hero_panel_merges_official_build_with_stats(store):
     p = hero_panel(store, "17")
-    assert p["win_source"] == "自采统计·16.20版本"
+    assert p["win_source"] == "统计数据·16.20版本"
     by_id = {a["id"]: a for a in p["augments"]}
     assert by_id["1029"]["win"] == 0.6 and by_id["1029"]["delta"] > 0 and by_id["1029"]["source"] == "public"
     assert by_id["2128"]["tier"] == "S"  # 官方层级保留

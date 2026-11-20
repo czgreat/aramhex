@@ -6,7 +6,7 @@
 
 网络失败时继续使用旧缓存，并在 status() 里标明，界面据此提示"官方资料可能过期"。
 连旧缓存都没有（第一次运行就连不上腾讯 CDN）时，用随程序内置的 static_bundled.json、hero_bundled.json（1.1.2）。
-胜率统计不在这里，见 public.py（自采统计数据）。
+胜率统计不在这里，见 public.py（统计数据）。
 """
 
 from __future__ import annotations

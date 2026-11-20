@@ -135,7 +135,15 @@ def test_show_winrate_always_on(tmp_path):
     p = tmp_path / "config.json"
     p.write_text(json.dumps({"show_winrate": False, "overlay": False}), encoding="utf-8")
     s = Settings.load(p)
-    assert s.show_winrate is True and s.overlay is False  # 浮窗还能在托盘菜单里开关，保留玩家的选择
+    assert s.show_winrate is True
+
+
+def test_overlay_always_on_after_tray_switch_removed(tmp_path):
+    # 1.2.0：托盘去掉「显示游戏浮窗」，以前在托盘关掉的也打开（不然再也打不开），也不再算玩家改的
+    p = tmp_path / "config.json"
+    p.write_text(json.dumps({"overlay": False, "user_set": ["overlay", "badge_position"]}), encoding="utf-8")
+    s = Settings.load(p)
+    assert s.overlay is True and s.user_set == ["badge_position"]
 
 
 def test_old_auto_screenshot_dropped(tmp_path):

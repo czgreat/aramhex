@@ -56,7 +56,7 @@ def test_main_window_shows_fourth_card_only_for_four_choice():
     assert [not f.isHidden() for f in fake.offer_frames] == [True, True, True, False]
 
 
-def _loop(monkeypatch, scan, until, settings=None, det=None):
+def _loop(monkeypatch, scan, until, settings=None, det=None, shown=None):
     from lolhex.config import Settings
     from lolhex.engine import Engine
     from lolhex.vision import window
@@ -89,6 +89,8 @@ def _loop(monkeypatch, scan, until, settings=None, det=None):
     engine.settings = settings or Settings()
     engine._observed_scan = lambda det, rect, *, full=False, reason, **kw: scan(clock[0], full, reason)
     engine._on_offer = engine._save_offer_shot = engine._log_vision_cost = lambda *a: None
+    if shown is not None:
+        engine._on_offer = lambda offer: shown.append((round(clock[0], 2), offer))
     engine._scan_discarded = False
     engine._sync_augment_tables = lambda det: None
     engine._vision_loop()
@@ -158,3 +160,88 @@ def test_half_names_trigger_a_full_scan_right_away(monkeypatch):
     assert garbled and 7.2 <= garbled[0] < 7.8  # 不等到 10 秒的兜底
     assert all(b - a >= module.Settings.garbled_rescan_s for a, b in zip(garbled, garbled[1:]))
     assert not [t for t, r in full if r == "fallback" and 7.2 <= t < 13]
+
+
+def test_partial_first_read_waits_for_the_layout_check(monkeypatch):
+    """1.2.0：这局第一次认出就没认全，张数还没确认：先整块核对，核对完再出推荐，不按可能错的位置先出。"""
+    from lolhex import cloud
+    events = []
+    partial = Offer(["1", None, "3"], [""] * 3, [100] * 3, [None] * 3)
+
+    def scan(now, is_full, reason):
+        events.append((round(now, 2), reason))
+        if is_full:
+            return partial
+        return partial if now >= 1 else None
+    shown = []
+    _loop(monkeypatch, scan, until=5, shown=shown)
+    first_strip = next(t for t, r in events if r == "titles" and t >= 1)
+    layout = next(t for t, r in events if r == "layout")
+    assert layout > first_strip and shown and shown[0][0] == layout  # 第一条推荐来自整块核对
+    events.clear()
+    shown.clear()
+    monkeypatch.setattr(cloud, "get", lambda: cloud._merge({"features": {"count_switch": False}}))
+    _loop(monkeypatch, scan, until=5, shown=shown)
+    assert shown[0][0] == next(t for t, r in events if r == "titles" and t >= 1)  # 关掉：1.1.9 先出
+
+
+def test_half_names_try_the_other_card_count_before_a_full_scan(monkeypatch):
+    """1.2.0：读到半截名字先按另一种张数读标题条；那样也读不出（try_other_count 返回 False）才整块扫描。"""
+    full, tried = [], []
+    four = Offer(["1", "2", "3", "4"], [""] * 4, [100] * 4, [None] * 4)
+    state = {"suspect": False, "count": 3}
+
+    class Det(SimpleNamespace):
+        @property
+        def layout_suspect(self):
+            return state["suspect"]
+
+        def clear_layout_suspect(self):
+            state["suspect"] = False
+
+        def try_other_count(self, w, h):
+            tried.append(round(now[0], 2))
+            state["count"] = 4
+            return True
+
+    now = [0.0]
+
+    def scan(t, is_full, reason):
+        now[0] = t
+        if is_full:
+            full.append((round(t, 2), reason))
+            return None
+        if state["count"] == 4:
+            return four  # 换成四张的位置马上认出
+        if t >= 7.2:
+            state["suspect"] = True
+        return None
+
+    det = Det(ensure_calibration=lambda *a: None, calibrated_for=lambda *a: True, confirmed_for=lambda *a: True)
+    shown = []
+    _loop(monkeypatch, scan, until=9, det=det, shown=shown)
+    assert tried and 7.2 <= tried[0] < 7.8
+    assert not [t for t, r in full if r == "garbled"]  # 不用等整块扫描
+    assert shown and shown[0][1] is four and shown[0][0] - tried[0] < 0.5
+
+    # 试读的位置也读到半截名字：换回原来的位置，马上整块扫描（和 1.1.9 一样）
+    full.clear(); tried.clear(); state.update(suspect=False, count=3)
+    Det.try_other_count = lambda self, w, h: (tried.append(round(now[0], 2)), False)[1]
+    _loop(monkeypatch, scan, until=9, det=det)
+    garbled = [t for t, r in full if r == "garbled"]
+    assert tried and garbled and garbled[0] == tried[0]
+
+
+def test_alternates_card_counts_only_until_the_first_offer_of_the_game(monkeypatch):
+    """1.2.0：这局还没认出海克斯时，每次标题条没读到卡就换另一种张数的位置；认出后整局不再换。"""
+    calls = []
+    four = Offer(["1", "2", "3", "4"], [""] * 4, [100] * 4, [None] * 4)
+    det = SimpleNamespace(ensure_calibration=lambda *a: None, calibrated_for=lambda *a: True,
+                          confirmed_for=lambda *a: True, alternate_count=lambda w, h: calls.append(clock()) or True)
+    import lolhex.engine as module
+    clock = lambda: module.time.monotonic()
+
+    def scan(now, is_full, reason):
+        return four if not is_full and now >= 20 else None
+    _loop(monkeypatch, scan, until=60, det=det)
+    assert len(calls) > 20 and max(calls) < 20.5

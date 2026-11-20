@@ -22,7 +22,8 @@ def test_game_badges_hide_in_background_and_return_without_rescan(monkeypatch):
     ov.champ=SimpleNamespace(update_from=lambda *args:None)
     ov.autoshot=SimpleNamespace(tick=lambda *args:None)
     ov.panel=SimpleNamespace(update_from=lambda *args:None,auto_hide=lambda *args:None,
-        isVisible=lambda:True,place=lambda *args,**kwargs:None)
+        isVisible=lambda:True,place=lambda *args,**kwargs:None,owns_foreground=lambda:False,
+        typing_source=lambda:None)
     try:
         ov._tick()
         assert ov.badges.isVisible()

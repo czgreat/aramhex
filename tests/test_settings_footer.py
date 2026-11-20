@@ -79,7 +79,7 @@ def test_default_window_shows_every_setting_without_scrolling(mw):
     settle()
     form = mw.tabs.widget(2).findChild(QtWidgets.QScrollArea)
     assert form.verticalScrollBar().maximum() == 0
-    for widget in (mw.set_lang, mw.set_hotkey, mw.set_badge, mw.badge_preview, mw.set_usage, mw.rank_input, mw.btn_check):
+    for widget in (mw.set_lang, mw.corner_hint, mw.set_badge, mw.badge_preview, mw.set_usage, mw.rank_input, mw.btn_check):
         fully_visible(widget)
 
 

@@ -1,4 +1,4 @@
-"""自采统计数据：内置 / 下载两份里挑样本新的；逐文件校验；分段切换；从数据仓库下载更新。"""
+"""统计数据：内置 / 下载两份里挑样本新的；逐文件校验；分段切换；从数据仓库下载更新。"""
 
 import functools
 import json
@@ -37,7 +37,7 @@ def _publish(root, snapshot_at, patch="16.20"):
 def test_bundled_dataset_loads_and_ranks(store):
     st = store.status()
     assert st["dataset"] and st["dataset_patch"] == "16.20" and st["dataset_origin"] == "bundled"
-    assert st["bands_available"] and st["dataset_label"] == "自采统计·16.20版本"
+    assert st["bands_available"] and st["dataset_label"] == "统计数据·16.20版本"
     assert st["dataset_matches"] == 70000 and st["dataset_collected"] == 72000
     assert store.ranks["heroes"]["17"]["rank"] == 1 and store.ranks["heroes"]["17"]["games"] == 400000
     assert store.ranks["augments"]["1029"]["games"] == 45000  # 所有英雄合计
@@ -543,7 +543,7 @@ def test_overlay_summoners_show_win_rate():
     from lolhex.ui import buildview
     d = {"summoners": [{"spells": [{"id": "4", "name": "闪现"}, {"id": "32", "name": "雪球"}], "games": 900, "win": 0.534, "pick": 0.9},
                        {"spells": [{"id": "4", "name": "闪现"}, {"id": "6", "name": "疾跑"}], "games": 100, "win": 0.51, "pick": 0.1}],
-         "summoner_source": "自采统计"}
+         "summoner_source": "统计数据"}
     compact = buildview.lines(d, None, True, compact=True)
     rows = [x for x in compact if "闪现" in x]
     assert len(rows) == 2 and "胜率 53.4% · 出场 90.0%" in rows[0] and "胜率 51.0% · 出场 10.0%" in rows[1]

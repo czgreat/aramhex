@@ -48,7 +48,7 @@ def lookup(riot_id: str, timeout: float = 10) -> dict:
     raise RankError(body.get("error") or ("查询服务暂时不可用，请稍后再试" if r.status_code >= 500 else f"查询失败（{r.status_code}）"))
 
 
-def _pct(x: float) -> str:
+def top_pct(x: float) -> str:
     v = x * 100
     return f"{v:.2f}%" if v < 1 else f"{v:.1f}%" if v < 10 else f"{v:.0f}%"
 
@@ -58,11 +58,11 @@ def describe(res: dict) -> str:
     if not res or not res.get("results"):
         return ""
     r = res["results"][0]
-    s = f"前 {_pct(r['top'])}（{r['band_name']}）· {r['region_name']} · 近 30 天 {r['games']} 局"
+    s = f"前 {top_pct(r['top'])}（{r['band_name']}）· {r['region_name']} · 近 30 天 {r['games']} 局"
     if res.get("as_of"):
         s += f" · 数据截至 {res['as_of'][5:10]}"
     if r.get("solo_top"):
-        s += f"<br>单排对局水平：相当于区内前 {_pct(r['solo_top'])}（近 30 天单排 {r.get('solo_games') or 0} 局）"
+        s += f"<br>单排对局水平：相当于区内前 {top_pct(r['solo_top'])}（近 30 天单排 {r.get('solo_games') or 0} 局）"
     if len(res["results"]) > 1:
         s += "<br>另有：" + "、".join(f"{x['region_name']} {x['band_name']}" for x in res["results"][1:3])
     return s

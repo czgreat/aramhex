@@ -7,7 +7,7 @@ import pytest
 
 from lolhex import cloudsettings
 from lolhex.config import Settings
-from lolhex.vision.detector import AugmentDetector, Calibration
+from lolhex.vision.detector import AugmentDetector, Calibration, Offer
 from lolhex.vision.matcher import NameMatcher
 from lolhex.vision.title_probe import TitleSignal, probe_titles
 from lolhex.vision.window import Rect
@@ -89,7 +89,7 @@ def test_active_or_unconfirmed_state_preserves_original_path(monkeypatch, state)
     det.check_strip(strip, rect)
     clock[0] += .3
     strip[:] = 65
-    if state == "visible": det._stable = object()
+    if state == "visible": det._stable = Offer([None] * 3, [""] * 3, [0.0] * 3, [None] * 3)
     elif state == "pending": det._pending[0] = {"aid": "1", "count": 1, "first": clock[0]}
     elif state == "group": det._group_target = [None] * 3
     elif state == "guess": det.calibration.guess = True

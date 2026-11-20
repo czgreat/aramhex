@@ -1,9 +1,9 @@
 """三选一评分：以本英雄的海克斯胜率为主，官方层级只做兜底。
 
 数据来源（依次）：
-1. 自采统计：本英雄 × 这个海克斯的胜率（可按分段）；
+1. 统计数据：本英雄 × 这个海克斯的胜率（可按分段）；
 2. 腾讯官方层级 S/A/B/C（没有胜率时粗估）；
-3. 未识别英雄时：自采统计里这个海克斯在所有英雄上的合计胜率。
+3. 未识别英雄时：统计数据里这个海克斯在所有英雄上的合计胜率。
 
 分数 = 相对该英雄基准胜率的Δ胜率（百分点）：
 1. 贝叶斯平滑：smoothed = (胜率×场次 + 基准×k) / (场次 + k)，k 默认 300，小样本的高胜率会被拉回基准附近。
@@ -182,7 +182,7 @@ def evaluate(store, hero_id: str | None, slots: list[str | None], k: int = 300) 
     # 重算也会由界面点击触发；网络更新交给 Engine 的后台预取。
     hero = store.hero(hero_id, allow_network=False) if hero_id else None
     ag = store.win_data(hero_id, allow_network=False) if hero_id else None
-    label = (ag or {}).get("label") or "自采统计"
+    label = (ag or {}).get("label") or "统计数据"
     ag_augs = (ag or {}).get("augments") or {}
     excluded = store.excluded_augments()
     provisional = store.provisional_augments() if hasattr(store, "provisional_augments") else {}

@@ -16,12 +16,13 @@ import logging
 import time
 from html import escape
 
-from PySide6.QtCore import QEvent, QPoint, QRect, QRectF, QSize, Qt, QTimer
+from PySide6.QtCore import QEvent, QPoint, QRect, QRectF, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QColor, QCursor, QFont, QFontMetrics, QGuiApplication, QPainter, QPen, QPixmap, QRegion
 from PySide6.QtWidgets import (QApplication, QHBoxLayout, QLabel, QLineEdit, QPushButton,
                                QVBoxLayout, QWidget)
 
 from .. import cloud, crashlog, recommend
+from ..config import OVERLAY_BGS
 from ..recommend import NODATA_NOTE
 from ..vision import window as win
 from .. import patch
@@ -638,7 +639,12 @@ class ControlPanel(QWidget):
     Qt 先按左边不动撑大、再摆回右对齐，中间约 30 毫秒图标跳到别处（231 逐帧采样实测），玩家看到图标闪一下。
     现在图标窗口大小、位置都不因展开收起而变，详情窗口贴在图标下面单独显示、隐藏。"""
 
-    STYLE_BODY = ("QWidget#body{background:#101318ee;border:1px solid #2c3240;border-radius:8px}"
+    # 详情的背景（详情里的「背景」按钮，1.2.0）。Qt 把 8 位颜色读成 #AARRGGBB：1.1.9 起写的
+    # #101318ee 实际是透明度 0x10（约 6%）的蓝色，详情几乎是透明的，玩家说看不清字。「透明」保持这个样子（1.1.9），
+    # 半透明约 70%，不透明 100%，颜色都是本来想要的 #101318
+    PANEL_BG = {"standard": "#101318ee", "dark": "#b3101318", "solid": "#ff101318"}
+    bg_picked = Signal(str)  # 详情里点了「背景」按钮：要换成的那档，主界面存设置、生效
+    STYLE_BODY = ("QWidget#body{background:%s;border:1px solid #2c3240;border-radius:8px}"
                   "QLabel{color:#e6e8ee;font:12px 'Microsoft YaHei UI'}"
                   "QLineEdit{background:#0c0e12;color:#e6e8ee;border:1px solid #2c3240;border-radius:4px;padding:3px 6px}"
                   "QPushButton{background:#1b2130;color:#e6e8ee;border:1px solid #2c3240;border-radius:4px;padding:2px 8px}"
@@ -658,6 +664,7 @@ class ControlPanel(QWidget):
         self.expanded = False
         self.target_hwnd = 0      # 游戏窗口（进游戏后）或客户端窗口，点完浮窗把焦点还给它
         self._typing_on = False   # 1.1.9：点进了搜索框、详情窗口真拿到了前台；选好、Esc、收起、玩家点回别处时结束
+        self._typing_from = 0     # 1.2.0：点进搜索框之前在前台的窗口（从游戏点进来的才按游戏在前台画）
         self._away_since = None   # 展开后鼠标离开浮窗的时刻
         self._hovered = False     # 这次展开后鼠标是否进过浮窗
         self._auto_opened = False
@@ -693,7 +700,8 @@ class ControlPanel(QWidget):
         self.body = QWidget()
         self.body.setObjectName("body")
         self.body.setAttribute(Qt.WA_StyledBackground)
-        self.body.setStyleSheet(self.STYLE_BODY)
+        self.bg_level = "standard"
+        self.body.setStyleSheet(self.STYLE_BODY % self.PANEL_BG[self.bg_level])
         self.body.setFixedWidth(360)
         bl = QVBoxLayout(self.body)
         bl.setContentsMargins(10, 10, 10, 10)
@@ -729,6 +737,16 @@ class ControlPanel(QWidget):
         bl.addLayout(search_row)
         bl.addWidget(self.search_feedback)
         bl.addWidget(self.info)
+        # 详情的背景：点一下换下一档，只有这里能换（云控 features.overlay_bg 关了不显示）
+        self.bg_btn = QPushButton()
+        self.bg_btn.setToolTip("详情的背景，点一下换：透明 → 半透明 → 不透明。\n"
+                               "看不清字就换成不透明，会挡住后面的游戏画面。")
+        self.bg_btn.clicked.connect(self._next_bg)
+        self._show_bg_btn()
+        bg_row = QHBoxLayout()
+        bg_row.addStretch(1)
+        bg_row.addWidget(self.bg_btn)
+        bl.addLayout(bg_row)
         bw_lay.addWidget(self.body)
         lay.addWidget(self.btn)
         self._cand_ids = []
@@ -746,6 +764,14 @@ class ControlPanel(QWidget):
         on = cloud.feature("panel_no_activate")
         win.set_no_activate(int(self.winId()), on)
         win.set_no_activate(int(self.body_win.winId()), on and not self._typing_on)
+
+    def owns_foreground(self) -> bool:
+        """前台是不是图标、详情或搜索框的补全列表（玩家点进搜索框在打字）。"""
+        return self.isVisible() and win.foreground_window() in self._panel_hwnds()
+
+    def typing_source(self) -> int | None:
+        """玩家点进搜索框、现在还在详情或补全列表里打字时，点进来之前在前台的窗口；没在打字、不知道从哪来返回 None。"""
+        return (self._typing_from or None) if self._typing_on and self.owns_foreground() else None
 
     def _panel_hwnds(self) -> set[int]:
         """图标、详情和搜索框的补全列表。"""
@@ -765,6 +791,12 @@ class ControlPanel(QWidget):
 
     def _start_typing(self) -> None:
         hb = int(self.body_win.winId())
+        prev = win.foreground_window()
+        if prev not in self._panel_hwnds():
+            self._typing_from = prev
+        elif not self._typing_on:  # 点之前详情已在前台（云控 panel_no_activate=false 时点了就变前台）：不知道从哪来
+            self._typing_from = 0
+        # 打字中途又点了一下搜索框：留着最初的
         self._typing_on = True
         if win.set_no_activate(hb, False):
             # 刚点了本进程的窗口，Windows 允许换前台；不看 isActiveWindow：点过之后 Qt 就当它是活动窗口了，其实前台还是游戏
@@ -928,6 +960,20 @@ class ControlPanel(QWidget):
         elif href == "quit":
             from .mainwindow import quit_app
             quit_app(self.engine)
+
+    def set_bg(self, level: str, shown: bool = True) -> None:
+        """详情的背景（见 Overlay.apply_bg）。shown：详情里显示「背景」按钮。"""
+        self.bg_level = level
+        self.body.setStyleSheet(self.STYLE_BODY % self.PANEL_BG.get(level, self.PANEL_BG["standard"]))
+        self._show_bg_btn()
+        self.bg_btn.setVisible(shown)
+
+    def _show_bg_btn(self) -> None:
+        self.bg_btn.setText("背景：" + dict(OVERLAY_BGS).get(self.bg_level, "透明"))
+
+    def _next_bg(self) -> None:
+        codes = [code for code, _ in OVERLAY_BGS]
+        self.bg_picked.emit(codes[(codes.index(self.bg_level) + 1) % len(codes)] if self.bg_level in codes else codes[0])
 
     def _set_btn_size(self, d: int) -> None:
         """图标按钮直径（逻辑像素）。"""
@@ -1149,6 +1195,8 @@ class Overlay:
         self.champ = ChampSelectLayer()
         self.panel = ControlPanel(engine, engine.settings.overlay_corner)
         self.visible = engine.settings.overlay
+        self._bg = None
+        self.apply_bg()
         self.hotkey = GameHotkey()
         self.hotkey.activated.connect(self._toggle_details)
         self.hotkey.sync(engine.settings.overlay_hotkey, False)
@@ -1167,6 +1215,18 @@ class Overlay:
             self.badges.hide()
             self.champ.hide()
 
+    def apply_bg(self) -> None:
+        """详情的背景（详情里的「背景」按钮，1.2.0）：透明（1.1.9 的样子）/ 半透明 / 不透明。
+        只改右上角详情面板，三选一标签、选英雄标注不变。云控 features.overlay_bg=false 退回 1.1.9：
+        按透明画、详情里不显示按钮，玩家选的留着。"""
+        on = cloud.feature("overlay_bg")
+        level = self.engine.settings.overlay_bg if on else "standard"
+        if (level, on) == self._bg:
+            return
+        self._bg = (level, on)
+        log.info("详情背景 %s（云控开关 overlay_bg=%s）", level, "开" if on else "关")
+        self.panel.set_bg(level, shown=on)
+
     def _toggle_details(self) -> None:
         """处理按键时重新核对前台，丢弃切出游戏前排队的消息。"""
         if not self.visible:
@@ -1176,11 +1236,17 @@ class Overlay:
         target = game or win.find_client_window()
         playing = snap.get("phase") == "ingame" if game else (
             snap.get("phase") == "client" and bool(snap.get("champ_select")))
-        if not playing or not target or not win.client_rect(target) or not win.is_foreground(target):
+        if (not playing or not target or not win.client_rect(target) or not win.is_foreground(target)
+                or self._panel_typing() or not cloud.feature("overlay_hotkey", False)):
             self.hotkey.sync(self.engine.settings.overlay_hotkey, False)
             return
         self.panel.toggle()
         self._tick()  # 按需模式下按钮可能完全隐藏：展开后立即摆放并显示详情。
+
+    def _panel_typing(self) -> bool:
+        """1.2.0：前台是详情或补全列表（玩家在搜英雄）。这时快捷键不注册、排队的按键也不处理，免得打字时收起详情。
+        云控 features.panel_typing_in_game=false 退回 1.1.9（前台是详情也按游戏在前台算）。"""
+        return cloud.feature("panel_typing_in_game") and self.panel.owns_foreground()
 
     def _tick(self):
         crashlog.enforce_limit()
@@ -1196,12 +1262,22 @@ class Overlay:
         game = win.find_game_window()
         grect = win.client_rect(game) if game else None
         game_foreground = bool(grect and win.is_foreground(game))
-        self.badges.update_from(snap, grect if game_foreground else None, game)
+        # 1.2.0：从游戏点进详情搜英雄时前台是详情窗口（或补全列表），游戏还在后面，按游戏在前台画、不藏浮窗。
+        # 1.1.9 可能当成离开了游戏，按需模式把浮窗藏掉，输入框焦点跟着丢，没认出英雄时手动选不了。
+        # 从盖在游戏上的别的程序点进来的不算，标签照旧不画到那个程序上。打字期间只看点进来之前是谁在前台，
+        # 不再看 is_foreground：前台监听没装上时它记的可能还是游戏；不知道从哪来（点之前详情已在前台）才照旧看它。
+        # 云控 features.panel_typing_in_game=false 退回 1.1.9
+        source = self.panel.typing_source() if cloud.feature("panel_typing_in_game") else None
+        over_game = game_foreground if source is None else bool(grect) and source == game
+        self.badges.update_from(snap, grect if over_game else None, game)
         client = None if grect else win.find_client_window()
         crect = win.client_rect(client) if client else None
-        hotkey_active = (snap.get("phase") == "ingame" and game_foreground) or (
-            snap.get("phase") == "client" and bool(snap.get("champ_select"))
-            and bool(crect and win.is_foreground(client)))
+        # 1.2.0 起不注册详情快捷键（不好按，只用鼠标唤出）；云控 features.overlay_hotkey=true 退回 1.1.9
+        typing = self._panel_typing()
+        hotkey_active = cloud.feature("overlay_hotkey", False) and not typing and (
+            (snap.get("phase") == "ingame" and game_foreground) or (
+                snap.get("phase") == "client" and bool(snap.get("champ_select"))
+                and bool(crect and win.is_foreground(client))))
         self.hotkey.sync(self.engine.settings.overlay_hotkey, bool(hotkey_active))
         # 标注层置顶：客户端不在前台（切到别的窗口）时隐藏，免得盖在别的程序上
         self.champ.update_from(snap, crect if crect and win.is_foreground(client) else None, client or 0)
@@ -1221,8 +1297,10 @@ class Overlay:
             if not self.panel.isVisible():
                 # 隐藏时也跟随目标显示器，让 Qt 收到 DPI 变化；不先 show，免得每轮闪一下。
                 self.panel.place(grect)
-            if not self.panel.button_needed(snap, grect, game_foreground):
+            if not self.panel.button_needed(snap, grect, over_game):
                 if self.panel.isVisible():
+                    if self.panel.expanded:  # 开着的详情被藏掉：记下当时谁在前台，好查焦点问题
+                        log.info("浮窗：游戏不在前台，藏起开着的详情（前台 %s）", win.describe(win.foreground_window()))
                     self.panel.hide()
                 return
         if not self.panel.isVisible():

@@ -1,9 +1,9 @@
-"""AramHex 海克斯大乱斗助手：屏幕识别 + 自采统计数据 + 腾讯官方资料。"""
+"""AramHex 海克斯大乱斗助手：屏幕识别 + 统计数据 + 腾讯官方资料。"""
 
 import os as _os
 from pathlib import Path as _Path
 
-__version__ = "1.1.9"
+__version__ = "1.2.0"
 # 测试包：packaging/build.ps1 -TestTag test.1 打包时临时生成 _build.py，版本号变成「1.1.3-test.1」。
 # 发出去的测试包比正式版 1.1.3 旧，正式版一发就会提示更新；正式发布（GitHub Actions）不生成这个文件
 try:

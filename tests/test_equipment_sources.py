@@ -30,7 +30,7 @@ def test_self_collected_mix_cannot_score_missing_augment_from_tencent_tier(store
     from lolhex import recommend
 
     hero = deepcopy(store.official_hero('17', allow_network=False))
-    # 字典中存在、该英雄自采表中缺失的海克斯，仅旧资料给腾讯评级。
+    # 字典中存在、该英雄统计表中缺失的海克斯，仅旧资料给腾讯评级。
     aid = next(a for a in store.augments if a not in store.win_data('17')['augments'])
     hero['augments'] = [{'id': aid, 'tier': 'A', 'rank': 1,
                          'rarity': store.augments[aid]['rarity']}]

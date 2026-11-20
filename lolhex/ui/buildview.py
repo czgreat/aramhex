@@ -62,7 +62,7 @@ def lines(d: dict, icons, show_win: bool, size: int = 24, compact: bool = False)
         out.extend(f"　{spell_pair(icons, s, size)} <span style='color:{GRAY}'>{stat(s)}</span>" for s in sums)
 
     its = (d.get("item_stats") or [])[: 4 if compact else 6]
-    if its:  # 自采统计的装备（数据里有 hero_items.json 才有）
+    if its:  # 统计数据里的装备（数据里有 hero_items.json 才有）
         out.append("<b>常出装备</b>　" + "　".join(item(icons, x["item"], size) + wr(x.get("win")) for x in its))
 
     def core(c):

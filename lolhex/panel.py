@@ -78,7 +78,7 @@ def hero_panel(store, hero_key, k: int = 300, *, allow_network: bool = True) -> 
         "shoes": [{**x, "item": item(x["item"])} for x in by_win(b.get("shoes", []))],
         "start": [{**x, "items": [item(i) for i in x["items"]]} for x in by_win(b.get("start", []))],
     }
-    # 自采统计的召唤师技能、装备（数据里有 hero_spells.json / hero_items.json 才有）
+    # 统计数据里的召唤师技能、装备（数据里有 hero_spells.json / hero_items.json 才有）
     summoners, sum_src, item_stats = [], "", []
     if hasattr(store, "hero_spells"):
         spells = store.spells

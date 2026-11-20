@@ -1,4 +1,4 @@
-"""自采统计数据（公开数据仓库 github.com/czgreat/aramhex-data 的格式）。
+"""统计数据（公开数据仓库 github.com/czgreat/aramhex-data 的格式）。
 
 一份数据 = 一个目录：
     latest.json                      清单：版本、样本时间、文件列表（SHA-256、大小）
@@ -9,7 +9,7 @@
 两个来源，用样本更新的那份：
 - 安装包内置：lolhex/data/bundled/（发版时由 scripts/update_data.py 放进来）；
 - 下载的：<app_home>/data/public/（启动时查数据仓库的 latest.json，有新数据就下载，逐个文件校验 SHA-256）。
-  客户端只访问云控配置的自有服务器地址；服务器内部可以使用自采、腾讯或混合来源。
+  客户端只访问云控配置的自有服务器地址。
 
 官方资料（英雄、海克斯字典、出装、加点）仍由父类 DataStore 直接从腾讯取。
 """
@@ -704,7 +704,7 @@ class PublicStore(DataStore):
         if not self.dataset:
             return "暂无统计数据"
         band = self.effective_band()
-        return f"自采统计·{self.dataset.patch}版本" + (f"·{BANDS[band]}" if band else "")
+        return f"统计数据·{self.dataset.patch}版本" + (f"·{BANDS[band]}" if band else "")
 
     # ---------- 查询（panel / recommend 用） ----------
 
@@ -750,7 +750,7 @@ class PublicStore(DataStore):
         return rows, self.label()
 
     def hero_spells(self, hero_id: str) -> tuple[list[dict], str]:
-        """自采统计的召唤师技能组合（hero_spells.json：英雄 → "4+32" → 局数/胜场）。没有这个文件返回 []。
+        """统计数据里的召唤师技能组合（hero_spells.json：英雄 → "4+32" → 局数/胜场）。没有这个文件返回 []。
         返回 ([{spells: [ID, ID], games, win, pick}], 来源说明)。"""
         rows, label = self._hero_rows("hero_spells.json", hero_id)
         total = sum(r["games"] for r in rows) or 1
@@ -759,7 +759,7 @@ class PublicStore(DataStore):
         return [r for r in out if len(r["spells"]) == 2], label
 
     def hero_items(self, hero_id: str) -> tuple[list[dict], str]:
-        """自采统计的装备（hero_items.json：英雄 → 装备 ID → 局数/胜场）。没有这个文件返回 []。"""
+        """统计数据里的装备（hero_items.json：英雄 → 装备 ID → 局数/胜场）。没有这个文件返回 []。"""
         rows, label = self._hero_rows("hero_items.json", hero_id)
         return [{"item": r["key"], "games": r["games"], "win": r["win"]} for r in rows], label
 

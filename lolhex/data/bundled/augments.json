@@ -459,14 +459,6 @@
   "name": "升级：无尽之刃",
   "rarity": "gold"
  },
- "1337": {
-  "name": "尊我为王",
-  "rarity": "prismatic"
- },
- "1343": {
-  "name": "王中王，靴中靴",
-  "rarity": "prismatic"
- },
  "1344": {
   "name": "最终形态",
   "rarity": "prismatic"
@@ -603,10 +595,6 @@
   "name": "鲨鱼诱饵",
   "rarity": "gold"
  },
- "2034": {
-  "name": "鲨鱼暴风",
-  "rarity": "gold"
- },
  "2043": {
   "name": "自然即是治愈",
   "rarity": "gold"
@@ -649,10 +637,6 @@
  },
  "2078": {
   "name": "连锁反应",
-  "rarity": "gold"
- },
- "2080": {
-  "name": "冰雪爆裂",
   "rarity": "gold"
  },
  "2083": {
@@ -703,10 +687,6 @@
   "name": "濒死悟道",
   "rarity": "prismatic"
  },
- "2109": {
-  "name": "复位",
-  "rarity": "gold"
- },
  "2111": {
   "name": "邦！",
   "rarity": "gold"
@@ -731,10 +711,6 @@
   "name": "前进时间到",
   "rarity": "silver"
  },
- "2126": {
-  "name": "装填",
-  "rarity": "gold"
- },
  "2127": {
   "name": "大师铸就",
   "rarity": "silver"
@@ -755,10 +731,6 @@
   "name": "仁慈打击",
   "rarity": "gold"
  },
- "2134": {
-  "name": "电涌力场",
-  "rarity": "prismatic"
- },
  "2135": {
   "name": "针插垫",
   "rarity": "prismatic"
@@ -766,10 +738,6 @@
  "2136": {
   "name": "可靠武器",
   "rarity": "silver"
- },
- "2137": {
-  "name": "轻拍背部",
-  "rarity": "gold"
  },
  "2138": {
   "name": "自适应防护",
@@ -963,8 +931,20 @@
   "name": "厄运",
   "rarity": "gold"
  },
- "3176": {
-  "name": "赛季之星:五杀摇滚",
+ "3262": {
+  "name": "史莱姆时间",
+  "rarity": "silver"
+ },
+ "3263": {
+  "name": "超坚定风采",
   "rarity": "gold"
+ },
+ "3264": {
+  "name": "秘术卫士",
+  "rarity": "silver"
+ },
+ "3265": {
+  "name": "坚不可破",
+  "rarity": "silver"
  }
 }

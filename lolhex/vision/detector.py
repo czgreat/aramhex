@@ -50,6 +50,8 @@ GARBLED_READS = 2
 GARBLED_HOLD_S = 1.0
 GARBLED_CONF = 0.8
 CARD_COUNTS = (3, 4)  # 四选一（测试服地图）：卡距、卡宽和标题高度与三选一相同，整组仍以屏幕中心对称
+# 读到半截名字时先换成另一种张数的位置试读（1.2.0）；这么多秒内没认出卡就换回原来的位置
+TRIAL_S = 3.0
 
 
 def _band(W: int, H: int) -> tuple[int, int, int, int]:
@@ -68,6 +70,17 @@ def _shifted_boxes(boxes, count: int) -> list[tuple[float, float, float, float]]
     half = (boxes[0][2] - boxes[0][0]) / 2
     y0, y1 = boxes[0][1], boxes[0][3]
     return [(c - half, y0, c + half, y1) for c in (mid + (i - (count - 1) / 2) * spacing for i in range(count))]
+
+
+def _layout_boxes(boxes, count: int) -> list[tuple[float, float, float, float]]:
+    """把本机现有的标题框换成 count 张的排法：卡距、框高照旧，整组以原来的中心对称。
+    窄屏四选一最外侧的卡贴着画面边缘，框宽收窄到放得下（卡心不动，和 _calibration_candidate 一样）。"""
+    shifted = _shifted_boxes(boxes, count)
+    centers = [(b[0] + b[2]) / 2 for b in shifted]
+    spacing = (centers[-1] - centers[0]) / (count - 1)
+    half = min((shifted[0][2] - shifted[0][0]) / 2, centers[0], 1 - centers[-1], spacing / 2)
+    y0, y1 = shifted[0][1], shifted[0][3]
+    return [(c - half, y0, c + half, y1) for c in centers]
 
 
 @dataclass
@@ -192,6 +205,8 @@ class AugmentDetector:
         self._group_since = 0.0
         self._observation = 0
         self._color_logged: set[tuple] = set()  # 记过日志的颜色冲突 (aid, 看到的颜色, 处置方式)，每种只记一次
+        self._trial_from: Calibration | None = None  # 正在按另一种张数试读：试读前的定位，没认出卡时换回
+        self._trial_at = 0.0
         # 卡框颜色和资料稀有度对不上时怎么办（引擎按云控 color_check 每轮设）：
         # log 只记日志、照样按名字认（1.1.3 默认）；reject 名字不是一字不差就拒绝（1.1.2 做法加 #36）；off 不看颜色
         self.color_check = "log"
@@ -201,6 +216,10 @@ class AugmentDetector:
                      "full": 0, "full_s": 0.0, "full_cpu": 0.0,
                      "full_lines": 0, "full_matches": 0, "strip_cache": 0,
                      "name_reject": 0, "color_reject": 0, "color_trust": 0, "pending": 0}
+        # 本机确认过的三张、四张标题位置（1.2.0，存在 calibration.json 的 layouts）：张数 → 位置
+        self._layouts: dict[int, Calibration] = {}
+        self._alternating = False  # 这局已在三张、四张的位置之间轮流读（日志只记一次）
+        self._derived: Calibration | None = None  # 轮流读时按确认过的位置推算出的那份（见 confirmed_for）
         self.calibration = self._load_calibration()
         self._cells, self._pending = [None] * self._n(), [None] * self._n()
         self._group_counts = [0] * self._n()
@@ -219,6 +238,92 @@ class AugmentDetector:
         self._group_target = None
         self._group_counts = [0] * n
 
+    def _fit_tracking(self) -> None:
+        """各列跟踪状态的长度必须和定位的张数一样。对不上（张数刚换过）就按现在的定位从头跟踪，
+        不能按列硬套（1.1.9：定位四张、待确认状态只有三列，标题条每读一次报一次错，十几秒才恢复）。"""
+        n = self._n()
+        if (len(self._cells) != n or len(self._pending) != n or len(self._group_counts) != n
+                or (self._group_target is not None and len(self._group_target) != n)
+                or (self._stable is not None and len(self._stable.slots) != n)):
+            self._layout_changed()
+
+    def _follow_count(self, count: int, W: int, H: int) -> bool:
+        """整块扫描数出的张数和定位不一样，但没认全、不能校准：标题位置马上按新张数排（卡距、框大小沿用
+        现有定位），标题条认全后再存。张数和位置一起换，不会出现只改了一样的状态。"""
+        base = self.calibration if self.calibrated_for(W, H) else Calibration.default(W, H)
+        candidate = self._layout_for(count, W, H, base)
+        if candidate is None:
+            return False
+        self._trial_from = None
+        self.calibration = candidate
+        self._layout_changed()
+        log.info("海克斯卡片数改为 %d 张（整块扫描没认全：位置按现有卡距排，标题条认全后再存）", count)
+        return True
+
+    def try_other_count(self, w: int, h: int) -> bool:
+        """标题条读到半截名字：先按另一种张数的位置读（只多读一条窄带），不等整块扫描（慢的电脑要三四秒）。
+        已经在试读、又读到半截名字时换回原来的位置，返回 False，交给整块扫描。
+        云控 features.count_switch=false 退回 1.1.9：直接整块扫描。"""
+        with self._track_lock:
+            if self._trial_from is not None:
+                self._end_trial(revert=True, why="又读到半截名字")
+                return False
+            if not (cloud.feature("count_switch") and cloud.feature("four_choice") and self.calibrated_for(w, h)):
+                return False
+            other = 4 if self._n() == 3 else 3
+            candidate = self._layout_for(other, w, h, self.calibration)
+            if candidate is None:
+                return False
+            self._trial_from, self._trial_at = self.calibration, time.monotonic()
+            self.calibration = candidate
+            self._layout_changed()
+            self._garbled_reads = 0
+            log.info("标题条读到半截名字：先按 %d 张的位置读（现为 %d 张）", other, self._trial_from.count)
+            return True
+
+    def _layout_for(self, count: int, w: int, h: int, base: Calibration) -> Calibration | None:
+        """count 张的标题位置：本机这个窗口大小上认出过的那份（1.2.0），没有就按 base 的卡距排（先不存）。"""
+        saved = self._layouts.get(count)
+        if saved is not None and tuple(saved.size) == (w, h) and cloud.feature("layout_memory"):
+            return saved
+        candidate = Calibration(_layout_boxes(base.boxes, count), (w, h), guess=True)
+        return candidate if candidate.valid() else None
+
+    def alternate_count(self, w: int, h: int) -> bool:
+        """这局还没认出海克斯、标题条这次没读到卡：下次按另一种张数的位置读（1.2.0）。
+        四选一地图开局不用再等整块扫描（慢的电脑要好几秒），上一局四选一、这局三选一也一样。
+        另一种张数本机认出过就用存的那份；没认出过（没见过四选一）按现在的卡距推算，认全后存下。
+        云控 features.layout_memory=false（或 count_switch、four_choice 关了）不轮流。"""
+        with self._track_lock:
+            if not (cloud.feature("layout_memory") and cloud.feature("count_switch") and cloud.feature("four_choice")
+                    and self._trial_from is None and self.calibrated_for(w, h)):
+                return False
+            cur = self.calibration
+            home = self._layouts.get(cur.count)
+            base = home if home is not None and tuple(home.size) == (w, h) else cur
+            other = self._layout_for(4 if cur.count == 3 else 3, w, h, base)
+            if other is None:
+                return False
+            self.calibration = other
+            self._layout_changed()
+            # 按确认过的位置推算的，兜底整块扫描照确认过的间隔（不然轮流读时一半时间按默认位置的 3 秒扫）
+            self._derived = other if other.guess and not base.guess else None
+            if not self._alternating:
+                self._alternating = True
+                log.info("这局还没认出海克斯：标题条在三张、四张的位置之间轮流读%s",
+                         "（四张的位置按三张的卡距推算）" if other.guess or cur.guess else "")
+            return True
+
+    def _end_trial(self, revert: bool, why: str = "") -> None:
+        prior, self._trial_from = self._trial_from, None
+        if not revert or prior is None:
+            return
+        if self.calibration is not None and tuple(prior.size) == tuple(self.calibration.size):
+            tried = self._n()
+            self.calibration = prior
+            self._layout_changed()
+            log.info("按 %d 张的位置也没认出卡（%s），换回 %d 张", tried, why, prior.count)
+
     def _load_calibration(self) -> Calibration | None:
         """本机存的三选一位置（calibration.json）。只有当前画面上真认出三张卡才会写这个文件，
         所以它总是本机确认过的位置；没有或坏了返回 None。"""
@@ -230,19 +335,36 @@ class AugmentDetector:
         except (OSError, ValueError, KeyError, TypeError, OverflowError):
             log.warning("忽略损坏三选一校准：文件无法解析或尺寸、坐标类型错误")
             return None
+        self._layouts = self._saved_layouts(d)
         if not calibration.valid():
             log.warning("忽略无效三选一校准：尺寸、坐标类型错误，或标题区域越界、重叠、顺序错误")
             return None
+        self._layouts[calibration.count] = calibration  # boxes 是最近认出的那份
         if calibration.count == 4 and not cloud.feature("four_choice"):
             log.info("云控关了四选一：不用本机存的四选一位置，按三选一重新定位")
             return None  # 文件留着，按三选一认出后会被覆盖
         return calibration
+
+    @staticmethod
+    def _saved_layouts(d) -> dict[int, Calibration]:
+        """calibration.json 的 layouts：本机认出过的各种张数的位置（1.2.0 起写；坏的那份不用）。"""
+        raw = d.get("layouts") if isinstance(d, dict) else None
+        out = {}
+        for v in raw.values() if isinstance(raw, dict) else ():
+            try:
+                c = Calibration([tuple(b) for b in v["boxes"]], tuple(v["size"]))
+            except (ValueError, KeyError, TypeError, OverflowError):
+                continue
+            if c.valid():
+                out[c.count] = c
+        return out
 
     def restore_calibration(self) -> bool:
         """丢掉内存里的位置后，换回本机存的那份（和刚启动时一样）。分辨率不同的那份不会被用上：
         calibrated_for 按尺寸比，对不上照旧先用默认位置再重新定位。"""
         with self._track_lock:
             before = self._n()
+            self._trial_from = None
             self.calibration = self._load_calibration()
             if self._n() != before:
                 self._layout_changed()
@@ -255,8 +377,9 @@ class AugmentDetector:
         return self._ocr
 
     def clear_tracking(self) -> None:
-        """离开对局时保留定位校准，丢弃上一局标题与待确认读数。"""
+        """离开对局时保留定位校准，丢弃上一局标题与待确认读数。还在按另一种张数试读的换回原来的位置。"""
         with self._track_lock:
+            self._end_trial(revert=True, why="这局结束了")
             self._last_fp = self._last_result = self._last_window = None
             self._idle_read_at = float("-inf")
             self._cells = [None] * self._n()
@@ -266,6 +389,7 @@ class AugmentDetector:
             self._garbled_reads = 0
             self._group_target = None
             self._group_counts = [0] * self._n()
+            self._alternating = False
 
     @property
     def layout_suspect(self) -> bool:
@@ -306,12 +430,13 @@ class AugmentDetector:
                 and (self.calibration.count == 3 or cloud.feature("four_choice")))
 
     def confirmed_for(self, w: int, h: int) -> bool:
-        return self.calibrated_for(w, h) and not self.calibration.guess
+        return self.calibrated_for(w, h) and (not self.calibration.guess or self.calibration is self._derived)
 
     def ensure_calibration(self, w: int, h: int) -> None:
         """这个窗口大小还没校准过：先用默认位置，第一次选海克斯就能走轻量检查。"""
         if not self.calibrated_for(w, h):
             self._idle_read_at = float("-inf")
+            self._trial_from = None
             self.calibration = Calibration.default(w, h)
             self._last_fp = None
             self._cells = [None] * self._n()
@@ -324,7 +449,9 @@ class AugmentDetector:
     def reset_calibration(self) -> None:
         with self._track_lock:
             self._idle_read_at = float("-inf")
+            self._trial_from = None
             self.calibration = None
+            self._layouts = {}
             self._last_fp = None
             self._cells = [None] * self._n()
             self._stable = None
@@ -343,8 +470,12 @@ class AugmentDetector:
 
     def _write_calibration(self) -> None:
         if self.calib_path and self.calibration:
-            self.calib_path.write_text(json.dumps({"boxes": self.calibration.boxes,
-                                                   "size": self.calibration.size}), encoding="utf-8")
+            # boxes / size 是最近认出的那份（1.1.9 及以前只读这两项）；layouts 三张、四张各留一份（1.2.0）
+            if not self.calibration.guess:
+                self._layouts[self.calibration.count] = self.calibration
+            layouts = {str(n): {"boxes": c.boxes, "size": c.size} for n, c in sorted(self._layouts.items())}
+            self.calib_path.write_text(json.dumps({"boxes": self.calibration.boxes, "size": self.calibration.size,
+                                                   "layouts": layouts}), encoding="utf-8")
 
     @contextmanager
     def defer_calibration_writes(self):
@@ -446,6 +577,8 @@ class AugmentDetector:
                 return None  # 不发布错误位置，也不污染已确认的校准。
             boxes = self.calibration.pixel_boxes(W, H)
         else:
+            if count != self._n() and cloud.feature("count_switch"):
+                self._follow_count(count, W, H)
             # 整块扫描已找到卡片，旧条带的空缓存不能遮掉这次恢复。
             self._last_fp = self._last_result = self._last_window = None
             self._cells = [None] * self._n()
@@ -599,6 +732,7 @@ class AugmentDetector:
                 log.warning("拒绝三选一校准：标题区域越界、重叠或顺序错误 boxes=%s @ %dx%d", boxes, W, H)
             return False
         before = self._n()
+        self._trial_from = None  # 整块扫描认全了，定位以它为准
         self.calibration = candidate
         if candidate.count != before:
             self._layout_changed()
@@ -653,6 +787,12 @@ class AugmentDetector:
     def check_strip(self, strip: np.ndarray, win: Rect) -> Offer | None:
         """strip 为 strip_rect 截图。画面没变化时直接复用上次结果。"""
         now = time.monotonic()
+        with self._track_lock:
+            if self._trial_from is not None and now - self._trial_at >= TRIAL_S:
+                # 这条窄带是按试读的位置截的，换回后对不上，这一轮不读
+                self._end_trial(revert=True, why=f"{TRIAL_S:.0f} 秒内没认出")
+                return None
+            self._fit_tracking()
         try:
             if self._skip_idle_ocr(strip, win, now):
                 return None
@@ -775,6 +915,9 @@ class AugmentDetector:
                 self.calibration.guess = False  # 默认位置在本机对上了，存下来
                 self._save_calibration()
             if offer.matched() >= 2:
+                if self._trial_from is not None:
+                    self._trial_from = None
+                    log.info("海克斯卡片数改为 %d 张（按试读的位置认出了卡）", len(pb))
                 if self._low_match_reads:
                     log.info("三选一跟踪恢复：低命中新观察=%d 本轮重读=%s", self._low_match_reads, fresh)
                 self._low_match_reads = 0

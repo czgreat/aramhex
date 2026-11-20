@@ -18,10 +18,47 @@ TEST_HOTKEY = "Ctrl+Alt+H"
 
 
 @pytest.fixture
-def scene(base_scene):
+def scene(base_scene, monkeypatch):
     # 功能测试显式配置键位，不能依赖产品自动注册默认键。
+    # 1.2.0 起快捷键默认不用，这些是云控 features.overlay_hotkey=true 退回 1.1.9 后的行为
+    from lolhex import cloud
+    monkeypatch.setattr(cloud, "get", lambda: cloud._merge({"features": {"overlay_hotkey": True}}))
     base_scene.engine.settings.overlay_hotkey = TEST_HOTKEY
     return base_scene
+
+
+def test_hotkey_off_by_default_even_if_set(base_scene, monkeypatch):
+    """1.2.0：快捷键不好按，默认不用。玩家 1.1.9 设过的键也不注册，排队到的按键不展开详情；
+    云控 features.overlay_hotkey=true 退回 1.1.9，设过的键照常生效。"""
+    from lolhex import cloud
+    cfg = {"features": {}}
+    monkeypatch.setattr(cloud, "get", lambda: cloud._merge(cfg))
+    base_scene.engine.settings.overlay_hotkey = TEST_HOTKEY
+    backend = Backend()
+    base_scene.ov.hotkey.backend = backend
+    for _ in range(3):
+        base_scene.ov._tick()
+    assert backend.bound is None and not backend.registrations
+    base_scene.ov.hotkey.activated.emit()
+    assert not base_scene.p.expanded
+    cfg["features"]["overlay_hotkey"] = True
+    base_scene.ov._tick()
+    assert backend.bound
+
+
+def test_settings_page_hides_hotkey_and_explains_mouse(mw, monkeypatch):
+    """1.2.0：设置页不显示「详情快捷键」，「浮窗位置」下面写怎么用鼠标唤出；云控打开退回 1.1.9。"""
+    from lolhex import cloud
+    window = mw[0]
+    cfg = {"features": {}}
+    monkeypatch.setattr(cloud, "get", lambda: cloud._merge(cfg))
+    window._show_hotkey_row()
+    assert window.hotkey_box.isHidden() and window.hotkey_label.isHidden()
+    assert not window.corner_hint.isHidden() and "鼠标移到" in window.corner_hint.text()
+    cfg["features"]["overlay_hotkey"] = True
+    window._apply_cloud(cfg)
+    assert not window.hotkey_box.isHidden() and not window.hotkey_label.isHidden()
+    assert window.corner_hint.isHidden()
 
 
 class Backend:
