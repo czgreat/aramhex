@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (QApplication, QHBoxLayout, QLabel, QLineEdit, QPu
 
 from .. import cloud, crashlog, recommend
 from ..config import OVERLAY_BGS
+from ..engine import rank_grade
 from ..recommend import NODATA_NOTE
 from ..vision import window as win
 from .. import patch
@@ -503,6 +504,18 @@ def champ_select_summary(cs: dict, show_win: bool = True) -> str:
     return f"{head}：" + "、".join(items)
 
 
+def champ_select_team_rating(team: list[dict]) -> tuple[float, str] | None:
+    """只汇总已选的完整五人阵容，按平均胜率排名百分位沿用单英雄评级。"""
+    if len(team) != 5:
+        return None
+    total = team[0].get("total")
+    if not total or any(t.get("win") is None or not t.get("rank") or t.get("total") != total for t in team):
+        return None
+    win = sum(t["win"] for t in team) / len(team)
+    rank_sum = sum(t["rank"] for t in team)
+    return win, rank_grade(rank_sum, len(team) * total)
+
+
 class ChampSelectLayer(_Layer):
     """选英雄界面：在预选栏和我方每个英雄头像旁标评级（国服排名换算 S–D）与胜率；
     预选栏里胜率比自己当前英雄高的标绿，最高的那个加金框（值得换）。
@@ -521,10 +534,11 @@ class ChampSelectLayer(_Layer):
             self.cs = None
             self.hide()
             return
-        self.show_win = snap.get("settings", {}).get("show_winrate", True)
+        show_win = snap.get("settings", {}).get("show_winrate", True)
         self._place(rect, hwnd)
-        if cs != self.cs:
+        if cs != self.cs or show_win != self.show_win:
             self.cs = cs
+            self.show_win = show_win
             self.update()
 
     def paintEvent(self, _):
@@ -613,8 +627,42 @@ class ChampSelectLayer(_Layer):
                     p.setPen(QColor(240, 200, 90) if s is best_card else QColor(170, 176, 190))
                     p.drawText(QRect(r.x(), line.bottom(), r.width(), r.bottom() - line.bottom()),
                                Qt.AlignHCenter | Qt.AlignTop, "★ 推荐" if s is best_card else sub)
+        if not cs.get("cards"):
+            summary = champ_select_team_rating(cs.get("team") or [])
+            if summary is not None:
+                drawn.append(self._paint_team_rating(p, *summary))
         p.end()
         self._publish(drawn, dpr)
+
+    def _paint_team_rating(self, p: QPainter, win_rate: float, grade: str) -> QRect:
+        # 放在客户端左上角，留出上方「可用」标记和下方第一个己方头像的识别区域。
+        scale = self.height() / 1080
+        pad = max(6, round(9 * scale))
+        font = QFont("Microsoft YaHei UI")
+        font.setPixelSize(max(11, round(18 * scale)))
+        font.setBold(True)
+        metrics = QFontMetrics(font, self)
+        lines = [(f"阵容评分  {grade}", GRADE_COLOR[grade])]
+        if self.show_win:
+            lines.insert(0, (f"英雄平均胜率  {_pct(win_rate)}", win_color(win_rate)))
+        row_h = metrics.height() + 1
+        top = round(74 * scale)
+        inset_y = max(2, round(5 * scale))
+        available_h = round(155 * scale) - top
+        if row_h * len(lines) + 2 * inset_y > available_h:
+            text = "  ·  ".join(text for text, _ in lines)
+            lines = [(text, GRADE_COLOR[grade])]
+        width = max(metrics.horizontalAdvance(text) for text, _ in lines) + 2 * pad
+        rect = QRect(pad, top, width, row_h * len(lines) + 2 * inset_y)
+        p.setPen(Qt.NoPen)
+        p.setBrush(QColor(10, 12, 16, 225))
+        p.drawRoundedRect(rect, 4, 4)
+        p.setFont(font)
+        for i, (text, color) in enumerate(lines):
+            p.setPen(color)
+            p.drawText(QRect(rect.x() + pad, rect.y() + inset_y + i * row_h, width - 2 * pad, row_h),
+                       Qt.AlignVCenter | Qt.AlignLeft, text)
+        return rect
 
 
 def client_badge(rect) -> tuple[int, int, int]:
