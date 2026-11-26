@@ -1,0 +1,4971 @@
+{
+ "1": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 139644,
+      "wins": 69244
+     },
+     "games": 2314,
+     "item": "4645",
+     "low_sample": false,
+     "name": "影焰",
+     "style": "不拆",
+     "style_holders": 13390,
+     "wins": 1191
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 13390
+  }
+ },
+ "10": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 201798,
+      "wins": 116099
+     },
+     "games": 1891,
+     "item": "2510",
+     "low_sample": false,
+     "name": "黄昏与黎明",
+     "style": "AP",
+     "style_holders": 27645,
+     "wins": 1119
+    },
+    {
+     "control": {
+      "games": 170527,
+      "wins": 90250
+     },
+     "games": 1239,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "AD",
+     "style_holders": 26664,
+     "wins": 723
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 61303
+  }
+ },
+ "101": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 401582,
+      "wins": 198840
+     },
+     "games": 7758,
+     "item": "4646",
+     "low_sample": false,
+     "name": "风暴狂涌",
+     "style": "不拆",
+     "style_holders": 44558,
+     "wins": 4144
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 44558
+  }
+ },
+ "102": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 126639,
+      "wins": 66013
+     },
+     "games": 1119,
+     "item": "2510",
+     "low_sample": false,
+     "name": "黄昏与黎明",
+     "style": "AP",
+     "style_holders": 8672,
+     "wins": 627
+    },
+    {
+     "control": {
+      "games": 50795,
+      "wins": 25672
+     },
+     "games": 2050,
+     "item": "3084",
+     "low_sample": false,
+     "name": "心之钢",
+     "style": "坦克",
+     "style_holders": 4029,
+     "wins": 1058
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 16279
+  }
+ },
+ "103": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 334692,
+      "wins": 173503
+     },
+     "games": 1074,
+     "item": "3089",
+     "low_sample": false,
+     "name": "灭世者的死亡之帽",
+     "style": "不拆",
+     "style_holders": 45640,
+     "wins": 621
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 45640
+  }
+ },
+ "104": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 465985,
+      "wins": 225319
+     },
+     "games": 16769,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 86803,
+     "wins": 10266
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 86803
+  }
+ },
+ "105": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 446726,
+      "wins": 220622
+     },
+     "games": 11366,
+     "item": "4645",
+     "low_sample": false,
+     "name": "影焰",
+     "style": "不拆",
+     "style_holders": 53151,
+     "wins": 5976
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 53151
+  }
+ },
+ "106": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 362974,
+      "wins": 187559
+     },
+     "games": 4331,
+     "item": "3087",
+     "low_sample": false,
+     "name": "斯塔缇克电刃",
+     "style": "不拆",
+     "style_holders": 27040,
+     "wins": 2358
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 27040
+  }
+ },
+ "107": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 273740,
+      "wins": 136731
+     },
+     "games": 13579,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 53754,
+     "wins": 7760
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 53754
+  }
+ },
+ "11": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 602300,
+      "wins": 320848
+     },
+     "games": 20647,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 73974,
+     "wins": 12922
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 73974
+  }
+ },
+ "110": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 410787,
+      "wins": 194283
+     },
+     "games": 7288,
+     "item": "3153",
+     "low_sample": false,
+     "name": "破败王者之刃",
+     "style": "AD",
+     "style_holders": 46373,
+     "wins": 4244
+    },
+    {
+     "control": {
+      "games": 121694,
+      "wins": 56143
+     },
+     "games": 1546,
+     "item": "3115",
+     "low_sample": false,
+     "name": "纳什之牙",
+     "style": "AP",
+     "style_holders": 10660,
+     "wins": 741
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 57961
+  }
+ },
+ "111": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 263467,
+      "wins": 129675
+     },
+     "games": 6676,
+     "item": "3084",
+     "low_sample": false,
+     "name": "心之钢",
+     "style": "不拆",
+     "style_holders": 13050,
+     "wins": 3277
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 13050
+  }
+ },
+ "112": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 299680,
+      "wins": 156560
+     },
+     "games": 9017,
+     "item": "4646",
+     "low_sample": false,
+     "name": "风暴狂涌",
+     "style": "不拆",
+     "style_holders": 38726,
+     "wins": 5286
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 38726
+  }
+ },
+ "113": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 141415,
+      "wins": 66767
+     },
+     "games": 3687,
+     "item": "3084",
+     "low_sample": false,
+     "name": "心之钢",
+     "style": "不拆",
+     "style_holders": 6599,
+     "wins": 1833
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 6599
+  }
+ },
+ "114": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 383068,
+      "wins": 212549
+     },
+     "games": 24268,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 49111,
+     "wins": 15410
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 49111
+  }
+ },
+ "115": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 382819,
+      "wins": 190286
+     },
+     "games": 5319,
+     "item": "4646",
+     "low_sample": false,
+     "name": "风暴狂涌",
+     "style": "不拆",
+     "style_holders": 36046,
+     "wins": 2745
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 36046
+  }
+ },
+ "117": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 124278,
+      "wins": 61804
+     },
+     "games": 1818,
+     "item": "6621",
+     "low_sample": false,
+     "name": "黎明核心",
+     "style": "不拆",
+     "style_holders": 4019,
+     "wins": 906
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 4019
+  }
+ },
+ "119": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 239407,
+      "wins": 116933
+     },
+     "games": 7522,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 92680,
+     "wins": 4373
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 92680
+  }
+ },
+ "12": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 303230,
+      "wins": 157693
+     },
+     "games": 4790,
+     "item": "3084",
+     "low_sample": false,
+     "name": "心之钢",
+     "style": "不拆",
+     "style_holders": 12269,
+     "wins": 2537
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 12269
+  }
+ },
+ "120": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 553498,
+      "wins": 270954
+     },
+     "games": 39049,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 60291,
+     "wins": 20695
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 60291
+  }
+ },
+ "121": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 321289,
+      "wins": 154659
+     },
+     "games": 19491,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 72607,
+     "wins": 11751
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 72607
+  }
+ },
+ "122": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 340375,
+      "wins": 166138
+     },
+     "games": 15375,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 44730,
+     "wins": 8665
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 44730
+  }
+ },
+ "126": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 628009,
+      "wins": 300316
+     },
+     "games": 20470,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 82619,
+     "wins": 11641
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 82619
+  }
+ },
+ "127": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 153153,
+      "wins": 73643
+     },
+     "games": 2788,
+     "item": "4646",
+     "low_sample": false,
+     "name": "风暴狂涌",
+     "style": "不拆",
+     "style_holders": 15843,
+     "wins": 1501
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 15843
+  }
+ },
+ "13": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 679438,
+      "wins": 356170
+     },
+     "games": 45656,
+     "item": "6657",
+     "low_sample": false,
+     "name": "时光之杖",
+     "style": "不拆",
+     "style_holders": 80728,
+     "wins": 26475
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 80728
+  }
+ },
+ "131": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 191547,
+      "wins": 87556
+     },
+     "games": 4156,
+     "item": "3084",
+     "low_sample": false,
+     "name": "心之钢",
+     "style": "不拆",
+     "style_holders": 17682,
+     "wins": 2076
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 17682
+  }
+ },
+ "133": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 99742,
+      "wins": 46079
+     },
+     "games": 1899,
+     "item": "3153",
+     "low_sample": false,
+     "name": "破败王者之刃",
+     "style": "不拆",
+     "style_holders": 13219,
+     "wins": 1103
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 13219
+  }
+ },
+ "134": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 328727,
+      "wins": 163742
+     },
+     "games": 11060,
+     "item": "4646",
+     "low_sample": false,
+     "name": "风暴狂涌",
+     "style": "不拆",
+     "style_holders": 46691,
+     "wins": 6040
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 46691
+  }
+ },
+ "136": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 722410,
+      "wins": 371423
+     },
+     "games": 3103,
+     "item": "6653",
+     "low_sample": false,
+     "name": "兰德里的折磨",
+     "style": "不拆",
+     "style_holders": 119713,
+     "wins": 1774
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 119713
+  }
+ },
+ "14": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 219626,
+      "wins": 104857
+     },
+     "games": 8257,
+     "item": "3084",
+     "low_sample": false,
+     "name": "心之钢",
+     "style": "不拆",
+     "style_holders": 16252,
+     "wins": 4128
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 16252
+  }
+ },
+ "141": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 435995,
+      "wins": 228190
+     },
+     "games": 26996,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 64699,
+     "wins": 15903
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 64699
+  }
+ },
+ "142": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 156827,
+      "wins": 73436
+     },
+     "games": 3821,
+     "item": "4646",
+     "low_sample": false,
+     "name": "风暴狂涌",
+     "style": "不拆",
+     "style_holders": 15997,
+     "wins": 1870
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 15997
+  }
+ },
+ "143": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 334992,
+      "wins": 167504
+     },
+     "games": 2926,
+     "item": "4646",
+     "low_sample": false,
+     "name": "风暴狂涌",
+     "style": "不拆",
+     "style_holders": 24760,
+     "wins": 1574
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 24760
+  }
+ },
+ "145": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 693943,
+      "wins": 346880
+     },
+     "games": 1316,
+     "item": "2510",
+     "low_sample": false,
+     "name": "黄昏与黎明",
+     "style": "AP",
+     "style_holders": 61699,
+     "wins": 712
+    },
+    {
+     "control": {
+      "games": 107224,
+      "wins": 47039
+     },
+     "games": 2632,
+     "item": "3153",
+     "low_sample": false,
+     "name": "破败王者之刃",
+     "style": "AD",
+     "style_holders": 9471,
+     "wins": 1440
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 72905
+  }
+ },
+ "147": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 459486,
+      "wins": 239553
+     },
+     "games": 1657,
+     "item": "2503",
+     "low_sample": false,
+     "name": "黯炎火炬",
+     "style": "不拆",
+     "style_holders": 17189,
+     "wins": 915
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 17189
+  }
+ },
+ "15": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 252066,
+      "wins": 119954
+     },
+     "games": 1397,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 33023,
+     "wins": 821
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 33023
+  }
+ },
+ "150": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 98173,
+      "wins": 44454
+     },
+     "games": 4015,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "AD",
+     "style_holders": 12873,
+     "wins": 2098
+    },
+    {
+     "control": {
+      "games": 53345,
+      "wins": 25913
+     },
+     "games": 2762,
+     "item": "3084",
+     "low_sample": false,
+     "name": "心之钢",
+     "style": "坦克",
+     "style_holders": 5910,
+     "wins": 1382
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 21890
+  }
+ },
+ "154": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 88557,
+      "wins": 40065
+     },
+     "games": 3762,
+     "item": "3084",
+     "low_sample": false,
+     "name": "心之钢",
+     "style": "不拆",
+     "style_holders": 7457,
+     "wins": 1755
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 7457
+  }
+ },
+ "157": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 609824,
+      "wins": 363772
+     },
+     "games": 14348,
+     "item": "3032",
+     "low_sample": false,
+     "name": "育恩塔尔荒野箭",
+     "style": "不拆",
+     "style_holders": 78280,
+     "wins": 8912
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 78280
+  }
+ },
+ "16": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 269650,
+      "wins": 139376
+     },
+     "games": 4442,
+     "item": "6621",
+     "low_sample": false,
+     "name": "黎明核心",
+     "style": "不拆",
+     "style_holders": 8581,
+     "wins": 2452
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 8581
+  }
+ },
+ "161": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 308307,
+      "wins": 155872
+     },
+     "games": 1229,
+     "item": "4628",
+     "low_sample": false,
+     "name": "视界专注",
+     "style": "不拆",
+     "style_holders": 31912,
+     "wins": 639
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 31912
+  }
+ },
+ "163": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 187090,
+      "wins": 92926
+     },
+     "games": 2223,
+     "item": "4646",
+     "low_sample": false,
+     "name": "风暴狂涌",
+     "style": "不拆",
+     "style_holders": 10159,
+     "wins": 1202
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 10159
+  }
+ },
+ "164": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 100564,
+      "wins": 48371
+     },
+     "games": 7014,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 15946,
+     "wins": 3775
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 15946
+  }
+ },
+ "166": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 137601,
+      "wins": 61521
+     },
+     "games": 1595,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 29843,
+     "wins": 834
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 29843
+  }
+ },
+ "17": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 982139,
+      "wins": 532288
+     },
+     "games": 1001,
+     "item": "3087",
+     "low_sample": false,
+     "name": "斯塔缇克电刃",
+     "style": "不拆",
+     "style_holders": 42299,
+     "wins": 555
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 42299
+  }
+ },
+ "18": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 333706,
+      "wins": 153172
+     },
+     "games": 11084,
+     "item": "3153",
+     "low_sample": false,
+     "name": "破败王者之刃",
+     "style": "不拆",
+     "style_holders": 57612,
+     "wins": 6085
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 57612
+  }
+ },
+ "19": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 117495,
+      "wins": 56188
+     },
+     "games": 1882,
+     "item": "3153",
+     "low_sample": false,
+     "name": "破败王者之刃",
+     "style": "不拆",
+     "style_holders": 13341,
+     "wins": 986
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 13341
+  }
+ },
+ "2": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 104951,
+      "wins": 49543
+     },
+     "games": 3882,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 9356,
+     "wins": 2025
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 9356
+  }
+ },
+ "20": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 138597,
+      "wins": 62345
+     },
+     "games": 1266,
+     "item": "3084",
+     "low_sample": false,
+     "name": "心之钢",
+     "style": "不拆",
+     "style_holders": 12267,
+     "wins": 613
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 12267
+  }
+ },
+ "200": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 262090,
+      "wins": 143589
+     },
+     "games": 9927,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 41327,
+     "wins": 6150
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 41327
+  }
+ },
+ "201": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 102967,
+      "wins": 47747
+     },
+     "games": 2248,
+     "item": "3084",
+     "low_sample": false,
+     "name": "心之钢",
+     "style": "不拆",
+     "style_holders": 4784,
+     "wins": 1037
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 4784
+  }
+ },
+ "202": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 593880,
+      "wins": 288218
+     },
+     "games": 5609,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 100581,
+     "wins": 3195
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 100581
+  }
+ },
+ "203": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 190658,
+      "wins": 87344
+     },
+     "games": 7324,
+     "item": "3153",
+     "low_sample": false,
+     "name": "破败王者之刃",
+     "style": "不拆",
+     "style_holders": 30707,
+     "wins": 3977
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 30707
+  }
+ },
+ "21": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 691116,
+      "wins": 361204
+     },
+     "games": 5176,
+     "item": "4646",
+     "low_sample": false,
+     "name": "风暴狂涌",
+     "style": "AP",
+     "style_holders": 48816,
+     "wins": 2822
+    },
+    {
+     "control": {
+      "games": 198310,
+      "wins": 91769
+     },
+     "games": 1364,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "AD",
+     "style_holders": 19446,
+     "wins": 782
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 68755
+  }
+ },
+ "22": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 680048,
+      "wins": 299747
+     },
+     "games": 21551,
+     "item": "4628",
+     "low_sample": false,
+     "name": "视界专注",
+     "style": "AP",
+     "style_holders": 70695,
+     "wins": 9235
+    },
+    {
+     "control": {
+      "games": 279494,
+      "wins": 125018
+     },
+     "games": 8787,
+     "item": "3153",
+     "low_sample": false,
+     "name": "破败王者之刃",
+     "style": "AD",
+     "style_holders": 24353,
+     "wins": 4743
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 95977
+  }
+ },
+ "221": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 105748,
+      "wins": 48971
+     },
+     "games": 2233,
+     "item": "3153",
+     "low_sample": false,
+     "name": "破败王者之刃",
+     "style": "不拆",
+     "style_holders": 14124,
+     "wins": 1287
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 14124
+  }
+ },
+ "222": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 480367,
+      "wins": 224451
+     },
+     "games": 14278,
+     "item": "3153",
+     "low_sample": false,
+     "name": "破败王者之刃",
+     "style": "不拆",
+     "style_holders": 84231,
+     "wins": 7928
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 84231
+  }
+ },
+ "223": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 759256,
+      "wins": 416633
+     },
+     "games": 42670,
+     "item": "3084",
+     "low_sample": false,
+     "name": "心之钢",
+     "style": "不拆",
+     "style_holders": 65314,
+     "wins": 24669
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 65314
+  }
+ },
+ "23": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 442896,
+      "wins": 222976
+     },
+     "games": 7090,
+     "item": "3153",
+     "low_sample": false,
+     "name": "破败王者之刃",
+     "style": "不拆",
+     "style_holders": 36868,
+     "wins": 4297
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 36868
+  }
+ },
+ "233": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 131089,
+      "wins": 64040
+     },
+     "games": 6614,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 14271,
+     "wins": 3884
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 14271
+  }
+ },
+ "234": {
+  "3081": {
+   "items": [],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 0
+  }
+ },
+ "235": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 450324,
+      "wins": 213160
+     },
+     "games": 1640,
+     "item": "124011",
+     "low_sample": false,
+     "name": "花晓之剑",
+     "style": "不拆",
+     "style_holders": 58916,
+     "wins": 933
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 58916
+  }
+ },
+ "236": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 255213,
+      "wins": 115928
+     },
+     "games": 3723,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 73436,
+     "wins": 2175
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 73436
+  }
+ },
+ "238": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 477823,
+      "wins": 232873
+     },
+     "games": 20330,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 72583,
+     "wins": 12153
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 72583
+  }
+ },
+ "24": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 194094,
+      "wins": 96666
+     },
+     "games": 7808,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "AD",
+     "style_holders": 21175,
+     "wins": 4477
+    },
+    {
+     "control": {
+      "games": 74490,
+      "wins": 36675
+     },
+     "games": 1448,
+     "item": "2510",
+     "low_sample": false,
+     "name": "黄昏与黎明",
+     "style": "AP",
+     "style_holders": 4417,
+     "wins": 689
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 29472
+  }
+ },
+ "240": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 37772,
+      "wins": 18952
+     },
+     "games": 1221,
+     "item": "3084",
+     "low_sample": false,
+     "name": "心之钢",
+     "style": "不拆",
+     "style_holders": 5215,
+     "wins": 647
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 5215
+  }
+ },
+ "245": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 506541,
+      "wins": 272298
+     },
+     "games": 12900,
+     "item": "4646",
+     "low_sample": false,
+     "name": "风暴狂涌",
+     "style": "不拆",
+     "style_holders": 57231,
+     "wins": 7275
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 57231
+  }
+ },
+ "246": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 196019,
+      "wins": 93047
+     },
+     "games": 8542,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 29680,
+     "wins": 4629
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 29680
+  }
+ },
+ "25": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 696769,
+      "wins": 379521
+     },
+     "games": 3401,
+     "item": "4646",
+     "low_sample": false,
+     "name": "风暴狂涌",
+     "style": "不拆",
+     "style_holders": 28459,
+     "wins": 1945
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 28459
+  }
+ },
+ "254": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 188214,
+      "wins": 87545
+     },
+     "games": 5617,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 18075,
+     "wins": 3034
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 18075
+  }
+ },
+ "26": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 306518,
+      "wins": 163146
+     },
+     "games": 1011,
+     "item": "6657",
+     "low_sample": false,
+     "name": "时光之杖",
+     "style": "不拆",
+     "style_holders": 27486,
+     "wins": 536
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 27486
+  }
+ },
+ "266": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 300552,
+      "wins": 141814
+     },
+     "games": 24875,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 55423,
+     "wins": 12781
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 55423
+  }
+ },
+ "267": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 129773,
+      "wins": 65668
+     },
+     "games": 1726,
+     "item": "6621",
+     "low_sample": false,
+     "name": "黎明核心",
+     "style": "不拆",
+     "style_holders": 4173,
+     "wins": 979
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 4173
+  }
+ },
+ "268": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 185195,
+      "wins": 86678
+     },
+     "games": 2395,
+     "item": "4645",
+     "low_sample": false,
+     "name": "影焰",
+     "style": "不拆",
+     "style_holders": 13846,
+     "wins": 1257
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 13846
+  }
+ },
+ "27": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 423973,
+      "wins": 214443
+     },
+     "games": 1995,
+     "item": "6653",
+     "low_sample": false,
+     "name": "兰德里的折磨",
+     "style": "不拆",
+     "style_holders": 17092,
+     "wins": 1159
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 17092
+  }
+ },
+ "28": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 63413,
+      "wins": 28051
+     },
+     "games": 2714,
+     "item": "4646",
+     "low_sample": false,
+     "name": "风暴狂涌",
+     "style": "不拆",
+     "style_holders": 9998,
+     "wins": 1307
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 9998
+  }
+ },
+ "29": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 329430,
+      "wins": 153574
+     },
+     "games": 16284,
+     "item": "3153",
+     "low_sample": false,
+     "name": "破败王者之刃",
+     "style": "AD",
+     "style_holders": 64207,
+     "wins": 9529
+    },
+    {
+     "control": {
+      "games": 54347,
+      "wins": 23358
+     },
+     "games": 1405,
+     "item": "4645",
+     "low_sample": false,
+     "name": "影焰",
+     "style": "AP",
+     "style_holders": 5924,
+     "wins": 604
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 70423
+  }
+ },
+ "3": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 284293,
+      "wins": 148068
+     },
+     "games": 1193,
+     "item": "6665",
+     "low_sample": false,
+     "name": "千变者贾修",
+     "style": "不拆",
+     "style_holders": 14332,
+     "wins": 645
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 14332
+  }
+ },
+ "30": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 684030,
+      "wins": 313940
+     },
+     "games": 19192,
+     "item": "4645",
+     "low_sample": false,
+     "name": "影焰",
+     "style": "不拆",
+     "style_holders": 101026,
+     "wins": 9718
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 101026
+  }
+ },
+ "31": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 382401,
+      "wins": 178130
+     },
+     "games": 20757,
+     "item": "3084",
+     "low_sample": false,
+     "name": "心之钢",
+     "style": "不拆",
+     "style_holders": 40539,
+     "wins": 10129
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 40539
+  }
+ },
+ "32": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 221503,
+      "wins": 104578
+     },
+     "games": 3345,
+     "item": "3084",
+     "low_sample": false,
+     "name": "心之钢",
+     "style": "不拆",
+     "style_holders": 9253,
+     "wins": 1674
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 9253
+  }
+ },
+ "33": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 76318,
+      "wins": 33744
+     },
+     "games": 1453,
+     "item": "3084",
+     "low_sample": false,
+     "name": "心之钢",
+     "style": "不拆",
+     "style_holders": 4187,
+     "wins": 633
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 4187
+  }
+ },
+ "34": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 145928,
+      "wins": 65720
+     },
+     "games": 1514,
+     "item": "4646",
+     "low_sample": false,
+     "name": "风暴狂涌",
+     "style": "不拆",
+     "style_holders": 13192,
+     "wins": 743
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 13192
+  }
+ },
+ "35": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 292722,
+      "wins": 127189
+     },
+     "games": 4986,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "AD",
+     "style_holders": 43258,
+     "wins": 2517
+    },
+    {
+     "control": {
+      "games": 267814,
+      "wins": 148685
+     },
+     "games": 1786,
+     "item": "4628",
+     "low_sample": false,
+     "name": "视界专注",
+     "style": "AP",
+     "style_holders": 21111,
+     "wins": 1019
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 64669
+  }
+ },
+ "350": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 243430,
+      "wins": 129637
+     },
+     "games": 5992,
+     "item": "6621",
+     "low_sample": false,
+     "name": "黎明核心",
+     "style": "不拆",
+     "style_holders": 9856,
+     "wins": 3332
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 9856
+  }
+ },
+ "36": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 420051,
+      "wins": 212970
+     },
+     "games": 33655,
+     "item": "3084",
+     "low_sample": false,
+     "name": "心之钢",
+     "style": "不拆",
+     "style_holders": 56221,
+     "wins": 17782
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 56221
+  }
+ },
+ "360": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 189351,
+      "wins": 83165
+     },
+     "games": 9409,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 43232,
+     "wins": 5228
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 43232
+  }
+ },
+ "37": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 334283,
+      "wins": 182223
+     },
+     "games": 6735,
+     "item": "6621",
+     "low_sample": false,
+     "name": "黎明核心",
+     "style": "不拆",
+     "style_holders": 13616,
+     "wins": 3914
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 13616
+  }
+ },
+ "38": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 199985,
+      "wins": 101896
+     },
+     "games": 1341,
+     "item": "3118",
+     "low_sample": false,
+     "name": "残疫",
+     "style": "不拆",
+     "style_holders": 25423,
+     "wins": 733
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 25423
+  }
+ },
+ "39": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 195506,
+      "wins": 96215
+     },
+     "games": 10280,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 27137,
+     "wins": 6057
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 27137
+  }
+ },
+ "4": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 774451,
+      "wins": 437885
+     },
+     "games": 16096,
+     "item": "4646",
+     "low_sample": false,
+     "name": "风暴狂涌",
+     "style": "不拆",
+     "style_holders": 72532,
+     "wins": 9653
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 72532
+  }
+ },
+ "40": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 158976,
+      "wins": 86260
+     },
+     "games": 2255,
+     "item": "6621",
+     "low_sample": false,
+     "name": "黎明核心",
+     "style": "不拆",
+     "style_holders": 5511,
+     "wins": 1329
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 5511
+  }
+ },
+ "41": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 536449,
+      "wins": 261384
+     },
+     "games": 12245,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 78904,
+     "wins": 6888
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 78904
+  }
+ },
+ "412": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 356188,
+      "wins": 178095
+     },
+     "games": 2261,
+     "item": "6665",
+     "low_sample": false,
+     "name": "千变者贾修",
+     "style": "不拆",
+     "style_holders": 18458,
+     "wins": 1205
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 18458
+  }
+ },
+ "42": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 390368,
+      "wins": 192459
+     },
+     "games": 9357,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 53305,
+     "wins": 6147
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 53305
+  }
+ },
+ "420": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 167914,
+      "wins": 77400
+     },
+     "games": 3637,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 17082,
+     "wins": 1907
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 17082
+  }
+ },
+ "421": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 32507,
+      "wins": 15946
+     },
+     "games": 1099,
+     "item": "3084",
+     "low_sample": false,
+     "name": "心之钢",
+     "style": "不拆",
+     "style_holders": 4077,
+     "wins": 593
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 4077
+  }
+ },
+ "427": {
+  "3081": {
+   "items": [],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 2165
+  }
+ },
+ "429": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 154150,
+      "wins": 74950
+     },
+     "games": 9930,
+     "item": "3153",
+     "low_sample": false,
+     "name": "破败王者之刃",
+     "style": "不拆",
+     "style_holders": 19452,
+     "wins": 5825
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 19452
+  }
+ },
+ "43": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 245261,
+      "wins": 121295
+     },
+     "games": 1399,
+     "item": "6621",
+     "low_sample": false,
+     "name": "黎明核心",
+     "style": "不拆",
+     "style_holders": 8597,
+     "wins": 755
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 8597
+  }
+ },
+ "432": {
+  "3081": {
+   "items": [],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 3051
+  }
+ },
+ "44": {
+  "3081": {
+   "items": [],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 1865
+  }
+ },
+ "45": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 415083,
+      "wins": 207040
+     },
+     "games": 2221,
+     "item": "3137",
+     "low_sample": false,
+     "name": "蜕生",
+     "style": "不拆",
+     "style_holders": 49433,
+     "wins": 1146
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 49433
+  }
+ },
+ "48": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 197368,
+      "wins": 103995
+     },
+     "games": 3952,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "AD",
+     "style_holders": 11315,
+     "wins": 2293
+    },
+    {
+     "control": {
+      "games": 247151,
+      "wins": 124779
+     },
+     "games": 3081,
+     "item": "4005",
+     "low_sample": false,
+     "name": "帝国指令",
+     "style": "AP",
+     "style_holders": 7256,
+     "wins": 1438
+    },
+    {
+     "control": {
+      "games": 126095,
+      "wins": 62870
+     },
+     "games": 2128,
+     "item": "3084",
+     "low_sample": false,
+     "name": "心之钢",
+     "style": "坦克",
+     "style_holders": 4468,
+     "wins": 1052
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 23451
+  }
+ },
+ "497": {
+  "3081": {
+   "items": [],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 1994
+  }
+ },
+ "498": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 222541,
+      "wins": 106063
+     },
+     "games": 1555,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 32008,
+     "wins": 918
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 32008
+  }
+ },
+ "5": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 531180,
+      "wins": 294742
+     },
+     "games": 9110,
+     "item": "3087",
+     "low_sample": false,
+     "name": "斯塔缇克电刃",
+     "style": "不拆",
+     "style_holders": 46585,
+     "wins": 5363
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 46585
+  }
+ },
+ "50": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 599986,
+      "wins": 293756
+     },
+     "games": 2501,
+     "item": "6665",
+     "low_sample": false,
+     "name": "千变者贾修",
+     "style": "不拆",
+     "style_holders": 28713,
+     "wins": 1305
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 28713
+  }
+ },
+ "51": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 417305,
+      "wins": 195957
+     },
+     "games": 7222,
+     "item": "3153",
+     "low_sample": false,
+     "name": "破败王者之刃",
+     "style": "不拆",
+     "style_holders": 92167,
+     "wins": 4052
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 92167
+  }
+ },
+ "516": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 164847,
+      "wins": 76426
+     },
+     "games": 2364,
+     "item": "6665",
+     "low_sample": false,
+     "name": "千变者贾修",
+     "style": "不拆",
+     "style_holders": 20743,
+     "wins": 1139
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 20743
+  }
+ },
+ "517": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 532002,
+      "wins": 257933
+     },
+     "games": 1905,
+     "item": "3146",
+     "low_sample": false,
+     "name": "海克斯科技枪刃",
+     "style": "不拆",
+     "style_holders": 44213,
+     "wins": 1004
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 44213
+  }
+ },
+ "518": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 159071,
+      "wins": 72314
+     },
+     "games": 2455,
+     "item": "4646",
+     "low_sample": false,
+     "name": "风暴狂涌",
+     "style": "不拆",
+     "style_holders": 12953,
+     "wins": 1227
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 12953
+  }
+ },
+ "523": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 165538,
+      "wins": 77968
+     },
+     "games": 2466,
+     "item": "3036",
+     "low_sample": false,
+     "name": "多米尼克领主的致意",
+     "style": "不拆",
+     "style_holders": 34883,
+     "wins": 1333
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 34883
+  }
+ },
+ "526": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 151441,
+      "wins": 79162
+     },
+     "games": 4393,
+     "item": "3084",
+     "low_sample": false,
+     "name": "心之钢",
+     "style": "不拆",
+     "style_holders": 8595,
+     "wins": 2325
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 8595
+  }
+ },
+ "53": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 417507,
+      "wins": 196323
+     },
+     "games": 3423,
+     "item": "3084",
+     "low_sample": false,
+     "name": "心之钢",
+     "style": "不拆",
+     "style_holders": 16920,
+     "wins": 1577
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 16920
+  }
+ },
+ "54": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 525152,
+      "wins": 241902
+     },
+     "games": 5747,
+     "item": "3084",
+     "low_sample": false,
+     "name": "心之钢",
+     "style": "不拆",
+     "style_holders": 46659,
+     "wins": 2750
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 46659
+  }
+ },
+ "55": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 463835,
+      "wins": 233396
+     },
+     "games": 10410,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "AD",
+     "style_holders": 67579,
+     "wins": 5883
+    },
+    {
+     "control": {
+      "games": 38649,
+      "wins": 16229
+     },
+     "games": 1139,
+     "item": "3146",
+     "low_sample": false,
+     "name": "海克斯科技枪刃",
+     "style": "AP",
+     "style_holders": 5816,
+     "wins": 528
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 74985
+  }
+ },
+ "555": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 323408,
+      "wins": 154678
+     },
+     "games": 1606,
+     "item": "3142",
+     "low_sample": false,
+     "name": "幽梦之灵",
+     "style": "不拆",
+     "style_holders": 70228,
+     "wins": 855
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 70228
+  }
+ },
+ "56": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 199745,
+      "wins": 95693
+     },
+     "games": 6454,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 23271,
+     "wins": 3777
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 23271
+  }
+ },
+ "57": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 415790,
+      "wins": 206257
+     },
+     "games": 1084,
+     "item": "4645",
+     "low_sample": false,
+     "name": "影焰",
+     "style": "不拆",
+     "style_holders": 16596,
+     "wins": 542
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 16596
+  }
+ },
+ "58": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 202313,
+      "wins": 91874
+     },
+     "games": 9019,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 18637,
+     "wins": 4970
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 18637
+  }
+ },
+ "59": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 482251,
+      "wins": 215440
+     },
+     "games": 12772,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 46712,
+     "wins": 6573
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 46712
+  }
+ },
+ "6": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 158100,
+      "wins": 69813
+     },
+     "games": 8159,
+     "item": "3084",
+     "low_sample": false,
+     "name": "心之钢",
+     "style": "不拆",
+     "style_holders": 21509,
+     "wins": 3896
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 21509
+  }
+ },
+ "60": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 73500,
+      "wins": 34575
+     },
+     "games": 2012,
+     "item": "4646",
+     "low_sample": false,
+     "name": "风暴狂涌",
+     "style": "不拆",
+     "style_holders": 8401,
+     "wins": 1041
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 8401
+  }
+ },
+ "61": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 213178,
+      "wins": 103686
+     },
+     "games": 5085,
+     "item": "4646",
+     "low_sample": false,
+     "name": "风暴狂涌",
+     "style": "不拆",
+     "style_holders": 21404,
+     "wins": 2717
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 21404
+  }
+ },
+ "62": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 302847,
+      "wins": 148400
+     },
+     "games": 12336,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 31883,
+     "wins": 7119
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 31883
+  }
+ },
+ "63": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 726591,
+      "wins": 362793
+     },
+     "games": 4547,
+     "item": "6653",
+     "low_sample": false,
+     "name": "兰德里的折磨",
+     "style": "不拆",
+     "style_holders": 66033,
+     "wins": 2395
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 66033
+  }
+ },
+ "64": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 353299,
+      "wins": 159714
+     },
+     "games": 20253,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 57783,
+     "wins": 10756
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 57783
+  }
+ },
+ "67": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 552859,
+      "wins": 279467
+     },
+     "games": 3627,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 95042,
+     "wins": 2080
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 95042
+  }
+ },
+ "68": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 327468,
+      "wins": 159837
+     },
+     "games": 5386,
+     "item": "4646",
+     "low_sample": false,
+     "name": "风暴狂涌",
+     "style": "不拆",
+     "style_holders": 35141,
+     "wins": 2853
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 35141
+  }
+ },
+ "69": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 145356,
+      "wins": 66821
+     },
+     "games": 1606,
+     "item": "4646",
+     "low_sample": false,
+     "name": "风暴狂涌",
+     "style": "不拆",
+     "style_holders": 12544,
+     "wins": 772
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 12544
+  }
+ },
+ "7": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 166316,
+      "wins": 71651
+     },
+     "games": 5536,
+     "item": "4646",
+     "low_sample": false,
+     "name": "风暴狂涌",
+     "style": "不拆",
+     "style_holders": 26045,
+     "wins": 2635
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 26045
+  }
+ },
+ "711": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 152460,
+      "wins": 73841
+     },
+     "games": 2785,
+     "item": "4646",
+     "low_sample": false,
+     "name": "风暴狂涌",
+     "style": "不拆",
+     "style_holders": 15463,
+     "wins": 1474
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 15463
+  }
+ },
+ "72": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 120046,
+      "wins": 56571
+     },
+     "games": 2186,
+     "item": "3084",
+     "low_sample": false,
+     "name": "心之钢",
+     "style": "不拆",
+     "style_holders": 5482,
+     "wins": 1095
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 5482
+  }
+ },
+ "74": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 205471,
+      "wins": 103151
+     },
+     "games": 4092,
+     "item": "4645",
+     "low_sample": false,
+     "name": "影焰",
+     "style": "不拆",
+     "style_holders": 19203,
+     "wins": 2224
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 19203
+  }
+ },
+ "75": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 255680,
+      "wins": 125863
+     },
+     "games": 7459,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 26115,
+     "wins": 3807
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 26115
+  }
+ },
+ "76": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 429925,
+      "wins": 203680
+     },
+     "games": 8186,
+     "item": "4646",
+     "low_sample": false,
+     "name": "风暴狂涌",
+     "style": "不拆",
+     "style_holders": 42889,
+     "wins": 4090
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 42889
+  }
+ },
+ "77": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 263213,
+      "wins": 124495
+     },
+     "games": 3913,
+     "item": "4646",
+     "low_sample": false,
+     "name": "风暴狂涌",
+     "style": "不拆",
+     "style_holders": 23517,
+     "wins": 2012
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 23517
+  }
+ },
+ "777": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 482841,
+      "wins": 259802
+     },
+     "games": 16823,
+     "item": "3032",
+     "low_sample": false,
+     "name": "育恩塔尔荒野箭",
+     "style": "不拆",
+     "style_holders": 67950,
+     "wins": 9603
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 67950
+  }
+ },
+ "78": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 149430,
+      "wins": 75787
+     },
+     "games": 6274,
+     "item": "3084",
+     "low_sample": false,
+     "name": "心之钢",
+     "style": "不拆",
+     "style_holders": 14221,
+     "wins": 3334
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 14221
+  }
+ },
+ "79": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 299484,
+      "wins": 144726
+     },
+     "games": 5421,
+     "item": "4646",
+     "low_sample": false,
+     "name": "风暴狂涌",
+     "style": "不拆",
+     "style_holders": 26141,
+     "wins": 2849
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 26141
+  }
+ },
+ "799": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 237396,
+      "wins": 126078
+     },
+     "games": 22509,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 43615,
+     "wins": 13644
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 43615
+  }
+ },
+ "8": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 416593,
+      "wins": 197839
+     },
+     "games": 1218,
+     "item": "3089",
+     "low_sample": false,
+     "name": "灭世者的死亡之帽",
+     "style": "不拆",
+     "style_holders": 41914,
+     "wins": 669
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 41914
+  }
+ },
+ "80": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 324445,
+      "wins": 162576
+     },
+     "games": 13294,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 41957,
+     "wins": 7814
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 41957
+  }
+ },
+ "800": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 403263,
+      "wins": 198834
+     },
+     "games": 6270,
+     "item": "4646",
+     "low_sample": false,
+     "name": "风暴狂涌",
+     "style": "不拆",
+     "style_holders": 35356,
+     "wins": 3397
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 35356
+  }
+ },
+ "804": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 289516,
+      "wins": 141906
+     },
+     "games": 9521,
+     "item": "3153",
+     "low_sample": false,
+     "name": "破败王者之刃",
+     "style": "不拆",
+     "style_holders": 44735,
+     "wins": 5657
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 44735
+  }
+ },
+ "805": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 199919,
+      "wins": 90325
+     },
+     "games": 10023,
+     "item": "4646",
+     "low_sample": false,
+     "name": "风暴狂涌",
+     "style": "不拆",
+     "style_holders": 40671,
+     "wins": 5009
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 40671
+  }
+ },
+ "81": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 472002,
+      "wins": 220178
+     },
+     "games": 16700,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "AD",
+     "style_holders": 54497,
+     "wins": 9057
+    },
+    {
+     "control": {
+      "games": 261268,
+      "wins": 118106
+     },
+     "games": 2449,
+     "item": "4646",
+     "low_sample": false,
+     "name": "风暴狂涌",
+     "style": "AP",
+     "style_holders": 22892,
+     "wins": 1149
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 79746
+  }
+ },
+ "82": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 409909,
+      "wins": 185432
+     },
+     "games": 1680,
+     "item": "6653",
+     "low_sample": false,
+     "name": "兰德里的折磨",
+     "style": "不拆",
+     "style_holders": 32685,
+     "wins": 852
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 32685
+  }
+ },
+ "83": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 35563,
+      "wins": 16218
+     },
+     "games": 1031,
+     "item": "3084",
+     "low_sample": false,
+     "name": "心之钢",
+     "style": "不拆",
+     "style_holders": 3650,
+     "wins": 483
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 3650
+  }
+ },
+ "84": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 189949,
+      "wins": 81727
+     },
+     "games": 6594,
+     "item": "3146",
+     "low_sample": false,
+     "name": "海克斯科技枪刃",
+     "style": "不拆",
+     "style_holders": 33679,
+     "wins": 3262
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 33679
+  }
+ },
+ "85": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 120905,
+      "wins": 53293
+     },
+     "games": 3364,
+     "item": "4646",
+     "low_sample": false,
+     "name": "风暴狂涌",
+     "style": "不拆",
+     "style_holders": 13084,
+     "wins": 1608
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 13084
+  }
+ },
+ "86": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 328076,
+      "wins": 146698
+     },
+     "games": 7689,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 30723,
+     "wins": 4222
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 30723
+  }
+ },
+ "875": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 557011,
+      "wins": 279233
+     },
+     "games": 21453,
+     "item": "3084",
+     "low_sample": false,
+     "name": "心之钢",
+     "style": "不拆",
+     "style_holders": 55881,
+     "wins": 11977
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 55881
+  }
+ },
+ "876": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 512417,
+      "wins": 275788
+     },
+     "games": 3677,
+     "item": "6653",
+     "low_sample": false,
+     "name": "兰德里的折磨",
+     "style": "不拆",
+     "style_holders": 55835,
+     "wins": 2174
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 55835
+  }
+ },
+ "887": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 295218,
+      "wins": 160182
+     },
+     "games": 1095,
+     "item": "3146",
+     "low_sample": false,
+     "name": "海克斯科技枪刃",
+     "style": "不拆",
+     "style_holders": 30040,
+     "wins": 634
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 30040
+  }
+ },
+ "888": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 116675,
+      "wins": 59749
+     },
+     "games": 1648,
+     "item": "6621",
+     "low_sample": false,
+     "name": "黎明核心",
+     "style": "不拆",
+     "style_holders": 7495,
+     "wins": 912
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 7495
+  }
+ },
+ "89": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 196368,
+      "wins": 95525
+     },
+     "games": 1358,
+     "item": "6665",
+     "low_sample": false,
+     "name": "千变者贾修",
+     "style": "不拆",
+     "style_holders": 11205,
+     "wins": 676
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 11205
+  }
+ },
+ "893": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 337698,
+      "wins": 168993
+     },
+     "games": 12479,
+     "item": "4646",
+     "low_sample": false,
+     "name": "风暴狂涌",
+     "style": "不拆",
+     "style_holders": 43078,
+     "wins": 6909
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 43078
+  }
+ },
+ "895": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 65688,
+      "wins": 33255
+     },
+     "games": 1198,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 6435,
+     "wins": 699
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 6435
+  }
+ },
+ "897": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 93426,
+      "wins": 39938
+     },
+     "games": 2337,
+     "item": "6665",
+     "low_sample": false,
+     "name": "千变者贾修",
+     "style": "不拆",
+     "style_holders": 10367,
+     "wins": 1084
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 10367
+  }
+ },
+ "9": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 213825,
+      "wins": 100197
+     },
+     "games": 1049,
+     "item": "3135",
+     "low_sample": false,
+     "name": "虚空之杖",
+     "style": "不拆",
+     "style_holders": 20204,
+     "wins": 526
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 20204
+  }
+ },
+ "90": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 370728,
+      "wins": 190699
+     },
+     "games": 2360,
+     "item": "6653",
+     "low_sample": false,
+     "name": "兰德里的折磨",
+     "style": "不拆",
+     "style_holders": 39852,
+     "wins": 1303
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 39852
+  }
+ },
+ "901": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 638988,
+      "wins": 317568
+     },
+     "games": 26458,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 98462,
+     "wins": 15451
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 98462
+  }
+ },
+ "902": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 140570,
+      "wins": 72516
+     },
+     "games": 1850,
+     "item": "6621",
+     "low_sample": false,
+     "name": "黎明核心",
+     "style": "不拆",
+     "style_holders": 5772,
+     "wins": 1057
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 5772
+  }
+ },
+ "904": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 192418,
+      "wins": 100308
+     },
+     "games": 10778,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 21554,
+     "wins": 6370
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 21554
+  }
+ },
+ "91": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 256550,
+      "wins": 124723
+     },
+     "games": 11103,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 42307,
+     "wins": 6763
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 42307
+  }
+ },
+ "910": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 258609,
+      "wins": 136532
+     },
+     "games": 5402,
+     "item": "4646",
+     "low_sample": false,
+     "name": "风暴狂涌",
+     "style": "不拆",
+     "style_holders": 28359,
+     "wins": 3018
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 28359
+  }
+ },
+ "92": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 163537,
+      "wins": 79080
+     },
+     "games": 9963,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 20657,
+     "wins": 5667
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 20657
+  }
+ },
+ "950": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 172294,
+      "wins": 77085
+     },
+     "games": 9611,
+     "item": "2517",
+     "low_sample": false,
+     "name": "无穷饥渴",
+     "style": "不拆",
+     "style_holders": 28519,
+     "wins": 5238
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 28519
+  }
+ },
+ "96": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 152265,
+      "wins": 71511
+     },
+     "games": 10296,
+     "item": "3153",
+     "low_sample": false,
+     "name": "破败王者之刃",
+     "style": "AD",
+     "style_holders": 18001,
+     "wins": 5538
+    },
+    {
+     "control": {
+      "games": 125818,
+      "wins": 61836
+     },
+     "games": 1713,
+     "item": "4646",
+     "low_sample": false,
+     "name": "风暴狂涌",
+     "style": "AP",
+     "style_holders": 13072,
+     "wins": 936
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 31905
+  }
+ },
+ "98": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 210420,
+      "wins": 104288
+     },
+     "games": 5747,
+     "item": "3084",
+     "low_sample": false,
+     "name": "心之钢",
+     "style": "不拆",
+     "style_holders": 10731,
+     "wins": 3032
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 10731
+  }
+ },
+ "99": {
+  "3081": {
+   "items": [
+    {
+     "control": {
+      "games": 430533,
+      "wins": 209708
+     },
+     "games": 1195,
+     "item": "3118",
+     "low_sample": false,
+     "name": "残疫",
+     "style": "不拆",
+     "style_holders": 19563,
+     "wins": 607
+    }
+   ],
+   "note": "样本不足，暂无装备参考",
+   "recommendation_style": "destiny_style_v1",
+   "show_delta": false,
+   "show_pick_rate": false,
+   "show_rate": true,
+   "show_sample_size": true,
+   "show_winrate": true,
+   "source": "stats",
+   "total": 19563
+  }
+ }
+}

@@ -1,0 +1,1040 @@
+{
+ "1": {
+  "games": 139644,
+  "low_sample": false,
+  "win_rate": 0.495861,
+  "wins": 69244
+ },
+ "10": {
+  "games": 422917,
+  "low_sample": false,
+  "win_rate": 0.552191,
+  "wins": 233531
+ },
+ "101": {
+  "games": 401582,
+  "low_sample": false,
+  "win_rate": 0.495142,
+  "wins": 198840
+ },
+ "102": {
+  "games": 206734,
+  "low_sample": false,
+  "win_rate": 0.514308,
+  "wins": 106325
+ },
+ "103": {
+  "games": 334692,
+  "low_sample": false,
+  "win_rate": 0.518396,
+  "wins": 173503
+ },
+ "104": {
+  "games": 465985,
+  "low_sample": false,
+  "win_rate": 0.483533,
+  "wins": 225319
+ },
+ "105": {
+  "games": 446726,
+  "low_sample": false,
+  "win_rate": 0.493864,
+  "wins": 220622
+ },
+ "106": {
+  "games": 362974,
+  "low_sample": false,
+  "win_rate": 0.516728,
+  "wins": 187559
+ },
+ "107": {
+  "games": 273740,
+  "low_sample": false,
+  "win_rate": 0.499492,
+  "wins": 136731
+ },
+ "11": {
+  "games": 602300,
+  "low_sample": false,
+  "win_rate": 0.532705,
+  "wins": 320848
+ },
+ "110": {
+  "games": 545268,
+  "low_sample": false,
+  "win_rate": 0.470094,
+  "wins": 256327
+ },
+ "111": {
+  "games": 263467,
+  "low_sample": false,
+  "win_rate": 0.492187,
+  "wins": 129675
+ },
+ "112": {
+  "games": 299680,
+  "low_sample": false,
+  "win_rate": 0.522424,
+  "wins": 156560
+ },
+ "113": {
+  "games": 141415,
+  "low_sample": false,
+  "win_rate": 0.472135,
+  "wins": 66767
+ },
+ "114": {
+  "games": 383068,
+  "low_sample": false,
+  "win_rate": 0.55486,
+  "wins": 212549
+ },
+ "115": {
+  "games": 382819,
+  "low_sample": false,
+  "win_rate": 0.497065,
+  "wins": 190286
+ },
+ "117": {
+  "games": 124278,
+  "low_sample": false,
+  "win_rate": 0.497304,
+  "wins": 61804
+ },
+ "119": {
+  "games": 407863,
+  "low_sample": false,
+  "win_rate": 0.507087,
+  "wins": 206822
+ },
+ "12": {
+  "games": 303230,
+  "low_sample": false,
+  "win_rate": 0.520044,
+  "wins": 157693
+ },
+ "120": {
+  "games": 553498,
+  "low_sample": false,
+  "win_rate": 0.48953,
+  "wins": 270954
+ },
+ "121": {
+  "games": 321289,
+  "low_sample": false,
+  "win_rate": 0.48137,
+  "wins": 154659
+ },
+ "122": {
+  "games": 340375,
+  "low_sample": false,
+  "win_rate": 0.488103,
+  "wins": 166138
+ },
+ "126": {
+  "games": 628009,
+  "low_sample": false,
+  "win_rate": 0.478203,
+  "wins": 300316
+ },
+ "127": {
+  "games": 153153,
+  "low_sample": false,
+  "win_rate": 0.480846,
+  "wins": 73643
+ },
+ "13": {
+  "games": 679438,
+  "low_sample": false,
+  "win_rate": 0.524213,
+  "wins": 356170
+ },
+ "131": {
+  "games": 191547,
+  "low_sample": false,
+  "win_rate": 0.457099,
+  "wins": 87556
+ },
+ "133": {
+  "games": 99742,
+  "low_sample": false,
+  "win_rate": 0.461982,
+  "wins": 46079
+ },
+ "134": {
+  "games": 328727,
+  "low_sample": false,
+  "win_rate": 0.498109,
+  "wins": 163742
+ },
+ "136": {
+  "games": 722410,
+  "low_sample": false,
+  "win_rate": 0.514144,
+  "wins": 371423
+ },
+ "14": {
+  "games": 219626,
+  "low_sample": false,
+  "win_rate": 0.477434,
+  "wins": 104857
+ },
+ "141": {
+  "games": 435995,
+  "low_sample": false,
+  "win_rate": 0.523378,
+  "wins": 228190
+ },
+ "142": {
+  "games": 156827,
+  "low_sample": false,
+  "win_rate": 0.468261,
+  "wins": 73436
+ },
+ "143": {
+  "games": 334992,
+  "low_sample": false,
+  "win_rate": 0.500024,
+  "wins": 167504
+ },
+ "145": {
+  "games": 828946,
+  "low_sample": false,
+  "win_rate": 0.489963,
+  "wins": 406153
+ },
+ "147": {
+  "games": 459486,
+  "low_sample": false,
+  "win_rate": 0.52135,
+  "wins": 239553
+ },
+ "15": {
+  "games": 252066,
+  "low_sample": false,
+  "win_rate": 0.475883,
+  "wins": 119954
+ },
+ "150": {
+  "games": 191901,
+  "low_sample": false,
+  "win_rate": 0.452452,
+  "wins": 86826
+ },
+ "154": {
+  "games": 88557,
+  "low_sample": false,
+  "win_rate": 0.45242,
+  "wins": 40065
+ },
+ "157": {
+  "games": 609824,
+  "low_sample": false,
+  "win_rate": 0.59652,
+  "wins": 363772
+ },
+ "16": {
+  "games": 269650,
+  "low_sample": false,
+  "win_rate": 0.516877,
+  "wins": 139376
+ },
+ "161": {
+  "games": 308307,
+  "low_sample": false,
+  "win_rate": 0.505574,
+  "wins": 155872
+ },
+ "163": {
+  "games": 187090,
+  "low_sample": false,
+  "win_rate": 0.496691,
+  "wins": 92926
+ },
+ "164": {
+  "games": 100564,
+  "low_sample": false,
+  "win_rate": 0.480997,
+  "wins": 48371
+ },
+ "166": {
+  "games": 137601,
+  "low_sample": false,
+  "win_rate": 0.447097,
+  "wins": 61521
+ },
+ "17": {
+  "games": 982139,
+  "low_sample": false,
+  "win_rate": 0.541968,
+  "wins": 532288
+ },
+ "18": {
+  "games": 333706,
+  "low_sample": false,
+  "win_rate": 0.459003,
+  "wins": 153172
+ },
+ "19": {
+  "games": 117495,
+  "low_sample": false,
+  "win_rate": 0.478216,
+  "wins": 56188
+ },
+ "2": {
+  "games": 104951,
+  "low_sample": false,
+  "win_rate": 0.472058,
+  "wins": 49543
+ },
+ "20": {
+  "games": 138597,
+  "low_sample": false,
+  "win_rate": 0.449829,
+  "wins": 62345
+ },
+ "200": {
+  "games": 262090,
+  "low_sample": false,
+  "win_rate": 0.547861,
+  "wins": 143589
+ },
+ "201": {
+  "games": 102967,
+  "low_sample": false,
+  "win_rate": 0.463712,
+  "wins": 47747
+ },
+ "202": {
+  "games": 593880,
+  "low_sample": false,
+  "win_rate": 0.485314,
+  "wins": 288218
+ },
+ "203": {
+  "games": 190658,
+  "low_sample": false,
+  "win_rate": 0.458119,
+  "wins": 87344
+ },
+ "21": {
+  "games": 899866,
+  "low_sample": false,
+  "win_rate": 0.508567,
+  "wins": 457642
+ },
+ "22": {
+  "games": 974295,
+  "low_sample": false,
+  "win_rate": 0.442055,
+  "wins": 430692
+ },
+ "221": {
+  "games": 105748,
+  "low_sample": false,
+  "win_rate": 0.463092,
+  "wins": 48971
+ },
+ "222": {
+  "games": 480367,
+  "low_sample": false,
+  "win_rate": 0.467249,
+  "wins": 224451
+ },
+ "223": {
+  "games": 759256,
+  "low_sample": false,
+  "win_rate": 0.548739,
+  "wins": 416633
+ },
+ "23": {
+  "games": 442896,
+  "low_sample": false,
+  "win_rate": 0.50345,
+  "wins": 222976
+ },
+ "233": {
+  "games": 131089,
+  "low_sample": false,
+  "win_rate": 0.488523,
+  "wins": 64040
+ },
+ "234": {
+  "games": 273802,
+  "low_sample": false,
+  "win_rate": 0.533835,
+  "wins": 146165
+ },
+ "235": {
+  "games": 450324,
+  "low_sample": false,
+  "win_rate": 0.473348,
+  "wins": 213160
+ },
+ "236": {
+  "games": 728112,
+  "low_sample": false,
+  "win_rate": 0.518258,
+  "wins": 377350
+ },
+ "238": {
+  "games": 477823,
+  "low_sample": false,
+  "win_rate": 0.487362,
+  "wins": 232873
+ },
+ "24": {
+  "games": 320072,
+  "low_sample": false,
+  "win_rate": 0.495114,
+  "wins": 158472
+ },
+ "240": {
+  "games": 37772,
+  "low_sample": false,
+  "win_rate": 0.501747,
+  "wins": 18952
+ },
+ "245": {
+  "games": 506541,
+  "low_sample": false,
+  "win_rate": 0.537564,
+  "wins": 272298
+ },
+ "246": {
+  "games": 196019,
+  "low_sample": false,
+  "win_rate": 0.474684,
+  "wins": 93047
+ },
+ "25": {
+  "games": 696769,
+  "low_sample": false,
+  "win_rate": 0.544687,
+  "wins": 379521
+ },
+ "254": {
+  "games": 188214,
+  "low_sample": false,
+  "win_rate": 0.465135,
+  "wins": 87545
+ },
+ "26": {
+  "games": 306518,
+  "low_sample": false,
+  "win_rate": 0.532256,
+  "wins": 163146
+ },
+ "266": {
+  "games": 300552,
+  "low_sample": false,
+  "win_rate": 0.471845,
+  "wins": 141814
+ },
+ "267": {
+  "games": 129773,
+  "low_sample": false,
+  "win_rate": 0.506022,
+  "wins": 65668
+ },
+ "268": {
+  "games": 185195,
+  "low_sample": false,
+  "win_rate": 0.468036,
+  "wins": 86678
+ },
+ "27": {
+  "games": 423973,
+  "low_sample": false,
+  "win_rate": 0.505794,
+  "wins": 214443
+ },
+ "28": {
+  "games": 63413,
+  "low_sample": false,
+  "win_rate": 0.442354,
+  "wins": 28051
+ },
+ "29": {
+  "games": 387225,
+  "low_sample": false,
+  "win_rate": 0.459981,
+  "wins": 178116
+ },
+ "3": {
+  "games": 284293,
+  "low_sample": false,
+  "win_rate": 0.520829,
+  "wins": 148068
+ },
+ "30": {
+  "games": 684030,
+  "low_sample": false,
+  "win_rate": 0.458956,
+  "wins": 313940
+ },
+ "31": {
+  "games": 382401,
+  "low_sample": false,
+  "win_rate": 0.46582,
+  "wins": 178130
+ },
+ "32": {
+  "games": 221503,
+  "low_sample": false,
+  "win_rate": 0.472129,
+  "wins": 104578
+ },
+ "33": {
+  "games": 76318,
+  "low_sample": false,
+  "win_rate": 0.44215,
+  "wins": 33744
+ },
+ "34": {
+  "games": 145928,
+  "low_sample": false,
+  "win_rate": 0.450359,
+  "wins": 65720
+ },
+ "35": {
+  "games": 565167,
+  "low_sample": false,
+  "win_rate": 0.491826,
+  "wins": 277964
+ },
+ "350": {
+  "games": 243430,
+  "low_sample": false,
+  "win_rate": 0.532543,
+  "wins": 129637
+ },
+ "36": {
+  "games": 420051,
+  "low_sample": false,
+  "win_rate": 0.50701,
+  "wins": 212970
+ },
+ "360": {
+  "games": 189351,
+  "low_sample": false,
+  "win_rate": 0.439211,
+  "wins": 83165
+ },
+ "37": {
+  "games": 334283,
+  "low_sample": false,
+  "win_rate": 0.545116,
+  "wins": 182223
+ },
+ "38": {
+  "games": 199985,
+  "low_sample": false,
+  "win_rate": 0.509518,
+  "wins": 101896
+ },
+ "39": {
+  "games": 195506,
+  "low_sample": false,
+  "win_rate": 0.492133,
+  "wins": 96215
+ },
+ "4": {
+  "games": 774451,
+  "low_sample": false,
+  "win_rate": 0.565413,
+  "wins": 437885
+ },
+ "40": {
+  "games": 158976,
+  "low_sample": false,
+  "win_rate": 0.542598,
+  "wins": 86260
+ },
+ "41": {
+  "games": 536449,
+  "low_sample": false,
+  "win_rate": 0.487249,
+  "wins": 261384
+ },
+ "412": {
+  "games": 356188,
+  "low_sample": false,
+  "win_rate": 0.500003,
+  "wins": 178095
+ },
+ "42": {
+  "games": 390368,
+  "low_sample": false,
+  "win_rate": 0.493019,
+  "wins": 192459
+ },
+ "420": {
+  "games": 167914,
+  "low_sample": false,
+  "win_rate": 0.46095,
+  "wins": 77400
+ },
+ "421": {
+  "games": 32507,
+  "low_sample": false,
+  "win_rate": 0.49054,
+  "wins": 15946
+ },
+ "427": {
+  "games": 56900,
+  "low_sample": false,
+  "win_rate": 0.531195,
+  "wins": 30225
+ },
+ "429": {
+  "games": 154150,
+  "low_sample": false,
+  "win_rate": 0.486215,
+  "wins": 74950
+ },
+ "43": {
+  "games": 245261,
+  "low_sample": false,
+  "win_rate": 0.494555,
+  "wins": 121295
+ },
+ "432": {
+  "games": 65528,
+  "low_sample": false,
+  "win_rate": 0.471615,
+  "wins": 30904
+ },
+ "44": {
+  "games": 55896,
+  "low_sample": false,
+  "win_rate": 0.51705,
+  "wins": 28901
+ },
+ "45": {
+  "games": 415083,
+  "low_sample": false,
+  "win_rate": 0.498792,
+  "wins": 207040
+ },
+ "48": {
+  "games": 585251,
+  "low_sample": false,
+  "win_rate": 0.50917,
+  "wins": 297992
+ },
+ "497": {
+  "games": 62231,
+  "low_sample": false,
+  "win_rate": 0.478025,
+  "wins": 29748
+ },
+ "498": {
+  "games": 222541,
+  "low_sample": false,
+  "win_rate": 0.4766,
+  "wins": 106063
+ },
+ "5": {
+  "games": 531180,
+  "low_sample": false,
+  "win_rate": 0.554882,
+  "wins": 294742
+ },
+ "50": {
+  "games": 599986,
+  "low_sample": false,
+  "win_rate": 0.489605,
+  "wins": 293756
+ },
+ "51": {
+  "games": 652777,
+  "low_sample": false,
+  "win_rate": 0.474592,
+  "wins": 309803
+ },
+ "516": {
+  "games": 164847,
+  "low_sample": false,
+  "win_rate": 0.463618,
+  "wins": 76426
+ },
+ "517": {
+  "games": 532002,
+  "low_sample": false,
+  "win_rate": 0.484835,
+  "wins": 257933
+ },
+ "518": {
+  "games": 159071,
+  "low_sample": false,
+  "win_rate": 0.454602,
+  "wins": 72314
+ },
+ "523": {
+  "games": 165538,
+  "low_sample": false,
+  "win_rate": 0.470998,
+  "wins": 77968
+ },
+ "526": {
+  "games": 151441,
+  "low_sample": false,
+  "win_rate": 0.522725,
+  "wins": 79162
+ },
+ "53": {
+  "games": 417507,
+  "low_sample": false,
+  "win_rate": 0.470227,
+  "wins": 196323
+ },
+ "54": {
+  "games": 525152,
+  "low_sample": false,
+  "win_rate": 0.460632,
+  "wins": 241902
+ },
+ "55": {
+  "games": 515669,
+  "low_sample": false,
+  "win_rate": 0.494373,
+  "wins": 254933
+ },
+ "555": {
+  "games": 323408,
+  "low_sample": false,
+  "win_rate": 0.478275,
+  "wins": 154678
+ },
+ "56": {
+  "games": 199745,
+  "low_sample": false,
+  "win_rate": 0.479076,
+  "wins": 95693
+ },
+ "57": {
+  "games": 415790,
+  "low_sample": false,
+  "win_rate": 0.496061,
+  "wins": 206257
+ },
+ "58": {
+  "games": 202313,
+  "low_sample": false,
+  "win_rate": 0.454118,
+  "wins": 91874
+ },
+ "59": {
+  "games": 482251,
+  "low_sample": false,
+  "win_rate": 0.446738,
+  "wins": 215440
+ },
+ "6": {
+  "games": 158100,
+  "low_sample": false,
+  "win_rate": 0.441575,
+  "wins": 69813
+ },
+ "60": {
+  "games": 73500,
+  "low_sample": false,
+  "win_rate": 0.470408,
+  "wins": 34575
+ },
+ "61": {
+  "games": 213178,
+  "low_sample": false,
+  "win_rate": 0.486382,
+  "wins": 103686
+ },
+ "62": {
+  "games": 302847,
+  "low_sample": false,
+  "win_rate": 0.490016,
+  "wins": 148400
+ },
+ "63": {
+  "games": 726591,
+  "low_sample": false,
+  "win_rate": 0.499308,
+  "wins": 362793
+ },
+ "64": {
+  "games": 353299,
+  "low_sample": false,
+  "win_rate": 0.452065,
+  "wins": 159714
+ },
+ "67": {
+  "games": 552859,
+  "low_sample": false,
+  "win_rate": 0.505494,
+  "wins": 279467
+ },
+ "68": {
+  "games": 327468,
+  "low_sample": false,
+  "win_rate": 0.4881,
+  "wins": 159837
+ },
+ "69": {
+  "games": 145356,
+  "low_sample": false,
+  "win_rate": 0.459706,
+  "wins": 66821
+ },
+ "7": {
+  "games": 166316,
+  "low_sample": false,
+  "win_rate": 0.430812,
+  "wins": 71651
+ },
+ "711": {
+  "games": 152460,
+  "low_sample": false,
+  "win_rate": 0.48433,
+  "wins": 73841
+ },
+ "72": {
+  "games": 120046,
+  "low_sample": false,
+  "win_rate": 0.471244,
+  "wins": 56571
+ },
+ "74": {
+  "games": 205471,
+  "low_sample": false,
+  "win_rate": 0.502022,
+  "wins": 103151
+ },
+ "75": {
+  "games": 255680,
+  "low_sample": false,
+  "win_rate": 0.492268,
+  "wins": 125863
+ },
+ "76": {
+  "games": 429925,
+  "low_sample": false,
+  "win_rate": 0.473757,
+  "wins": 203680
+ },
+ "77": {
+  "games": 263213,
+  "low_sample": false,
+  "win_rate": 0.472982,
+  "wins": 124495
+ },
+ "777": {
+  "games": 482841,
+  "low_sample": false,
+  "win_rate": 0.538069,
+  "wins": 259802
+ },
+ "78": {
+  "games": 149430,
+  "low_sample": false,
+  "win_rate": 0.507174,
+  "wins": 75787
+ },
+ "79": {
+  "games": 299484,
+  "low_sample": false,
+  "win_rate": 0.483251,
+  "wins": 144726
+ },
+ "799": {
+  "games": 237396,
+  "low_sample": false,
+  "win_rate": 0.531087,
+  "wins": 126078
+ },
+ "8": {
+  "games": 416593,
+  "low_sample": false,
+  "win_rate": 0.474898,
+  "wins": 197839
+ },
+ "80": {
+  "games": 324445,
+  "low_sample": false,
+  "win_rate": 0.50109,
+  "wins": 162576
+ },
+ "800": {
+  "games": 403263,
+  "low_sample": false,
+  "win_rate": 0.493063,
+  "wins": 198834
+ },
+ "804": {
+  "games": 289516,
+  "low_sample": false,
+  "win_rate": 0.490149,
+  "wins": 141906
+ },
+ "805": {
+  "games": 199919,
+  "low_sample": false,
+  "win_rate": 0.451808,
+  "wins": 90325
+ },
+ "81": {
+  "games": 767752,
+  "low_sample": false,
+  "win_rate": 0.461023,
+  "wins": 353951
+ },
+ "82": {
+  "games": 409909,
+  "low_sample": false,
+  "win_rate": 0.452374,
+  "wins": 185432
+ },
+ "83": {
+  "games": 35563,
+  "low_sample": false,
+  "win_rate": 0.456036,
+  "wins": 16218
+ },
+ "84": {
+  "games": 189949,
+  "low_sample": false,
+  "win_rate": 0.430258,
+  "wins": 81727
+ },
+ "85": {
+  "games": 120905,
+  "low_sample": false,
+  "win_rate": 0.440784,
+  "wins": 53293
+ },
+ "86": {
+  "games": 328076,
+  "low_sample": false,
+  "win_rate": 0.447146,
+  "wins": 146698
+ },
+ "875": {
+  "games": 557011,
+  "low_sample": false,
+  "win_rate": 0.501306,
+  "wins": 279233
+ },
+ "876": {
+  "games": 512417,
+  "low_sample": false,
+  "win_rate": 0.53821,
+  "wins": 275788
+ },
+ "887": {
+  "games": 295218,
+  "low_sample": false,
+  "win_rate": 0.542589,
+  "wins": 160182
+ },
+ "888": {
+  "games": 116675,
+  "low_sample": false,
+  "win_rate": 0.512098,
+  "wins": 59749
+ },
+ "89": {
+  "games": 196368,
+  "low_sample": false,
+  "win_rate": 0.486459,
+  "wins": 95525
+ },
+ "893": {
+  "games": 337698,
+  "low_sample": false,
+  "win_rate": 0.500426,
+  "wins": 168993
+ },
+ "895": {
+  "games": 65688,
+  "low_sample": false,
+  "win_rate": 0.506257,
+  "wins": 33255
+ },
+ "897": {
+  "games": 93426,
+  "low_sample": false,
+  "win_rate": 0.427483,
+  "wins": 39938
+ },
+ "9": {
+  "games": 213825,
+  "low_sample": false,
+  "win_rate": 0.468593,
+  "wins": 100197
+ },
+ "90": {
+  "games": 370728,
+  "low_sample": false,
+  "win_rate": 0.514391,
+  "wins": 190699
+ },
+ "901": {
+  "games": 638988,
+  "low_sample": false,
+  "win_rate": 0.496986,
+  "wins": 317568
+ },
+ "902": {
+  "games": 140570,
+  "low_sample": false,
+  "win_rate": 0.515871,
+  "wins": 72516
+ },
+ "904": {
+  "games": 192418,
+  "low_sample": false,
+  "win_rate": 0.521303,
+  "wins": 100308
+ },
+ "91": {
+  "games": 256550,
+  "low_sample": false,
+  "win_rate": 0.486155,
+  "wins": 124723
+ },
+ "910": {
+  "games": 258609,
+  "low_sample": false,
+  "win_rate": 0.527948,
+  "wins": 136532
+ },
+ "92": {
+  "games": 163537,
+  "low_sample": false,
+  "win_rate": 0.48356,
+  "wins": 79080
+ },
+ "950": {
+  "games": 172294,
+  "low_sample": false,
+  "win_rate": 0.447404,
+  "wins": 77085
+ },
+ "96": {
+  "games": 286997,
+  "low_sample": false,
+  "win_rate": 0.47842,
+  "wins": 137305
+ },
+ "98": {
+  "games": 210420,
+  "low_sample": false,
+  "win_rate": 0.495618,
+  "wins": 104288
+ },
+ "99": {
+  "games": 430533,
+  "low_sample": false,
+  "win_rate": 0.487089,
+  "wins": 209708
+ }
+}

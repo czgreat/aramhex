@@ -1,0 +1,81 @@
+{
+ "bands": false,
+ "files": {
+  "augments.json": {
+   "sha256": "3d412dc4a3420432ff28c3439193f2c2f940b398ce5f08970ebfe3412b5da421",
+   "size": 14908
+  },
+  "core_builds.json": {
+   "sha256": "dc6b3ddd3c31b5262b05d7be188c10ec9dfa31625044c64a81e52da7419f0a68",
+   "size": 95426
+  },
+  "equipment_heroes.json": {
+   "sha256": "632c9be75660c5a80fe44dff81720e6c5f5e1213d036ad6f86ab3d1d8a6f9260",
+   "size": 16649
+  },
+  "equipment_recommendation_heroes.json": {
+   "sha256": "343197d6970f744ceccbc6967d7879a3e29e962133367dd6618960cea2bd0fd4",
+   "size": 16593
+  },
+  "hero_augment_items.json": {
+   "sha256": "1346136ea56095ef848b72f8ea8d6c41a7b00cf132f1a9b46351ef6065e040ce",
+   "size": 99521
+  },
+  "hero_augments.json": {
+   "sha256": "4e36d884c31984e8bc755bebc5f618f653f2e30b22da99f51c802866364d1c79",
+   "size": 2408553
+  },
+  "hero_item_holdings.json": {
+   "sha256": "6b9e312bbf5603a9e5558f2ea8a07e8810d4c51d5ed6084ad1b6ad8a7f017827",
+   "size": 3151344
+  },
+  "hero_item_recommendations.json": {
+   "sha256": "7c21da9ccf4a287d322e220f90ae454fd6a14dee7f6ac191ad2134f2dce3025e",
+   "size": 1738390
+  },
+  "hero_items.json": {
+   "sha256": "7c21da9ccf4a287d322e220f90ae454fd6a14dee7f6ac191ad2134f2dce3025e",
+   "size": 1738390
+  },
+  "hero_items_raw.json": {
+   "sha256": "04a82b421ac9e824638316436f329577bb48bceac7972fe8669bf442d85d80c3",
+   "size": 1859790
+  },
+  "hero_spells.json": {
+   "sha256": "c68db77fc651153e380d0d5f06dea1f92c663eec713900e56648bc27027db11f",
+   "size": 419527
+  },
+  "heroes.json": {
+   "sha256": "eafcfc25a8fc7c6f473bb197b5d7d979838ab7f5f2b14a75372781893383fabb",
+   "size": 32009
+  },
+  "item_metadata.json": {
+   "sha256": "fabb404c1cf2dfffe0f61c78b98f48be1924bd1bfdabf5fb7a7d1d0dc7f93795",
+   "size": 69831
+  },
+  "meta.json": {
+   "sha256": "4f91c8ed3f5c3f91c9b857481c0515f8c1e6e8a9c73a3da7fbdfa6a2a16c47ad",
+   "size": 6510
+  }
+ },
+ "matches": 8401866,
+ "matches_detail": {
+  "collected": 8682392,
+  "excluded": 280526,
+  "valid": 8401866,
+  "validity_rule": "对局时长240至14400秒、截止前正常结束（GameComplete）、非私人对局；10名不同真人、无电脑、两队各5人且队内胜负一致，共5胜5负；数据不全的对局不计"
+ },
+ "mode": "normal",
+ "mode_label": "常规",
+ "patch": "16.23",
+ "path": "patches/16.23/normal",
+ "schema_version": 1,
+ "seq": 22,
+ "snapshot_at": "2026-11-26T09:00:00+08:00",
+ "window": {
+  "end_exclusive": "2026-11-26T09:00:00+08:00",
+  "periods": null,
+  "start": "2026-11-24T17:00:00+08:00",
+  "time_field": "北京时间，以开局及结束时间限定。"
+ }
+}
