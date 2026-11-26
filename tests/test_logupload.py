@@ -151,7 +151,8 @@ def test_log_remains_within_limit_after_redaction(tmp_path, monkeypatch, fake_of
     request = cloud._merge({"logs": {"request": [ID], "max_kb": 64}})
     assert logupload.maybe_upload(s, request) == [ID]
     body, _ = sent[0]
-    assert body.startswith("<已去掉>\n") and len(body.encode()) <= 64 * 1024
+    # Windows 上日志按文本写入，换行是 \r\n：先统一再比
+    assert body.replace("\r\n", "\n").startswith("<已去掉>\n") and len(body.encode()) <= 64 * 1024
 
 
 def test_only_tail_of_big_log(tmp_path, monkeypatch, fake_official):
