@@ -824,11 +824,28 @@ class AugmentDetector:
             self.cost["strip_cpu"] += time.thread_time() - c0
 
     def _read_strip(self, strip: np.ndarray, win: Rect) -> Offer | None:
-        pb = self.calibration.pixel_boxes(win.width, win.height)
-        region = self.strip_rect(win)
+        # Snapshot every layout-sized piece of state together.  OCR runs outside the
+        # lock, so a concurrent 3/4-card layout change must not leave this pass using
+        # a four-column crop list with a three-column pending list (or vice versa).
+        with self._track_lock:
+            calibration = self.calibration
+            region = self.strip_rect(win)
+            if region is None:
+                return None  # 截图之后定位被清掉或换了窗口大小：这条窄带对不上，这一轮不读
+            pb = calibration.pixel_boxes(win.width, win.height)
+            rarities_map = self.rarities
+            color_check = self.color_check
+            cells_ref = self._cells
+            cells = list(cells_ref)
+            pending_ref = self._pending
+            pending = list(pending_ref)
+            stable = self._stable
+            low_match_reads = self._low_match_reads
+            last_result = self._last_result
+            group_target = self._group_target
         sx, sy = region.left-win.left, region.top-win.top
         rarities = [None] * len(pb)
-        if self.rarities and self.color_check != "off":
+        if rarities_map and color_check != "off":
             from .cardframe import classify_card_frames
             rarities = classify_card_frames(strip, pb, strip_origin=(sx, sy), window_height=win.height)
         slots: list[str | None] = []
@@ -838,14 +855,12 @@ class AugmentDetector:
         fingerprints = [fingerprint(crop) for crop in crops]
         # 取快照：别的线程（换窗口、对局结束）随时可能 clear_tracking 把 self._cells 换成空的，
         # 这一轮全程按快照算，读完再写回；被清过就不写回旧读数
-        cells_ref = self._cells
-        cells = list(cells_ref)
         changed = [old is None or fp_changed(old["fp"], fp)
                    for old, fp in zip(cells, fingerprints)]
-        confirming = self._stable is not None and 0 < self._low_match_reads < self.low_match_reads
-        urgent = any(changed) or any(self._pending) or confirming or self._group_target is not None
+        confirming = stable is not None and 0 < low_match_reads < self.low_match_reads
+        urgent = any(changed) or any(pending) or confirming or group_target is not None
         expired = [i for i, old in enumerate(cells) if old is not None
-                   and self._last_result is not None and now-old["at"] >= self.recheck_seconds]
+                   and last_result is not None and now-old["at"] >= self.recheck_seconds]
         # 定期检查一次只读一列；先响应变化，最迟两倍周期内仍安排复查，防动画饿死其他列。
         maintenance = min(expired, key=lambda i: cells[i]["at"]) if expired else None
         if maintenance is not None and urgent and now-cells[maintenance]["at"] < 2*self.recheck_seconds:
@@ -853,22 +868,22 @@ class AugmentDetector:
         for i, (x0, y0, x1, y1) in enumerate(pb):
             crop, fp = crops[i], fingerprints[i]
             old = cells[i]
-            read = (old is None or changed[i] or self._pending[i] is not None or self._group_target is not None or i == maintenance
+            read = (old is None or changed[i] or pending[i] is not None or group_target is not None or i == maintenance
                     # 低命中批次里读到的新名字还没走确认，恢复时必须重读；
                     # 只重读空列会把它留在原始缓存中，继续发布旧卡直到定期复查。
                     or (confirming and old is not None
-                        and (old["aid"] is None or old["aid"] != self._stable.slots[i])))
+                        and (old["aid"] is None or old["aid"] != stable.slots[i])))
             if read:
                 scale = REC_HEIGHT / max(1, crop.shape[0])
                 txt, conf = self.ocr.recognize(_resize(crop, scale))
                 aid, sc = self.matcher.match(txt)
                 if not aid:
                     self.cost["name_reject"] += 1
-                if aid and rarities[i] and self.rarities.get(aid) != rarities[i]:
+                if aid and rarities[i] and rarities_map.get(aid) != rarities[i]:
                     # 海克斯名字各不相同，名字已经能确定是哪张；颜色只拿来发现资料标错的稀有度（如 2078 连锁反应），
                     # 和名字读错的情况。1.1.3 起默认只记日志，云控 color_check=reject 退回按颜色拒绝
                     exact = self.matcher.exact(txt) == aid
-                    if exact or self.color_check != "reject":
+                    if exact or color_check != "reject":
                         self.cost["color_trust"] += 1
                         verdict = "按名字认"
                     else:
@@ -877,7 +892,7 @@ class AugmentDetector:
                     if (aid, rarities[i], verdict) not in self._color_logged:
                         self._color_logged.add((aid, rarities[i], verdict))
                         log.info("海克斯颜色和资料不一致：aid=%s 读到=%r 分数=%.0f 名字一字不差=%s 资料=%s 看到=%s，%s",
-                                 aid, txt, sc, exact, self.rarities.get(aid), rarities[i], verdict)
+                                 aid, txt, sc, exact, rarities_map.get(aid), rarities[i], verdict)
                     if verdict == "拒绝":
                         aid = None
                 cells[i] = {"fp": fp, "at": now, "text": txt, "conf": conf, "aid": aid, "score": sc}
@@ -893,9 +908,11 @@ class AugmentDetector:
             boxes.append((win.left + x0, win.top + y0, win.left + x1, win.top + y1))
         # 检查和写回放在同一把锁里：clear_tracking 也拿这把锁，检查通过后不会再被清空
         with self._track_lock:
-            if self._cells is not cells_ref:
-                return None  # 读的时候被清空了（换窗口、对局结束）：这一轮的结果作废
+            if (self._cells is not cells_ref or self._pending is not pending_ref
+                    or self.calibration is not calibration):
+                return None  # 读的时候布局或跟踪状态变了：这一轮的结果作废
             self._cells = cells
+            self._pending = pending
             if any(fresh):
                 self._observation += 1
             offer = Offer(slots, texts, scores, boxes, padded=True, source="strip", observation=self._observation)
@@ -926,7 +943,7 @@ class AugmentDetector:
                 self._last_result = None
                 for i, read in enumerate(fresh):
                     if read:
-                        self._pending[i] = None  # 本轮不可靠读数中断此前的“连续新观察”。
+                        pending[i] = None  # 本轮不可靠读数中断此前的“连续新观察”。
                 # 暂不发布旧卡，只保留内部连续状态供短暂失败恢复。引擎仍按3次None关闭。
                 # 确认期间绕过空缓存，仅重读失败列，三次None因而来自三个真实OCR批次。
                 if self._stable is not None and any(fresh):

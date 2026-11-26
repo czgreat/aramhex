@@ -12,13 +12,13 @@ def test_bundle_without_emudhra():
     text = "\n".join(lines[3:])  # 前 3 行是说明
     assert "eMudhra" not in text and "emSign" not in text
     assert text.count("BEGIN CERTIFICATE") >= 100
-    assert "ISRG Root X1" in text and "DigiCert Global Root G2" in text  # aramhex.com（Let's Encrypt）、GitHub
+    assert "ISRG Root X1" in text and "DigiCert Global Root G2" in text  # 官网（Let's Encrypt）、GitHub
 
 
 def test_requests_uses_bundle():
     assert os.environ["REQUESTS_CA_BUNDLE"] == str(lolhex._CA)
     s = requests.Session()
-    assert s.merge_environment_settings("https://aramhex.com/x", {}, None, None, None)["verify"] == str(lolhex._CA)
+    assert s.merge_environment_settings("https://site.example/x", {}, None, None, None)["verify"] == str(lolhex._CA)
 
 
 def test_bundle_is_incrementally_updatable():

@@ -241,7 +241,8 @@ def apply(settings: Settings, cfg: dict, version: str, machine: dict | None = No
                 got.append({})
         return got[0]
 
-    install_id = settings.install_id if settings.send_usage else None
+    with settings._lock:
+        install_id = settings.install_id if settings.send_usage else None
     defaults, force, reasons, hit = {}, {}, [], []
     for r, m in [(r, None) for r in rules(cfg)] + [(r, read_machine) for r in v2_rules(cfg)]:
         if not _applies(r, version, install_id, m):
@@ -257,23 +258,25 @@ def apply(settings: Settings, cfg: dict, version: str, machine: dict | None = No
         if f and r.get("reason"):
             reasons.append((rid, str(r["reason"])[:200]))
     changed = []
-    # 先撤掉上次强制、这次不再强制的项
-    for k in [k for k in settings.forced if k not in force]:
-        orig = settings.forced.pop(k)
-        if getattr(settings, k) != orig:
-            setattr(settings, k, orig)
-            changed.append(k)
-    for k, v in defaults.items():
-        if k in settings.user_set or k in force:
-            continue
-        if getattr(settings, k) != v:
-            setattr(settings, k, v)
-            changed.append(k)
-    for k, v in force.items():
-        settings.forced.setdefault(k, getattr(settings, k))
-        if getattr(settings, k) != v:
-            setattr(settings, k, v)
-            changed.append(k)
+    with settings._lock:
+        # 先撤掉上次强制、这次不再强制的项
+        for k in [k for k in settings.forced if k not in force]:
+            orig = settings.forced.pop(k)
+            if getattr(settings, k) != orig:
+                setattr(settings, k, orig)
+                changed.append(k)
+        for k, v in defaults.items():
+            if k in settings.user_set or k in force:
+                continue
+            if getattr(settings, k) != v:
+                setattr(settings, k, v)
+                changed.append(k)
+        for k, v in force.items():
+            settings.forced.setdefault(k, getattr(settings, k))
+            if getattr(settings, k) != v:
+                setattr(settings, k, v)
+                changed.append(k)
+        summary = "，".join(f"{k}={getattr(settings, k)!r}" for k in changed)
     if hit != _last_hit:  # 本机命中哪些规则：变了才记，看日志就知道分组试验分到了哪边
         _last_hit = hit
         m = got[0] if got else {}
@@ -281,5 +284,5 @@ def apply(settings: Settings, cfg: dict, version: str, machine: dict | None = No
                  f"（系统={m.get('os') or '?'} 大小核={ {True: '是', False: '否'}.get(m.get('hybrid'), '?')} "
                  f"厂商={m.get('vendor') or '?'}）" if m else "")
     if changed:
-        log.info("云控设置生效：%s", "，".join(f"{k}={getattr(settings, k)!r}" for k in changed))
+        log.info("云控设置生效：%s", summary)
     return {"changed": changed, "reasons": reasons}

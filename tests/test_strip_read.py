@@ -2,7 +2,7 @@
 import numpy as np
 
 import lolhex.vision.cardframe as cardframe
-from lolhex.vision.detector import AugmentDetector
+from lolhex.vision.detector import AugmentDetector, Calibration
 from lolhex.vision.matcher import NameMatcher
 from lolhex.vision.window import Rect
 
@@ -75,6 +75,64 @@ def test_clear_while_reading_changed_column(monkeypatch):
     ocr.hook = lambda n: det.clear_tracking()
     assert det.check_strip(strip, rect) is None and ocr.calls == 4
     assert det._cells == [None] * 3
+
+
+def test_layout_change_during_read_discards_stale_snapshot(monkeypatch):
+    # 读四张卡时切回三张：旧实现会拿四列 crop 去访问已经缩成三列的 pending，
+    # 触发 list index/assignment out of range；这轮应作废，下一轮重新读当前布局。
+    det, ocr, rect, _ = _detector(monkeypatch,
+                                  ["连锁反应", "喂呜喂呜", "咏叹奏鸣", "泰坦的坚决"] * 2,
+                                  [None] * 4,
+                                  names={**NAMES, "1001": "泰坦的坚决"})
+    with det._track_lock:
+        det.calibration = Calibration.default(rect.width, rect.height, count=4)
+        det._layout_changed()
+    sr = det.strip_rect(rect)
+    strip = np.zeros((sr.height, sr.width, 3), np.uint8)
+
+    def switch_back(count):
+        if count == 1:
+            with det._track_lock:
+                det.calibration = Calibration.default(rect.width, rect.height, count=3)
+                det._layout_changed()
+
+    ocr.hook = switch_back
+    assert det.check_strip(strip, rect) is None
+    assert len(det._cells) == len(det._pending) == 3
+    ocr.hook = None
+    assert det.check_strip(strip, rect).slots == ["2078", "1005", "1420"]
+
+
+def test_layout_shrinks_while_other_columns_are_cached(monkeypatch):
+    # 四列都读过、只有第 1 列变了，读它时切回三张：后面几列走缓存，会去看 _pending[3]。
+    # 上一条测试各列都是第一次读，走不到这里，在旧实现上也通过；这一条在旧实现上 IndexError。
+    det, ocr, rect, _ = _detector(monkeypatch, ["连锁反应", "喂呜喂呜", "咏叹奏鸣", "泰坦的坚决"] * 2, [None] * 4,
+                                  names={**NAMES, "1001": "泰坦的坚决"})
+    with det._track_lock:
+        det.calibration = Calibration.default(rect.width, rect.height, count=4)
+        det._layout_changed()
+    sr = det.strip_rect(rect)
+    strip = np.zeros((sr.height, sr.width, 3), np.uint8)
+    assert det.check_strip(strip, rect).matched() == 4
+    pb = det.calibration.pixel_boxes(rect.width, rect.height)
+    sx = sr.left - rect.left
+    strip[:, pb[0][0]-sx:pb[0][2]-sx] = 200
+
+    def switch_back(_):
+        with det._track_lock:
+            det.calibration = Calibration.default(rect.width, rect.height, count=3)
+            det._layout_changed()
+
+    ocr.hook = switch_back
+    assert det.check_strip(strip, rect) is None and ocr.calls == 5
+    assert len(det._cells) == len(det._pending) == 3
+
+
+def test_calibration_cleared_between_grab_and_read(monkeypatch):
+    # 截完图、读之前界面线程重置定位：这一轮不读，不抛 AttributeError
+    det, ocr, rect, strip = _detector(monkeypatch, ["连锁反应", "喂呜喂呜", "咏叹奏鸣"], [None] * 3)
+    det.reset_calibration()
+    assert det.check_strip(strip, rect) is None and ocr.calls == 0
 
 
 def test_partial_ratio_100_still_rejected_by_color(monkeypatch):

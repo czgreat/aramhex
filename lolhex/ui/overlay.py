@@ -396,6 +396,11 @@ class BadgeLayer(_Layer):
         self._publish(drawn, unit)
 
     @staticmethod
+    def _item_hint_label(row):
+        style = row.get("style")
+        return f"{style} · {row['name']}" if style and style != "不拆" else row["name"]
+
+    @staticmethod
     def _item_hint_stat(row, hint, show_win):
         """装备右侧那段数字：默认只有相对英雄基准的加减，其余字段由数据决定。"""
         parts = ["样本偏少"] if row.get("low_sample") else []
@@ -421,7 +426,7 @@ class BadgeLayer(_Layer):
             width = min(badge.width(), fm.horizontalAdvance(hint.get("note") or "") + 2 * HINT_PAD)
             return QRect(int(cx - width / 2), bottom - HINT_NOTE_H, width, HINT_NOTE_H)
         widest = max(fm.horizontalAdvance(hint_title(hint)), *(
-            HINT_ICON + 6 + fm.horizontalAdvance(row["name"]) + 12 + fm.horizontalAdvance(self._item_hint_stat(row, hint, show_win))
+            HINT_ICON + 6 + fm.horizontalAdvance(self._item_hint_label(row)) + 12 + fm.horizontalAdvance(self._item_hint_stat(row, hint, show_win))
             for row in rows))
         width = min(badge.width(), widest + 2 * HINT_PAD)
         height = HINT_HEAD_H + HINT_ROW_H * len(rows) + 4
@@ -455,7 +460,7 @@ class BadgeLayer(_Layer):
             p.setPen(QColor(240, 240, 245))
             name_w = max(0, text_w - stat_w - 12)
             p.drawText(QRect(text_x, y + 2, name_w, 18), Qt.AlignLeft,
-                       fm.elidedText(row["name"], Qt.ElideRight, name_w))
+                       fm.elidedText(self._item_hint_label(row), Qt.ElideRight, name_w))
             delta = row.get("delta") if show_win else None
             p.setPen(QColor(190, 196, 208) if delta is None or round(delta, 1) == 0
                      else QColor(95, 211, 141) if delta > 0 else QColor(255, 122, 107))
@@ -1147,9 +1152,10 @@ class ControlPanel(QWidget):
                 rating.append(f"胜率 {_pct(r['win'])}")
             if r.get("pick") is not None:
                 rating.append(f"出场 {_pct(r['pick'])}")
-            hero_html = f"<b style='color:#e7c35a;font-size:14px'>{h['name']}</b> {h['nick']}<br>{' · '.join(rating)}"
+            head = self._with_hide_hint(h['name'], h['nick'], snap)
+            hero_html = head + ("" if head.startswith("<table") else "<br>") + ' · '.join(rating)
         else:
-            hero_html = "<span style='color:#e7c35a'>未识别到英雄，请手动选择</span>"
+            hero_html = self._with_hide_hint(None, None, snap)
         if self.hero_label.text() != hero_html:
             self.hero_label.setText(hero_html)
         self._set_candidates(snap.get("candidates") or [])
@@ -1184,6 +1190,29 @@ class ControlPanel(QWidget):
         if self.info.text() != html:
             self.info.setText(html)
             self._place_body()  # 详情变高：往下长，位置不变
+
+    HIDE_HINT = "收起后按钮隐藏，鼠标移过来浮现 ↗"
+    HIDE_HINT_LEFT = "收起后按钮隐藏，鼠标移到左上角浮现"
+
+    def _with_hide_hint(self, name: str | None, nick: str | None, snap: dict) -> str:
+        """英雄名那一行（name 为 None：没认出英雄）。对局中按需模式（收起后按钮会藏起来）在同一行最右边写一句怎么叫出来；
+        不放「退出助手」旁边，免得当成退出后还能唤出。按钮在右上角时紧挨按钮，在左上角时写明位置。
+        名字加称号太长（只有「烈娜塔 · 戈拉斯克 炼金男爵」）就不写称号，免得一行挤不下折断。"""
+        on = snap.get("phase") == "ingame" and snap.get("settings", {}).get("overlay_on_demand", False) is True
+        if name is None:
+            first = "<span style='color:#e7c35a'>未识别到英雄，请手动选择</span>"
+        else:
+            if on and len(name) + len(nick or "") > 11:
+                nick = ""
+            first = f"<b style='color:#e7c35a;font-size:14px'>{name}</b> {nick or ''}".rstrip()
+        if not on:
+            return first
+        hint = self.HIDE_HINT if self.corner == "top-right" else self.HIDE_HINT_LEFT
+        return ("<table width='100%' cellspacing='0' cellpadding='0'><tr>"
+                f"<td style='vertical-align:middle'>{first}</td>"
+                f"<td align='right' style='vertical-align:middle;padding-left:6px'>"
+                f"<p style='white-space:nowrap;color:#aab3c7;font-size:12px'>{hint}</p></td>"
+                "</tr></table>")
 
 
 class Overlay:
@@ -1331,14 +1360,14 @@ def run(make_engine, minimized: bool = False) -> int:
 
     from PySide6.QtNetwork import QLocalServer, QLocalSocket
 
+    from . import theme
     from .mainwindow import MainWindow, Tray, app_icon
 
     app = QApplication.instance() or QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
     app.setApplicationName("海克斯大乱斗助手")
     app.setWindowIcon(app_icon())
-    # 界面颜色是按浅色配的（卡片底色、灰字写死）：不跟随 Windows 深色模式，否则白字压在浅色卡片上看不见
-    app.styleHints().setColorScheme(Qt.ColorScheme.Light)
+    theme.apply(app)
 
     name = f"{SINGLE_INSTANCE}-{getpass.getuser()}"
 

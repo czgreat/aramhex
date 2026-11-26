@@ -1,11 +1,11 @@
-"""云控配置：aramhex.com/config.json（网站和软件共用，改了不用发版）。
+"""云控配置（改了不用发版）。只有官方安装包会取；没有官方模块时一律用内置默认值，见 official.py。
 
     downloads   网盘链接 {setup, portable}（每次发版会换）
     community   社区入口列表 [{name, text, url, qr, primary}]：QQ 群、B 站、赞助……
                 软件「关于」里全部列出；primary 的那条在主界面顶部显示成按钮（网站同理）
     notice      公告 {id, text, url}：同一个 id 只弹一次
     min_version 低于这个版本必须更新
-    rank        查分 {enabled, api, message}：可以远程关掉查询
+    rank        查分 {enabled, message, as_of}：可以远程关掉查询
     event       当前活动 {mode, label, start, end}：例如 first-prismatic「首次必棱彩」，活动期间改用这个规则的统计数据
     mirrors     额外线路 {update: [".../{version}"], data: [...]}：换服务器、加线路不用发版，排在内置线路前面
     features    功能开关 {名字: true/false}（1.1.2）：新做法出问题时云控关掉、退回 1.1.1 的老做法，不用发版。
@@ -32,9 +32,9 @@
                                   同一台电脑分组固定，把比例调大，之前提示过的人仍在里面
                   paused          true 时暂停提示新版本（发现问题时用）；「最低版本」和手动检查不受影响
 
-    site        换官网地址（1.1.3）{urls: ["https://新域名"]}：配置、升级/数据镜像、查分、日志上传、软件里的官网链接
-                都先用这里的地址，内置的 aramhex.com、aramhex.cn 永远排在最后兜底。只收 https://域名[:端口]，最多 3 个。
-                新地址要和老站一样的路径（/config.json、/u/…、/api/rank、/api/logs）。rank.api、logs.url 没写时跟着换
+    site        换官网地址（1.1.3）{urls: ["https://新域名"]}：检查更新、下载更新、软件里的官网链接先用这里的地址，
+                官方模块内置的永远排在最后兜底。只收 https://域名[:端口]，最多 3 个。
+                1.3.0 起配置、统计数据、官方资料、查分、日志只连官方模块内置的地址；写内置的地址可以调先后。
 
 连不上就用上次存下的（app_home/cloud.json），再没有就用内置默认值。
 """
@@ -45,24 +45,22 @@ import json
 import logging
 import math
 import re
-import re
 import threading
 import unicodedata
 
 import requests
 
-from . import BACKUP_SITES, WEBSITE, __version__
-from .config import app_home
+from . import HOMEPAGE, __version__, official
+from .config import app_home, atomic_write_text
 
 log = logging.getLogger(__name__)
-URL = f"{WEBSITE}/config.json"
 DEFAULT = {
     "downloads": {},
     "community": [],
     "notice": {},
     "min_version": "",
     # as_of：查分库最新数据的日期（1.1.1）；比本机上次查到的新，就自动重查一次
-    "rank": {"enabled": True, "api": f"{WEBSITE}/api/rank", "message": "", "as_of": ""},
+    "rank": {"enabled": True, "message": "", "as_of": ""},
     "event": {"mode": "", "label": "", "start": "", "end": ""},
     "mirrors": {"update": [], "data": [], "official": []},
     "features": {},
@@ -77,13 +75,19 @@ DEFAULT = {
     # 开发者点名上传日志（见 logupload.py）：request 里是匿名编号（可带「:单号」）
     # max_kb：上传最近多少 KB 日志（1.1.2，64–4096，默认 512）；当前日志不够长时接着读上一个日志文件
     # verbose：临时记详细日志的电脑 ["<匿名编号>:<单号>"]（1.1.2，每个单号最多 24 小时，不截图，见 logupload.py）
-    "logs": {"url": f"{WEBSITE}/api/logs", "request": [], "max_kb": 512, "verbose": []},
+    "logs": {"request": [], "max_kb": 512, "verbose": []},
     "site": {"urls": []},
 }
+RESOURCE_TIMEOUT = 30  # 官方模块一次调用的总时间：领凭证、换线路都算在内，机械盘上第一次还要核对程序文件
 _SITE_RE = re.compile(r"https://[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+(:[0-9]{1,5})?")
 _lock = threading.Lock()
 _cache: dict | None = None
+# 写缓存文件单独一把锁：界面线程常调 get()，不能等写盘（fsync、杀毒软件扫描都可能慢）。
+# _saved 记最新一次 refresh 的编号，同时有两次 refresh 时旧的不会盖掉新的。
+_write_lock = threading.Lock()
+_saved = 0
 _install_id: str | None = None  # 匿名使用统计的编号；关掉时为 None，不带
+_INSTALL_ID_HEADER = "X-AramHex-Id"
 
 
 def set_install_id(value: str | None) -> None:
@@ -91,13 +95,41 @@ def set_install_id(value: str | None) -> None:
     _install_id = value or None
 
 
-def headers(url: str = "", **extra) -> dict:
-    """软件自己发的请求统一带上版本号；发往本站（aramhex.com）的再带匿名编号（关了使用统计就不带）。
-    GitHub、jsDelivr 等别人的服务器只带版本号。"""
-    h = {"User-Agent": f"aramhex/{__version__}", **extra}
-    if _install_id and own(url):
-        h["X-AramHex-Id"] = _install_id  # 只用来数「同一台电脑是不是一直在用」
+def headers(**extra) -> dict:
+    """软件自己发的请求统一带上版本号，不带匿名编号。"""
+    return {"User-Agent": f"aramhex/{__version__}", **extra}
+
+
+def update_headers(url: str, **extra) -> dict:
+    """检查、下载更新用：发往官网的再带匿名编号（关了使用统计就不带），GitHub 等别人的服务器只带版本号。"""
+    h = headers(**extra)
+    if _install_id and url.startswith("https://") and own(url):
+        h[_INSTALL_ID_HEADER] = _install_id  # 只用来数「同一台电脑是不是一直在用」
     return h
+
+
+class _UpdateSession(requests.Session):
+    def rebuild_auth(self, prepared_request, response) -> None:
+        super().rebuild_auth(prepared_request, response)
+        if self.should_strip_auth(response.request.url, prepared_request.url):
+            prepared_request.headers.pop(_INSTALL_ID_HEADER, None)
+
+
+def get_update(url: str, *, headers: dict | None = None, **kwargs) -> requests.Response:
+    """发更新请求，跨源跳转时移除匿名编号。"""
+    request_headers = update_headers(url, **(headers or {}))
+    if _INSTALL_ID_HEADER in request_headers:
+        with _UpdateSession() as session:
+            return session.get(url, headers=request_headers, **kwargs)
+    return requests.get(url, headers=request_headers, **kwargs)
+
+
+def fetch(url: str, timeout: float = 15) -> requests.Response:
+    """取一个小文件：official:// 的经官方模块（timeout 放宽成整次调用的总时间），其余直接请求。"""
+    if official.is_resource(url):
+        kind, name = official.split(url)
+        return official.resource(kind, name, sites(), timeout=max(timeout, RESOURCE_TIMEOUT))
+    return requests.get(url, headers=headers(), timeout=timeout)
 
 
 def _path():
@@ -174,14 +206,14 @@ def _site_urls(raw) -> list[str]:
     out = []
     for u in urls:
         u = u.strip().rstrip("/").lower() if isinstance(u, str) else ""
-        if _SITE_RE.fullmatch(u) and u not in out and u != WEBSITE:
+        if _SITE_RE.fullmatch(u) and u not in out and u not in official.sites()[:1]:
             out.append(u)
     return out[:3]
 
 
 def _with_builtin(urls: list[str]) -> list[str]:
-    """云控地址在前，再接内置的 aramhex.com 和备用官网，去重。"""
-    return list(dict.fromkeys(urls + [WEBSITE, *BACKUP_SITES]))
+    """云控地址在前，再接官方模块内置的，去重。没有官方模块就一个都没有。"""
+    return list(dict.fromkeys(urls + official.sites())) if official.available() else []
 
 
 def _owns(url: str, sites: list[str]) -> bool:
@@ -193,10 +225,6 @@ def _merge(raw: dict) -> dict:
     if not isinstance(raw, dict):
         return out
     out["site"]["urls"] = _site_urls(raw.get("site"))
-    sites = _with_builtin(out["site"]["urls"])
-    # 换了官网地址、又没单独写查分和日志地址：跟着新地址走
-    out["rank"]["api"] = f"{sites[0]}/api/rank"
-    out["logs"]["url"] = f"{sites[0]}/api/logs"
     for k, v in raw.items():
         if k == "site":
             continue
@@ -217,8 +245,6 @@ def _merge(raw: dict) -> dict:
             # 云控设置规则（见 cloudsettings.py）：原样留着，用的时候逐项检查
             out[k] = [r for r in (v if isinstance(v, list) else [v]) if isinstance(r, dict)][:20]
         elif k == "logs" and isinstance(v, dict):
-            if isinstance(v.get("url"), str) and _owns(v["url"], sites):
-                out[k]["url"] = v["url"]
             if isinstance(v.get("request"), list):
                 out[k]["request"] = [str(x)[:64] for x in v["request"] if isinstance(x, str)][:200]
             if isinstance(v.get("verbose"), list):
@@ -253,6 +279,8 @@ def get() -> dict:
     """当前配置（不联网）。"""
     global _cache
     with _lock:
+        if _cache is None and not official.available():
+            _cache = _merge({})  # 以前装过官方版、留下的云控也不用
         if _cache is None:
             try:
                 _cache = _merge(json.loads(_path().read_text(encoding="utf-8")))
@@ -262,17 +290,21 @@ def get() -> dict:
 
 
 def sites() -> list[str]:
-    """官网地址：云控 site.urls 在前，内置 aramhex.com、备用官网永远在最后。"""
+    """官网地址：云控 site.urls 在前，官方模块内置的永远在最后；没有官方模块时是空的。"""
     return _with_builtin((get().get("site") or {}).get("urls", []))
 
 
 def site() -> str:
-    """现在用的官网地址（软件里的官网、帮助、下载链接）。"""
-    return sites()[0]
+    """现在用的官网地址（软件里的官网、下载链接）；没有官方模块时用 GitHub 主页。"""
+    return next(iter(sites()), HOMEPAGE)
+
+
+def help_page() -> str:
+    return f"{site()}/#faq" if official.available() else HOMEPAGE
 
 
 def own(url: str) -> bool:
-    """是不是发往我们自己官网的请求（带匿名编号、允许上传日志）。"""
+    """是不是发往我们自己官网的请求（检查、下载更新时带匿名编号）。"""
     return _owns(url, sites())
 
 
@@ -303,7 +335,7 @@ def event() -> dict | None:
             return None
         if ev.get("end") and now >= datetime.fromisoformat(ev["end"]):
             return None
-    except ValueError:
+    except (TypeError, ValueError):
         return None
     return {"mode": mode, "label": str(ev.get("label") or mode)}
 
@@ -354,12 +386,12 @@ def feature(name: str, default: bool = True) -> bool:
 
 
 def refresh(timeout: float = 6, url: str | None = None) -> dict:
-    """联网取最新配置并存下来；失败就返回上次的。没指定地址时按 sites() 的顺序一个个试（云控换的新官网在前）。"""
-    global _cache
+    """联网取最新配置并存下来；失败就返回上次的。没指定地址时由官方模块按 sites() 的顺序取。"""
+    global _cache, _saved
     raw = None
-    for u in [url] if url else [f"{s}/config.json" for s in sites()]:
+    for u in [url] if url else official.sources("config"):
         try:
-            r = requests.get(u, headers=headers(u), timeout=timeout)
+            r = fetch(u, timeout)
             r.raise_for_status()
             raw = r.json()
             if not isinstance(raw, dict):
@@ -371,10 +403,15 @@ def refresh(timeout: float = 6, url: str | None = None) -> dict:
     if raw is None:
         return get()
     cfg = _merge(raw)
+    text = json.dumps(raw, ensure_ascii=False)
     with _lock:
         _cache = cfg
-    try:
-        _path().write_text(json.dumps(raw, ensure_ascii=False), encoding="utf-8")
-    except OSError:
-        pass
+        _saved += 1
+        mine = _saved
+    with _write_lock:
+        if mine == _saved:  # 等锁期间有更新的 refresh：由它来写
+            try:
+                atomic_write_text(_path(), text)
+            except OSError:
+                pass
     return cfg

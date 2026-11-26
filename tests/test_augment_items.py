@@ -237,3 +237,20 @@ def test_item_hint_note_only_when_nothing_qualifies(tmp_path, monkeypatch):
     _, hint = [r for r in published if len(r) == 2][-1]
     assert hint.height <= 34 and hint.top > 600  # 只在底部一行（遮罩四周多留 2 像素），不盖说明
     layer.close()
+
+
+def test_destiny_style_order_labels_and_baselines(store):
+    from lolhex.ui.overlay import BadgeLayer
+    cfg = {"17": {"3081": {"source": "stats", "recommendation_style": "destiny_style_v1", "total": 14000,
+        "baseline": {"games": 14000, "wins": 7000}, "show_delta": True, "items": [
+        {"style": "bad", "item": "3135", "games": 2100, "wins": 1100},
+        {"style": "AP", "item": "4645", "games": 2100, "wins": 1100, "style_holders": 4200},
+        {"style": "AP", "item": "3135", "games": 2400, "wins": 1400},
+        {"style": "AD", "item": "3153", "games": 1100, "wins": 600, "style_holders": 5500}]}}}
+    _add_file(store.dataset.folder, "hero_augment_items.json", cfg)
+    store.dataset = Dataset(store.dataset.folder, store.dataset.origin)
+    rows = store.augment_items("17", "3081")["items"]
+    assert [(r["style"], r["item"], r["pick"], r["delta"]) for r in rows] == [
+        ("AP", "4645", .5, None), ("AD", "3153", .2, None)]
+    assert BadgeLayer._item_hint_label(rows[0]) == f"AP · {rows[0]['name']}"
+    assert BadgeLayer._item_hint_label({"style": "不拆", "name": "心之钢"}) == "心之钢"

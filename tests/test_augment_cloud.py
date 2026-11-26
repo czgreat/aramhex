@@ -24,7 +24,7 @@ def configure(raw):
 
 
 def test_default_aliases_and_rarity_remain_bundled():
-    assert augment_aliases()["1005"] == ["喂鸣喂鸣"]
+    assert augment_aliases()["1005"] == ["喂鸣喂鸣", "鳴咿鳴咿", "呜鸣警报", "鸣鸣警报"]
     assert tencent.rarity_fixes() == tencent.RARITY_FIX
 
 
@@ -39,7 +39,7 @@ def test_alias_override_and_removal_preserve_primary_names():
     configure({"aliases": {"1005": []}})
     assert augment_aliases()["1005"] == []
     configure({})
-    assert augment_aliases()["1005"] == ["喂鸣喂鸣"]
+    assert augment_aliases()["1005"] == ["喂鸣喂鸣", "鳴咿鳴咿", "呜鸣警报", "鸣鸣警报"]
 
 
 @pytest.mark.parametrize("raw", [None, [], "bad", {"aliases": []}, {"rarity_fix": False},

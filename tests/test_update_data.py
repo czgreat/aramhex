@@ -87,22 +87,32 @@ def test_bad_hash_leaves_reviewed_bundled_untouched(tmp_path, monkeypatch):
     assert not bundled.with_name("bundled.new").exists()
 
 
-def test_default_build_fetches_only_owned_servers_with_failover(tmp_path, monkeypatch):
+def test_mirror_failure_goes_on_to_data_repo(tmp_path, monkeypatch):
+    # 打包电脑上没有官方模块的运行环境，只用云控镜像和公开数据仓库
     mod, bundled = _setup(tmp_path, monkeypatch)
     src = _src(tmp_path)
+    from lolhex.data.public import RAW_BASE
     monkeypatch.setattr(mod.cloud, "mirrors", lambda kind: ["https://owned.example/mirror"])
-    monkeypatch.setattr(mod.cloud, "sites", lambda: ["https://owned.example"])
     seen = []
 
     def fetch(url):
         seen.append(url)
         if url.startswith("https://owned.example/mirror/"):
             raise OSError("mirror unavailable")
-        prefix = "https://owned.example/u/data/"
-        assert url.startswith(prefix), url
-        return (src / url.removeprefix(prefix)).read_bytes()
+        assert url.startswith(RAW_BASE + "/"), url
+        return (src / url.removeprefix(RAW_BASE + "/")).read_bytes()
 
     monkeypatch.setattr(mod, "_get", fetch)
     assert mod.main([]) == 0
     assert len(seen) > 3
     assert mod.Dataset(bundled, "bundled").seq == 12
+
+
+@pytest.mark.source
+def test_source_build_uses_github_data_repo(tmp_path, monkeypatch):
+    mod, bundled = _setup(tmp_path, monkeypatch)
+    src = _src(tmp_path)
+    from lolhex.data.public import RAW_BASE
+    seen = []
+    monkeypatch.setattr(mod, "_get", lambda url: seen.append(url) or (src / url.removeprefix(RAW_BASE + "/")).read_bytes())
+    assert mod.main([]) == 0 and all(u.startswith(RAW_BASE + "/") for u in seen)

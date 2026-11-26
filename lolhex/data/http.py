@@ -58,9 +58,10 @@ def get_json(url: str, **kw):
     return json.loads(r.content.decode("utf-8-sig"))
 
 
-def fetch(url: str, *, timeout: float = 30, headers: dict | None = None, on_bytes=None) -> bytes:
+def fetch(url: str, *, timeout: float = 30, headers: dict | None = None, on_bytes=None, request=None) -> bytes:
     """边下边报进度的下载（更新文件、统计数据用）：每收到一块就调 on_bytes(这一块的字节数)。"""
-    with requests.get(url, headers=headers, timeout=timeout, stream=True) as r:
+    get_response = requests.get if request is None else request
+    with get_response(url, headers=headers, timeout=timeout, stream=True) as r:
         r.raise_for_status()
         chunks = []
         for chunk in r.iter_content(64 * 1024):

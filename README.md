@@ -44,6 +44,8 @@
 
 ## 从源码运行
 
+从源码运行、自己打的包不连官网：识别、浮窗、推荐照常，统计数据从 GitHub 的 [aramhex-data](https://github.com/czgreat/aramhex-data) 更新；没有查分、自动更新和日志上传。
+
 Windows 10/11 64 位，Python 3.13：
 
 ```powershell
@@ -59,6 +61,6 @@ python -m venv .venv
 
 ## 协议
 
-程序代码 [MIT](LICENSE)；统计数据 [CC BY-NC 4.0](https://github.com/czgreat/aramhex-data/blob/main/LICENSE)；第三方组件见 [NOTICE.md](NOTICE.md)。
+源码 [MIT](LICENSE)；官方安装包另有使用条款，比公开源码多带一小段不公开的代码，用来向官网证明这是官方软件；官网的查分、数据下载等服务只给官方软件和官网网页用。改版、自己发布请换名字和图标。统计数据 [CC BY-NC 4.0](https://github.com/czgreat/aramhex-data/blob/main/LICENSE)；第三方组件见 [NOTICE.md](NOTICE.md)。
 
 非官方工具，和腾讯、Riot Games 没有关系。

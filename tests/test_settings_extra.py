@@ -1,6 +1,7 @@
 """识别频率档位；浮窗不再对截图隐身，识别截图涂掉自己画的地方。"""
 import json
 
+from lolhex import config
 from lolhex.config import SPEEDS, Settings
 from lolhex.vision import window
 
@@ -74,17 +75,17 @@ def test_load_config_with_bom(tmp_path):
 def test_unwritable_or_broken_config_never_crashes(tmp_path, monkeypatch):
     # 设置文件写不进去：照常用（老用户第一次开 1.1.0 要写编号，写不进去也不能每次启动都崩）
     p = tmp_path / "config.json"
-    p.write_text('{"badge_position": "bottom"}', encoding="utf-8")
-    real = type(p).write_text
+    original = '{"badge_position": "bottom"}'
+    p.write_text(original, encoding="utf-8")
 
-    def deny(self, *a, **k):
-        if self.name.startswith("config.json"):  # 设置文件和存设置时的临时文件都写不进（目录只读）
-            raise PermissionError("只读")
-        return real(self, *a, **k)
-    monkeypatch.setattr(type(p), "write_text", deny)
-    s = Settings.load(p)
-    assert s.badge_position == "bottom" and len(s.install_id) == 16 and s.save(p) is False
-    monkeypatch.setattr(type(p), "write_text", real)
+    def deny_temporary_file(*args, **kwargs):
+        raise PermissionError("只读")
+
+    with monkeypatch.context() as patch:
+        patch.setattr(config.tempfile, "NamedTemporaryFile", deny_temporary_file)
+        s = Settings.load(p)
+        assert s.badge_position == "bottom" and len(s.install_id) == 16 and s.save(p) is False
+        assert p.read_text(encoding="utf-8") == original
     # 设置文件实在读不懂：原文件备份成 .broken，这次不发匿名编号（能从原文看出用户的选择就照它的）
     for bad, usage in (("{坏了", False), ('{"send_usage": true, 坏了', True), ("[1, 2]", False)):
         p.write_text(bad, encoding="utf-8")

@@ -110,6 +110,16 @@ def chinese_extra_hero_names() -> dict[str, list[str]]:
     return out
 
 
+def trad_chars() -> dict[str, str]:
+    """繁中海克斯名里的字 → 简体。OCR 常把繁体字读成对应的简体字（「閃光俠」读成「閃光侠」）。"""
+    return {k: v for k, v in (_table().get("trad") or {}).items() if len(k) == 1 and len(v) == 1}
+
+
+def trad_skip() -> tuple[str, ...]:
+    """繁简统一时不认的写法：简中里是装备、英雄、召唤师技能的名字（装备「救赎」和台服海克斯「救贖」）。"""
+    return tuple(_table().get("trad_skip") or ())
+
+
 def ui_text(key: str, lang: str) -> str:
     """选英雄界面上的字：bench=预选栏左边的「可用」，pick=开局选卡的「选择你的英雄」。"""
     lang = normalize_lang(lang)

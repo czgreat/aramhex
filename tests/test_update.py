@@ -80,7 +80,8 @@ def test_check_and_download(gh, tmp_path):
     assert path.read_bytes() == BODY and seen[-1] == (len(BODY), len(BODY))
     with pytest.raises(ValueError):  # 文件和公布的哈希对不上：不装
         update.download({**info, "sha256": "0" * 64}, folder=tmp_path / "dl")
-    assert not (tmp_path / "dl" / name).exists()
+    assert path.read_bytes() == BODY
+    assert list(path.parent.iterdir()) == [path]
 
 
 def test_sha_from_sums_file_when_no_digest(gh):
@@ -203,10 +204,13 @@ def test_release_notes_only_key_part_fits_update_bar():
     m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
     body = m.notes("1.1.1", (root / "CHANGELOG.md").read_text(encoding="utf-8"))
     assert "完整更新内容" not in body and body.strip().endswith("更多详情见 GitHub") and len(body) <= 200
-    assert m.notes("9.9.9", "## 9.9.9\n\n- a\n") == "a\n"   # 没有「完整更新内容」的老格式照旧
+    assert m.notes("1.2.9", "## 1.2.9\n\n- a\n") == "a\n"   # 没有「完整更新内容」的老格式照旧
     # 横条不认换行：几条去掉「- 」、用分号接成一句（1.1.9 起）
-    assert m.notes("9.9.9", "## 9.9.9\n\n- a\n- b\n\n完整更新内容：\n\n- c\n") == "a；b\n"
+    assert m.notes("1.2.9", "## 1.2.9\n\n- a\n- b\n\n完整更新内容：\n\n- c\n") == "a；b\n"
     assert m.notes("1.1.9", (root / "CHANGELOG.md").read_text(encoding="utf-8")) == "进一步修复大小核问题\n"
+    # 1.3.0 起每一版末尾都要说明官方包多带一段不公开的代码，单独一段
+    for v in ("1.3.0", "1.3.0-test.1", "1.10.2", "2.0.0"):
+        assert m.notes(v, f"## {v}\n\n- a\n") == f"a\n\n{m.OFFICIAL_NOTE}\n"
 
 
 def test_test_builds_sort_before_their_release():

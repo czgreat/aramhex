@@ -56,7 +56,7 @@ def test_malaysia_names_do_not_collide_or_change_existing_matches(tmp_path, no_n
     finally:
         mp.undo()
     ids = set(store.mayhem_augments())
-    my = {aid: n for aid, n in i18n._augments(i18n.MY).items() if aid in ids}
+    my = {aid: n for aid, n in i18n._augments(i18n.MY).items() if aid in ids and normalize(n)}  # 「？？？」全是标点，认不了
     assert len(my) > 200
     owner: dict[str, set] = {}
     for aid, key in zip(with_my._ids, with_my._keys):
@@ -147,6 +147,14 @@ def test_same_name_except_bang():
     assert m.match("罪恶快感")[0] == "1322"
     assert m.match("邦!")[0] == "2111" and m.match("邦")[0] == "2111"
     assert m.match("索")[0] is None                  # 一个字只认完全一样的
+
+
+def test_fuzzy_same_name_except_bang():
+    matcher = NameMatcher({"1322": "罪恶快感", "3004": "罪恶快感！"}, min_margin=6)
+    assert matcher.match("罪恶快惑！")[0] == "3004"
+    assert matcher.match("罪悪快感!")[0] == "3004"
+    assert matcher.match("罪恶快感！x")[0] == "3004"
+    assert matcher.match("罪恶快惑")[0] == "1322"
 
 
 def test_old_traditional_setting_loads_as_chinese(tmp_path):

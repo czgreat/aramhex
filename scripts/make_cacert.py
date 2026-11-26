@@ -22,7 +22,7 @@ def main() -> None:
         (drop if DROP in b.split("-----BEGIN")[0] else keep).append(b)
     head = (f"# AramHex 用的根证书：certifi {certifi.__version__} 的 cacert.pem 去掉 eMudhra（emSign）的根证书。\n"
             "# 2026-10 eMudhra 中间证书被攻破（CVE-2026-111943，Go 1.27.3/1.26.10、Mozilla 都已拉黑），\n"
-            "# 助手只连 aramhex.com、GitHub、jsDelivr、腾讯，都不用 eMudhra 的证书。由 scripts/make_cacert.py 生成\n")
+            "# 助手只连官网、GitHub、jsDelivr、腾讯，都不用 eMudhra 的证书。由 scripts/make_cacert.py 生成\n")
     OUT.write_text(head + "".join(keep).strip() + "\n", encoding="utf-8", newline="\n")
     print("去掉：", [re.search(r'Label: "([^"]+)"', b).group(1) for b in drop])
 

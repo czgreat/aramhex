@@ -28,18 +28,27 @@ class Resp:
         return False
 
 
-def test_pan_links_from_cloud_config(monkeypatch, tmp_path):
+def test_pan_links_from_cloud_config(monkeypatch, tmp_path, fake_official):
     from lolhex import cloud
     monkeypatch.setenv("ARAMHEX_HOME", str(tmp_path))
     monkeypatch.setattr(cloud, "_cache", None)
-    monkeypatch.setattr(cloud.requests, "get", lambda url, **k: Resp({"downloads": {"setup": "https://pan/s", "portable": ""}}))
+    fake_official.files[("config", "")] = b'{"downloads": {"setup": "https://pan/s", "portable": ""}}'
     assert update.pan_links() == {"setup": "https://pan/s"}
-
-    def boom(url, **k):
-        raise cloud.requests.ConnectionError("x")
-    monkeypatch.setattr(cloud.requests, "get", boom)
+    fake_official.down = True
     monkeypatch.setattr(cloud, "_cache", None)
     assert update.pan_links() == {"setup": "https://pan/s"}  # 连不上：用上次存下的
+
+
+@pytest.mark.parametrize("metadata", [[], {"version": "unknown"}, {"version": "9.9.9", "setup": ["missing"]}])
+def test_invalid_site_metadata_falls_back_to_github(monkeypatch, metadata):
+    monkeypatch.setattr(update.official, "updatable", lambda: True)
+    monkeypatch.setattr(update.cloud, "get_update", lambda *a, **k: Resp(data=metadata))
+    monkeypatch.setattr(update.requests, "get", lambda *a, **k: Resp(data={
+        "tag_name": "v9.9.10",
+        "assets": [{"name": "AramHex-Setup-9.9.10.exe", "digest": "sha256:" + "0" * 64,
+                    "browser_download_url": "https://downloads.example/installer.exe"}],
+    }))
+    assert update.check("1.3.0", site="https://updates.example/latest.json", strict=True)["version"] == "9.9.10"
 
 
 def test_download_gives_up_when_slow(monkeypatch, tmp_path):
@@ -55,7 +64,7 @@ def test_download_gives_up_when_slow(monkeypatch, tmp_path):
     info = {"file": "AramHex-Setup-9.exe", "url": "u", "sha256": "0" * 64, "size": 10 ** 8}
     with pytest.raises(update.SlowDownload):
         update.download(info, folder=tmp_path)
-    assert not (tmp_path / info["file"]).exists()
+    assert list(tmp_path.iterdir()) == []
 
 
 def test_download_ok_when_fast(monkeypatch, tmp_path):
@@ -63,6 +72,23 @@ def test_download_ok_when_fast(monkeypatch, tmp_path):
     monkeypatch.setattr(update.requests, "get", lambda url, **k: Resp(chunks=[body], length=len(body)))
     info = {"file": "AramHex-Setup-9.exe", "url": "u", "sha256": hashlib.sha256(body).hexdigest(), "size": len(body)}
     assert update.download(info, folder=tmp_path).read_bytes() == body
+
+
+def test_interrupted_download_preserves_previous_file(monkeypatch, tmp_path):
+    def chunks():
+        yield b"partial"
+        raise update.requests.ConnectionError("连接断开")
+
+    monkeypatch.setattr(update.cloud, "get_update", lambda *a, **k: Resp(chunks=chunks()))
+    dest = tmp_path / "AramHex-Setup-9.exe"
+    dest.write_bytes(b"previous")
+    info = {"file": dest.name, "url": "u", "sha256": "0" * 64}
+
+    with pytest.raises(update.requests.ConnectionError):
+        update.download(info, folder=tmp_path)
+
+    assert dest.read_bytes() == b"previous"
+    assert list(tmp_path.iterdir()) == [dest]
 
 
 def test_worker_offers_netdisk_on_failures(monkeypatch):

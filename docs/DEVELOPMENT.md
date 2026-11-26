@@ -21,7 +21,7 @@ lolhex/
   vision/              截屏、选人界面识别、三选一识别、OCR
   ui/                  主窗口、托盘、游戏内浮窗
 scripts/update_data.py 把数据仓库最新的一份放进 lolhex/data/bundled/
-scripts/update_i18n.py 从拳头公开数据生成外服名字表 lolhex/data/i18n.json（海斗加了新海克斯后重跑）
+scripts/update_i18n.py 从拳头公开数据生成外服名字表 lolhex/data/i18n.json（**每次发版必跑**，见下面「每次发版必做：外服名字表」）
 scripts/update_client_icons.py 生成客户端英雄头像 lolhex/data/client_icons.json（出新英雄、拳头换头像后重跑）
 packaging/             PyInstaller、Inno Setup、打包脚本
 ```
@@ -64,12 +64,35 @@ python -m venv .venv
 pwsh -NoProfile -File packaging\build.ps1
 ```
 
+正式包（带官方模块和签名清单）不在这里打，在别处打好程序目录后只用下面这一步出安装版和便携版，程序目录原样装进去：
+
+```powershell
+pwsh -NoProfile -File packaging\package.ps1 -Dist <正式程序目录> -Version <版本> -PythonExe <python> [-Out <输出目录>]
+```
+
+正式版本号会先用 `scripts/check_release_data.py --data <程序目录>\_internal\lolhex\data` 查程序目录里实际带的内置数据，EXE 版本信息必须和版本号一致（测试号 `-test.N` 只对基础版本）。先在临时目录里出完，成功后只替换输出目录里本版的安装包、便携包和 `SHA256SUMS.txt` 里对应的行，别的文件不动；输出目录不能和程序目录重叠。
+
 输出在 `build/release/`：
 - `AramHex-Setup-<版本>.exe`
 - `AramHex-Portable-<版本>.zip`
 - `SHA256SUMS.txt`
 
 打包时会先校验内置数据，再用真实的 Windows 窗口插件跑一遍 Qt 自检，自检不过不生成安装包。
+
+## ⚠️ 每次发版必做：外服名字表
+
+> [!IMPORTANT]
+> **外服（台服、马来西亚服、美服、日服）的海克斯名字只跟安装包走，统计数据和官方资料更新都带不上。发版不更新，外服就认不出新海克斯。**
+>
+> 打 tag 之前：
+>
+> 1. 重跑 `python scripts/update_i18n.py`（先 `pip install xxhash opencc-python-reimplemented`），看打印：各模式个数、和腾讯不一致的、马来西亚服同名的。
+> 2. 已有海克斯的名字被改、被删时脚本会列出来并停下，不写文件；查清原因再加 `--allow-rename`，并写进 `check_release_data.py` 的 `FOREIGN_RENAMED`。再看一眼 `git diff lolhex/data/i18n.json`。
+> 3. 跑 `python scripts/check_release_data.py` 和全套测试（要在取了标签的 git 仓库里跑，它会和上一个正式版逐条比，手改 JSON 也拦得住；`build.ps1` 打正式包时也会跑）。名字表比内置资料旧、哪个模式的海克斯缺哪种语言、繁简统一会把哪个装备或英雄名认成海克斯，都会列出来，发布流程也会停。
+> 4. 出现新的海斗模式（拳头多了一个 `kiwi_*.bin.json`）时，脚本会自动带上；把它加进 `check_release_data.py` 的 `FOREIGN_POOLS`。
+> 5. 用这批测试包在台服写法的画面上看一眼新海克斯认不认得出（没有台服客户端就用合成画面，写明没实机测）。
+
+先例：1.2.0 的内置资料换成了 16.23，名字表还停在 16.22。
 
 ## 云控项
 

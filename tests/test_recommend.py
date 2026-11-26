@@ -61,6 +61,12 @@ def test_all_below_baseline_suggests_reroll(store):
     assert ev["advice"].startswith("三张都不理想")
 
 
+def test_without_hero_uses_zero_global_win_rate(store):
+    store.ranks["augments"] = {"1029": {"win": 0.0, "games": 100}}
+    row = recommend.evaluate(store, None, ["1029"])["slots"][0]
+    assert (row["basis"], row["win"], row["score"]) == ("global_win", 0.0, 0.0)
+
+
 def test_thin_sample_is_never_first_choice(store):
     heroes, augs = store.dataset.table(None)
     base = heroes["17"]["win_rate"]
@@ -81,6 +87,36 @@ def test_band_changes_hero_baseline_and_augment_win(store):
     assert any("前 5%" in x for x in ev["slots"][0]["reasons"])
     store.set_band(None)
     assert recommend.evaluate(store, "17", ["1029", None, None])["slots"][0]["games"] == 40000
+
+
+def test_low_score_with_few_games_is_marked_for_reroll(store):
+    _, augs = store.dataset.table(None)
+    augs["17"]["1029"] = {"games": 2000, "wins": 1200, "win_rate": 0.60}
+    augs["17"]["2128"] = {"games": 300, "wins": 120, "win_rate": 0.40}
+    result = recommend.evaluate(store, "17", ["1029", "2128"])
+    assert result["best_index"] == 0
+    assert result["slots"][1]["thin"] == "few"
+    assert result["slots"][1]["verdict"] == "reroll"
+
+
+def test_band_without_games_displays_overall_win_rate(store):
+    store.set_band("high")
+    row = recommend.evaluate(store, "17", ["2128"])["slots"][0]
+    assert row["games"] is None
+    assert recommend.win_text(row) == "全体胜率52.0%"
+
+
+def test_band_ranking_clamps_computed_rates(store, monkeypatch):
+    store.set_band("high")
+    monkeypatch.setattr(recommend, "band_blend", lambda *args: {
+        "1029": {"delta": 60, "games": 500, "win": 1.0,
+                 "games_all": 40000, "win_all": 0.6, "weight": 0.5},
+        "2128": {"delta": -60, "games": 500, "win": 0.0,
+                 "games_all": 30000, "win_all": 0.52, "weight": 0.5},
+    })
+    result = recommend.evaluate(store, "17", ["1029", "2128"])
+    assert [row["rank"] for row in result["slots"]] == [1, 2]
+    assert all(row["rank_basis"] == "hero_rarity_win_rate" for row in result["slots"])
 
 
 def test_sample_levels():

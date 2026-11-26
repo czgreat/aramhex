@@ -18,6 +18,7 @@ import time
 from pathlib import Path
 
 from . import http, tencent
+from ..config import atomic_write_text
 
 log = logging.getLogger(__name__)
 
@@ -88,10 +89,7 @@ def _usable(static) -> bool:
 
 
 def _write(path: Path, data) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(".tmp")
-    tmp.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
-    tmp.replace(path)
+    atomic_write_text(path, json.dumps(data, ensure_ascii=False))
 
 
 class DataStore:

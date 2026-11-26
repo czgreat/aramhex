@@ -17,6 +17,36 @@ CLIENT_CLASS = "RCLIENT"
 IS_WINDOWS = sys.platform == "win32"
 
 
+def _configure_user32(user32) -> None:
+    win_dll = getattr(ctypes, "WinDLL", None)
+    if win_dll is None or not isinstance(user32, win_dll):
+        return
+    # HWND 是指针宽度，不能用 ctypes 默认的 c_int 传递或接收。
+    hwnd, flag = wintypes.HWND, wintypes.BOOL
+    signatures = (
+        ("FindWindowW", (wintypes.LPCWSTR, wintypes.LPCWSTR), hwnd),
+        ("GetForegroundWindow", (), hwnd),
+        ("SetForegroundWindow", (hwnd,), flag),
+        ("IsWindow", (hwnd,), flag),
+        ("IsIconic", (hwnd,), flag),
+        ("IsWindowVisible", (hwnd,), flag),
+        ("GetClientRect", (hwnd, ctypes.POINTER(wintypes.RECT)), flag),
+        ("GetWindowRect", (hwnd, ctypes.POINTER(wintypes.RECT)), flag),
+        ("ClientToScreen", (hwnd, ctypes.POINTER(wintypes.POINT)), flag),
+        ("SetWindowPos", (hwnd, hwnd, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, wintypes.UINT), flag),
+        ("GetClassNameW", (hwnd, wintypes.LPWSTR, ctypes.c_int), ctypes.c_int),
+        ("GetWindowThreadProcessId", (hwnd, ctypes.POINTER(wintypes.DWORD)), wintypes.DWORD),
+    )
+    for name, argtypes, restype in signatures:
+        function = getattr(user32, name)
+        function.argtypes = argtypes
+        function.restype = restype
+
+
+if IS_WINDOWS:
+    _configure_user32(ctypes.windll.user32)
+
+
 @dataclass(frozen=True)
 class Rect:
     left: int
@@ -69,7 +99,8 @@ def client_rect(hwnd: int) -> Rect | None:
     if not u.GetClientRect(hwnd, ctypes.byref(rc)):
         return None
     pt = wintypes.POINT(0, 0)
-    u.ClientToScreen(hwnd, ctypes.byref(pt))
+    if not u.ClientToScreen(hwnd, ctypes.byref(pt)):
+        return None
     w, h = rc.right - rc.left, rc.bottom - rc.top
     if w < 200 or h < 150:
         return None
@@ -214,7 +245,7 @@ def watch_foreground() -> None:
 def is_foreground(hwnd: int) -> bool:
     if not IS_WINDOWS or not hwnd:
         return False
-    fg = ctypes.windll.user32.GetForegroundWindow()
+    fg = ctypes.windll.user32.GetForegroundWindow() or 0
     if fg not in _companions:
         _on_foreground(fg)
         return fg == hwnd

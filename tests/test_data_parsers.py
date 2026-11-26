@@ -33,6 +33,16 @@ def test_hero_hex_builds_and_skills():
     assert d["partners"][0]["hero"] == "157"
 
 
+def test_hero_hex_skips_empty_shoes_and_starting_items():
+    raw = {"code": 0, "data": {"_fieldValues": {"test": {
+        "itemshoes": "$0.1$0.5#,, $0.2$0.5# 3020 $0.3$0.6",
+        "itemout": ",,$0.1$0.5#1042, ,3113$0.2$0.6",
+    }}}}
+    builds = tencent.parse_hero_hex(raw)["builds"]
+    assert builds["shoes"] == [{"item": "3020", "pick": 0.3, "win": 0.6}]
+    assert builds["start"] == [{"items": ["1042", "3113"], "pick": 0.2, "win": 0.6}]
+
+
 def test_hero_and_augment_rank():
     _, heroes = tencent.parse_hero_rank(fixture("tencent_hero_rank.json"))
     assert heroes["157"]["rank"] == 1 and 0.5 < heroes["157"]["win"] < 0.7

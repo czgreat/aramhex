@@ -4,6 +4,7 @@ import functools
 import json
 import threading
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 
 import pytest
 
@@ -272,6 +273,64 @@ def test_sync_failure_is_quiet(tmp_path):
     assert s.sync_data(force=True) is False and s.sync_error and s.dataset.origin == "bundled"
 
 
+def test_offline_restart_uses_backup_and_ignores_stale_pending(tmp_path):
+    bundled = tmp_path / "bundled"
+    make_dataset(bundled, seq=1)
+    root = tmp_path / "data"
+    backup = root / "public.previous-100"
+    make_dataset(backup, seq=3)
+    make_dataset(root / "public-pending", seq=2)
+    broken = root / "public.previous-200"
+    make_dataset(broken, seq=4)
+    (broken / "heroes.json").write_bytes(b"")
+
+    store = PublicStore(root, bundled=bundled, base_url=[])
+    assert store.dataset.seq == 3
+    assert not store.sync_data(force=True)
+    assert store.dataset.seq == 3 and backup.is_dir()
+
+    make_dataset(root / "public-pending", snapshot_at="2026-10-20T00:00:00+08:00", seq=4)
+    assert store.sync_data(force=True)
+    assert store.dataset.seq == 4 and store.dataset.folder == store.downloaded
+    assert not backup.exists() and not broken.exists()
+
+
+def test_restart_recovers_event_backup_and_waiting_download(tmp_path):
+    bundled = tmp_path / "bundled"
+    make_dataset(bundled, seq=1)
+    root = tmp_path / "data"
+    event = {"mode": "first-prismatic", "label": "首次必棱彩"}
+    event_backup = root / "public-event.previous-100"
+    manifest = make_dataset(event_backup, seq=5)
+    (event_backup / "latest.json").write_text(json.dumps({**manifest, "mode": event["mode"]}), encoding="utf-8")
+    make_dataset(root / "public-pending.old", snapshot_at="2026-10-20T00:00:00+08:00", seq=2)
+
+    store = PublicStore(root, bundled=bundled, base_url=[], event_source=lambda: event)
+    assert store.sync_data(force=True)
+    assert store.downloaded.is_dir()
+    assert store.dataset.mode == event["mode"] and store.dataset.seq == 5
+    assert not store.event_fallback
+
+
+def test_download_rename_failure_retains_waiting_data(tmp_path, server, monkeypatch):
+    root, base = server
+    pending = tmp_path / "public-pending"
+    make_dataset(pending, seq=3)
+    remote = _publish(root, "2026-10-20T00:00:00+08:00", patch="16.21")
+    rename = Path.rename
+
+    def interrupted(path, dest):
+        if path.name == "public-pending.new":
+            raise OSError("cannot replace the directory")
+        return rename(path, dest)
+
+    monkeypatch.setattr(Path, "rename", interrupted)
+    with pytest.raises(OSError, match="cannot replace"):
+        public.download(base, remote, pending)
+    assert Dataset(pending, "downloaded").seq == 3
+    assert not pending.with_suffix(".new").exists()
+
+
 def test_sync_disabled_only_offers(tmp_path, server):
     # 关了自动更新：只看清单，有新的就记到 data_offer 等用户点头，不下载；点头（manual）才下载
     root, base = server
@@ -388,6 +447,30 @@ def test_github_down_probes_data_tags(tmp_path, server):
                     tag_hosts=(host,), tag_fmt="http://{host}/data-v{seq}")
     assert s.sync_data(force=True) is True
     assert s.dataset.patch == "16.22" and s.dataset.seq == 3 and s.data_source.endswith("/data-v3")
+
+
+def test_github_down_accepts_normal_seq22_after_missing_event_seq21(tmp_path, server):
+    root, base = server
+    host = base.split("//")[1]
+    make_dataset(tmp_path / "b", snapshot_at="2026-11-20T08:00:00+08:00", seq=20)
+    _publish_tag(root, 22, "2026-11-25T09:00:00+08:00", patch="16.23")
+    s = PublicStore(tmp_path / "data", bundled=tmp_path / "b", base_url=["http://127.0.0.1:9", base],
+                    tag_hosts=(host,), tag_fmt="http://{host}/data-v{seq}")
+    assert s.sync_data(force=True) is True
+    assert s.dataset.seq == 22 and s.data_source.endswith("/data-v22")
+
+
+def test_does_not_accept_mismatched_tag_or_skip_two_gaps(tmp_path, server):
+    root, base = server
+    host = base.split("//")[1]
+    make_dataset(tmp_path / "b", snapshot_at="2026-11-20T08:00:00+08:00", seq=20)
+    _publish_tag(root, 23, "2026-11-25T09:00:00+08:00", patch="16.23")
+    s = PublicStore(tmp_path / "data", bundled=tmp_path / "b", base_url=base,
+                    tag_hosts=(host,), tag_fmt="http://{host}/data-v{seq}")
+    assert s._probe_tag() is None
+    _publish_tag(root, 22, "2026-11-25T09:00:00+08:00", patch="16.23")
+    (root / "data-v22" / "latest.json").write_text('{"seq": 21}', encoding="utf-8")
+    assert s._probe_tag() is None
 
 
 def test_no_newer_tag_falls_back_to_branch(tmp_path, server):

@@ -26,8 +26,9 @@ SHORT_ASCII_MIN = 90.0
 
 class NameMatcher:
     def __init__(self, names: dict[str, str | list[str]], threshold: float = 72.0,
-                 min_margin: float = 0.0):
-        """names: {id: 显示名} 或 {id: [几种语言的名字]}。"""
+                 min_margin: float = 0.0, *, trad: dict[str, str] | None = None, trad_skip: tuple[str, ...] = ()):
+        """names: {id: 显示名} 或 {id: [几种语言的名字]}；trad: 繁体字 → 简体字，只用在整词兜底上；
+        trad_skip: 整词兜底不认的写法（简中里是装备、英雄、召唤师技能的名字）。"""
         self.threshold = threshold
         self.min_margin = min_margin
         self._ids: list[str] = []
@@ -40,12 +41,28 @@ class NameMatcher:
                     self._ids.append(i)
                     self._keys.append(k)
                     self._bangs.append(_has_bang(n))
+        # 繁简统一后的名字 → ID；统一后几个海克斯同名的、正好是别的东西的简中名字的不收
+        self._trad = str.maketrans(trad or {})
+        owners: dict[str, set[str]] = {}
+        for i, k in zip(self._ids, self._keys):
+            owners.setdefault(k.translate(self._trad), set()).add(i)
+        skip = {normalize(n).translate(self._trad) for n in trad_skip}
+        self._folded = ({k: next(iter(ids)) for k, ids in owners.items() if len(ids) == 1 and len(k) >= 2 and k not in skip}
+                        if trad else {})
 
     def __len__(self) -> int:
         return len(self._keys)
 
     def match(self, text: str) -> tuple[str | None, float]:
         q = normalize(text)
+        aid, score = self._match_name(q, text)
+        # 原来认不出时，繁简统一后整个名字一字不差才认。不放进模糊评分：那样商店里的装备名会被认成海克斯；
+        # 也不改已有的匹配结果和 exact()
+        if aid is None and self._folded and (hit := self._folded.get(q.translate(self._trad))):
+            return hit, 100.0
+        return aid, score
+
+    def _match_name(self, q: str, text: str) -> tuple[str | None, float]:
         if not q or not self._keys:
             return None, 0.0
         if len(q) < 2:  # 只剩一个字（「邦！」、英雄「慎」）：只认完全一样的，模糊匹配太容易错
@@ -69,8 +86,8 @@ class NameMatcher:
             return None, float(score)
         if self.min_margin:
             for other_key, other_score, other_pos in process.extract(q, self._keys, scorer=scorer, limit=8):
-                if self._ids[other_pos] == self._ids[pos]:
-                    continue  # 同一个海克斯的繁中等别名不构成另一个候选。
+                if self._ids[other_pos] == self._ids[pos] or other_key == key:
+                    continue  # 同名标点变体交给 _pick 区分，同 ID 别名也不算第二候选。
                 if scorer is fuzz.partial_ratio and (len(other_key) < 3 or abs(len(other_key)-len(q)) > 3):
                     continue
                 if score - other_score < self.min_margin:

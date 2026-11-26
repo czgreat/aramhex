@@ -50,6 +50,8 @@ def win_text(row: dict) -> str:
         return f"全英雄胜率{row['display_win'] * 100:.1f}% · 本英雄{row.get('games') or 0}局"
     if row.get("basis") == "pbe" and (row.get("games") or 0) < PBE_DISPLAY_MIN_GAMES:
         return f"全英雄胜率{row['pbe_win'] * 100:.1f}% · 本英雄{row.get('games') or 0}局"
+    if not row.get("games") and row.get("win_all") is not None:
+        return f"全体胜率{row['win_all'] * 100:.1f}%"
     return f"胜率{row['win'] * 100:.1f}%" if row.get("win") is not None else ""
 
 
@@ -189,7 +191,8 @@ def evaluate(store, hero_id: str | None, slots: list[str | None], k: int = 300) 
     # 排名只在正式服统计的海克斯之间排：测试服的新海克斯不是同一个版本的数据，只显示测试服胜率、不排名；
     # 剔除的不参与。4.0 删掉的海克斯过渡数据里已经去掉，名次的分母跟着变
     blend = band_blend(store, hero_id, ag, k)
-    rank_src = ({aid: {"win": (ag["sample_win"] + v["delta"] / 100), "games": v["games_all"]} for aid, v in blend.items()}
+    rank_src = ({aid: {"win": max(0.0, min(1.0, ag["sample_win"] + v["delta"] / 100)),
+                       "games": v["games_all"]} for aid, v in blend.items()}
                 if blend is not None else ag_augs)
     ranks_by_win = win_ranks({aid: s for aid, s in rank_src.items() if aid not in provisional and aid not in excluded},
                              store.augments)
@@ -266,7 +269,7 @@ def evaluate(store, hero_id: str | None, slots: list[str | None], k: int = 300) 
         # 2) 未识别英雄：所有英雄合计的胜率
         if r["score"] is None and not hero_id:
             g = global_augs.get(aid)
-            if g and g.get("win") and global_mean:
+            if g and g.get("win") is not None and global_mean is not None:
                 d = (g["win"] - global_mean) * 100
                 r.update(win=g["win"], games=g.get("games"), score=round(d, 2), basis="global_win")
                 r["reasons"].append(f"全英雄胜率 {g['win'] * 100:.1f}%，较平均 {d:+.1f}pp")
@@ -328,8 +331,6 @@ def evaluate(store, hero_id: str | None, slots: list[str | None], k: int = 300) 
             r["verdict"] = "best"
         elif r.get("thin") == "too_few":
             r["verdict"] = "reroll"
-        elif r.get("thin"):
-            r["verdict"] = "ok"
         elif r["score"] < REROLL_BELOW or r["score"] <= best["score"] - REROLL_GAP:
             r["verdict"] = "reroll"
         else:

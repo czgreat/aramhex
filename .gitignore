@@ -7,3 +7,4 @@ dist/
 *.spec.bak
 lolhex/data/bundled.new/
 lolhex/_build.py
+lolhex/_official*

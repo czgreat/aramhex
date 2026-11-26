@@ -13,10 +13,39 @@ import os
 import re
 import secrets
 import sys
+import tempfile
 import threading
 import time
 from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
+
+
+def atomic_write_text(path: Path, text: str) -> None:
+    """在同一目录写入并同步临时文件，再原子替换目标。"""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temp = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent,
+                                         prefix=path.name + ".", suffix=".tmp", delete=False) as stream:
+            temp = Path(stream.name)
+            stream.write(text)
+            stream.flush()
+            os.fsync(stream.fileno())
+        for attempt in range(4):
+            try:
+                os.replace(temp, path)
+                return
+            except PermissionError:
+                if sys.platform != "win32" or attempt == 3:
+                    raise
+                time.sleep(0.02 * (attempt + 1))
+    finally:
+        if temp is not None:
+            try:
+                temp.unlink(missing_ok=True)
+            except OSError:
+                pass
+
 
 APP_DIR_NAME = "AramHex"
 # 默认不注册游戏快捷键；系统占用检查无法发现游戏内部的录像等键位。
@@ -178,7 +207,7 @@ class Settings:
     seen_welcome: bool = False
     # 游戏客户端的语言（外服）：zh_CN 中文（国服，繁中台服、马来西亚服简中也认）/ en_US / ja_JP，见 i18n.py
     game_lang: str = "zh_CN"
-    # 匿名使用统计：第一次打开时随机生成的编号（和硬件、账号无关，重装就是新的），发往 aramhex.com 的请求带上（见 cloud.headers）。
+    # 匿名使用统计：第一次打开时随机生成的编号（和硬件、账号无关，重装就是新的），发往官网的请求带上（见 cloud.headers）。
     # 界面上不显示；要关就把 config.json 里的 send_usage 改成 false
     install_id: str = ""
     send_usage: bool = True
@@ -240,6 +269,12 @@ class Settings:
             s.install_id = ""  # 手改坏了：重新生成（不是字符串时请求头发不出去）
         if not isinstance(s.send_usage, bool):
             s.send_usage = str(s.send_usage).strip().lower() in ("true", "1", "yes", "on")  # 认不出就当关了
+        from .rank import valid_result
+        if s.my_rank != {} and not valid_result(s.my_rank):
+            s.my_rank = {}
+        queried_at = s.my_rank.get("queried_at")
+        if queried_at is not None and (type(queried_at) not in (int, float) or not 0 <= queried_at <= time.time()):
+            s.my_rank.pop("queried_at")
         from .i18n import normalize_lang
         s.game_lang = normalize_lang(s.game_lang)  # 以前的繁中选项 zh_TW、手改的怪值都当中文
         # 1.1.7 测试包里曾有勾选框：勾过的读设置时关掉，也不算玩家改的，只有云控能打开
@@ -296,10 +331,7 @@ class Settings:
             data.update(extra)
             text = json.dumps(data, ensure_ascii=False, indent=2)
             try:
-                # 先写临时文件再换过去：两个线程同时存、或者写到一半断电，都不会留下写坏的设置文件
-                tmp = path.with_name(path.name + ".tmp")
-                tmp.write_text(text, encoding="utf-8")
-                os.replace(tmp, path)
+                atomic_write_text(path, text)
                 return True
             except OSError as e:
                 logging.getLogger(__name__).warning("设置文件写不进去：%s", e)

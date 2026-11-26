@@ -21,11 +21,11 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QFrame, QGrid
                                QHBoxLayout, QKeySequenceEdit, QLabel, QLineEdit, QMainWindow, QMenu, QMessageBox, QProgressBar, QScrollArea,
                                QPushButton, QSizePolicy, QSystemTrayIcon, QTabWidget, QVBoxLayout, QWidget)
 
-from .. import DATA_HOMEPAGE, HOMEPAGE, __version__, cloud, cloudsettings, i18n, logupload, patch, rank, recommend, update
+from .. import DATA_HOMEPAGE, HOMEPAGE, __version__, cloud, cloudsettings, i18n, logupload, official, patch, rank, recommend, update
 from ..config import is_portable
 from ..vision import window as win
 from ..data.public import BANDS, norm_band
-from . import autostart
+from . import autostart, theme
 from .badgepos import POSITIONS as BADGE_POSITIONS, BadgePosPreview
 from . import buildview
 from .data_status import data_status_html
@@ -82,11 +82,24 @@ def show_progress(bar: QProgressBar, label: str, done: int | None = None, total:
     bar.show()
 
 
-def _card() -> QFrame:
+def _card(name: str = "card") -> QFrame:
     f = QFrame()
-    f.setObjectName("card")
-    f.setStyleSheet("QFrame#card{border:1px solid #d7dbe3;border-radius:6px;background:#fbfcfe}")
+    f.setObjectName(name)
     return f
+
+
+def _page() -> QWidget:
+    """透明底的容器页：底色由外面的窗口或标签页决定。"""
+    w = QWidget()
+    w.setObjectName("page")
+    return w
+
+
+def _card_layout(card: QFrame) -> QVBoxLayout:
+    lay = QVBoxLayout(card)
+    lay.setContentsMargins(14, 12, 14, 12)
+    lay.setSpacing(8)
+    return lay
 
 
 def hard_exit_later(seconds: float = 5.0, reason: str = "退出超时，强制结束以便更新") -> None:
@@ -209,12 +222,12 @@ BAND_CHOICES = [("", "全体")] + [(c, BANDS[c]) for c in BANDS]
 
 
 def about_html() -> str:
-    links = [f"<a href='{cloud.site()}'>官网</a>", f"<a href='{HOMEPAGE}'>GitHub</a>", f"<a href='{DATA_HOMEPAGE}'>统计数据</a>"]
+    links = [f"<a href='{cloud.site()}'>官网</a>"] if official.available() else []
+    links += [f"<a href='{HOMEPAGE}'>GitHub</a>", f"<a href='{DATA_HOMEPAGE}'>统计数据</a>"]
     for c in cloud.community():  # 云控：QQ 群、B 站、赞助……
         label = escape(c["name"] + (" " + c["text"] if c.get("text") else ""))
         links.append(f"<a href='{escape(c['url'])}'>{label}</a>" if c.get("url") else label)
-    return (f"<b>AramHex 海克斯大乱斗助手</b> {__version__}{'（便携版）' if is_portable() else ''}<br>" + " · ".join(links) +
-            "<br><span style='color:#777'>非官方工具，与腾讯、Riot Games 无关。</span>")
+    return (f"<b>AramHex 海克斯大乱斗助手</b> {__version__}{'（便携版）' if is_portable() else ''}<br>" + " · ".join(links))
 
 
 class MainWindow(QMainWindow):
@@ -226,19 +239,21 @@ class MainWindow(QMainWindow):
         self._cand_ids: list = []
         self._panel_hero = None
         self._hint_shown = False
+        self._compact = False
+        self.setObjectName("main")  # 样式表（theme.py）只认它里面的控件，不影响浮窗
         self.setWindowTitle(f"海克斯大乱斗助手 v{__version__}")
         self.setWindowIcon(app_icon())
         self.resize(700, 820)
         self.setMinimumSize(360, 260)
 
-        root = QWidget()
+        root = _page()
         lay = QVBoxLayout(root)
-        lay.setContentsMargins(14, 12, 14, 12)
+        lay.setContentsMargins(16, 14, 16, 14)
         lay.setSpacing(10)
 
         # 顶部状态
         head = QHBoxLayout()
-        logo = QLabel()
+        logo = self._logo = QLabel()
         logo.setPixmap(app_icon().pixmap(40, 40))
         title = QLabel("<b style='font-size:17px'>海克斯大乱斗助手</b> "
                        f"<span style='font-size:13px;color:#555'>{__version__}</span>")
@@ -249,20 +264,19 @@ class MainWindow(QMainWindow):
         self.btn_comm.hide()
         head.addWidget(self.btn_comm)
         self.btn_dash = QPushButton("帮助")
-        self.btn_dash.clicked.connect(lambda: webbrowser.open(f"{cloud.site()}/#faq"))
+        self.btn_dash.clicked.connect(lambda: webbrowser.open(cloud.help_page()))
         head.addWidget(self.btn_dash)
         self._show_primary()
         lay.addLayout(head)
 
         # 有新版本时才显示
-        self.update_bar = _card()
-        self.update_bar.setStyleSheet("QFrame#card{border:1px solid #e0b64a;border-radius:6px;background:#fff8e1}")
-        ubv = QVBoxLayout(self.update_bar)
+        self.update_bar = _card("notice")
+        ubv = _card_layout(self.update_bar)
         ub = QHBoxLayout()
         ubv.addLayout(ub)
         self.update_text = QLabel()
         self.update_text.setWordWrap(True)
-        self.btn_update = QPushButton("立即更新")
+        self.btn_update = theme.mark(QPushButton("立即更新"), primary=True)
         self.btn_update.clicked.connect(self._start_update)
         ub.addWidget(self.update_text, 1)
         ub.addWidget(self.btn_update)
@@ -290,7 +304,7 @@ class MainWindow(QMainWindow):
         self.status.setWordWrap(False)  # 内容自带 <br> 换行；自动换行会让高度算不准被压扁
         self.status.setTextFormat(Qt.RichText)
         sc = _card()
-        scl = QVBoxLayout(sc)
+        scl = _card_layout(sc)
         scl.addWidget(self.status)
         self.data_progress = _progress_bar()  # 下载统计数据时显示
         scl.addWidget(self.data_progress)
@@ -298,7 +312,7 @@ class MainWindow(QMainWindow):
 
         # 英雄
         hc = _card()
-        hl = QVBoxLayout(hc)
+        hl = _card_layout(hc)
         self.hero_label = QLabel()
         self.hero_label.setTextFormat(Qt.RichText)
         hl.addWidget(self.hero_label)
@@ -317,20 +331,19 @@ class MainWindow(QMainWindow):
         btn_clear.clicked.connect(lambda: self.engine.set_hero(None))
         row.addWidget(self.search, 1)
         row.addWidget(btn_clear)
-        hl.addLayout(row)
-        brow = QHBoxLayout()
-        brow.addWidget(QLabel("分段"))
+        # 分段和搜索放一行：设置页要在默认窗口里一屏放下
+        row.addSpacing(8)
+        row.addWidget(QLabel("分段"))
         self.band_box = QComboBox()
         for code, label in BAND_CHOICES:
             self.band_box.addItem(label, code)
         self.band_box.setCurrentIndex(max(0, self.band_box.findData(engine.settings.data_band or "")))
         self.band_box.currentIndexChanged.connect(lambda i: self.engine.set_band(self.band_box.itemData(i) or None))
-        brow.addWidget(self.band_box)
-        self.my_rank_label = QLabel()
-        self.my_rank_label.setStyleSheet("color:#555")
-        brow.addWidget(self.my_rank_label)
-        brow.addStretch(1)
-        hl.addLayout(brow)
+        row.addWidget(self.band_box)
+        hl.addLayout(row)
+        self.my_rank_label = theme.mark(QLabel(), muted=True)
+        self.my_rank_label.hide()  # 查过分才有这一行
+        hl.addWidget(self.my_rank_label)
         lay.addWidget(hc)
 
         # 标签页
@@ -340,8 +353,10 @@ class MainWindow(QMainWindow):
         self.tab_hero.setWordWrap(True)
         self.tab_hero.setAlignment(Qt.AlignTop | Qt.AlignLeft)
         self.tab_hero.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        w1 = QWidget()
-        QVBoxLayout(w1).addWidget(self.tab_hero)
+        w1 = _page()
+        l1 = QVBoxLayout(w1)
+        l1.setContentsMargins(14, 12, 14, 12)
+        l1.addWidget(self.tab_hero)
         # 出装、加点很长：放进滚动区，不然标签页按最高的一页定高度，选了英雄后设置页的「检查更新」被挤出窗口
         w1_scroll = QScrollArea()
         w1_scroll.setWidget(w1)
@@ -350,8 +365,10 @@ class MainWindow(QMainWindow):
         w1_scroll.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Ignored)
         self.tabs.addTab(w1_scroll, "出装与加点")
 
-        w2 = QWidget()
+        w2 = _page()
         l2 = QVBoxLayout(w2)
+        l2.setContentsMargins(14, 12, 14, 12)
+        l2.setSpacing(10)
         self.offer_advice = QLabel("未在选海克斯")
         self.offer_advice.setWordWrap(True)
         l2.addWidget(self.offer_advice)
@@ -364,7 +381,7 @@ class MainWindow(QMainWindow):
             lab.setAlignment(Qt.AlignTop)
             lab.setMinimumWidth(170)
             fr = _card()
-            QVBoxLayout(fr).addWidget(lab)
+            _card_layout(fr).addWidget(lab)
             grid.addWidget(fr, 0, i)
             fr.setVisible(i < 3)
             self.offer_cards.append(lab)
@@ -391,6 +408,7 @@ class MainWindow(QMainWindow):
         viewport.setFrameShape(QScrollArea.NoFrame)
         viewport.setWidget(root)
         self.setCentralWidget(viewport)
+        self._root_layout, self._card_layouts = lay, [scl, hl, ubv]
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.refresh)
@@ -402,11 +420,12 @@ class MainWindow(QMainWindow):
     def _settings_tab(self) -> QWidget:
         """设置页：一屏放下，不用滚动；改了马上生效，没有「保存」按钮。"""
         s = self.engine.settings
-        w = QWidget()
+        w = _page()
         outer = QVBoxLayout(w)
+        outer.setContentsMargins(14, 12, 14, 12)
         outer.setSpacing(10)
         g = QGridLayout()
-        g.setVerticalSpacing(8)
+        g.setVerticalSpacing(7)
         g.setHorizontalSpacing(10)
         g.setColumnStretch(1, 1)
         outer.addLayout(g)
@@ -432,9 +451,9 @@ class MainWindow(QMainWindow):
         if hasattr(panel, "bg_picked"):
             panel.bg_picked.connect(self._bg_picked)
         # 1.2.0：不再有详情快捷键（不好按），只靠鼠标唤出，这里写明怎么唤出
-        self.corner_hint = QLabel("对局中收起详情后按钮会藏起来，鼠标移到这个角附近就出现，点一下展开详情。")
+        self.corner_hint = QLabel("按钮游戏内隐藏，鼠标移过去浮现")
         self.corner_hint.setWordWrap(True)
-        self.corner_hint.setStyleSheet("color:#555")
+        theme.mark(self.corner_hint, muted=True)
         self.set_hotkey = QKeySequenceEdit(QKeySequence(s.overlay_hotkey))
         self.set_hotkey.setMaximumSequenceLength(1)
         self.set_hotkey.setClearButtonEnabled(True)
@@ -453,7 +472,7 @@ class MainWindow(QMainWindow):
         hotkey_service = getattr(self.overlay, "hotkey", None)
         self.hotkey_status = QLabel(hotkey_service.status if hotkey_service else "游戏或选英雄在前台时启用。")
         self.hotkey_status.setWordWrap(True)
-        self.hotkey_status.setStyleSheet("color:#555")
+        theme.mark(self.hotkey_status, muted=True)
         if hotkey_service:
             hotkey_service.status_changed.connect(self.hotkey_status.setText)
         # 快捷键一行连同状态说明放一起，云控 features.overlay_hotkey 关着（默认）时整块不显示
@@ -507,6 +526,7 @@ class MainWindow(QMainWindow):
 
         # 我的水平：和上面的设置项排成一样的一行
         rrow = QHBoxLayout()
+        rrow.setSpacing(8)
         self.rank_input = QLineEdit(s.riot_id)
         self.rank_input.setPlaceholderText("名字#编号")
         self.rank_input.returnPressed.connect(self._query_rank)
@@ -524,11 +544,11 @@ class MainWindow(QMainWindow):
         self._rank_worker = None
         outer.addStretch(1)
         # 版本和检查更新固定在页底，设置项较多时只滚动上面的表单。
-        card = _card()
+        card = _card("footer")
         about_row = QHBoxLayout(card)
-        about_row.setContentsMargins(18, 12, 18, 12)
+        about_row.setContentsMargins(14, 9, 14, 9)
         cv = QVBoxLayout()
-        cv.setSpacing(8)
+        cv.setSpacing(5)
         about_row.addLayout(cv, 1)
         about = QLabel(about_html())
         about.setTextFormat(Qt.RichText)
@@ -536,13 +556,15 @@ class MainWindow(QMainWindow):
         about.setOpenExternalLinks(True)
         self.about_label = about
         cv.addWidget(about)
+        self.about_note = theme.mark(QLabel("非官方工具，与腾讯、Riot Games 无关。"), muted=True)
+        cv.addWidget(self.about_note)
         self.about_data = QLabel()
-        self.about_data.setStyleSheet("color:#555")
+        theme.mark(self.about_data, muted=True)
         self.about_data.setWordWrap(True)
         cv.addWidget(self.about_data)
         self.btn_check = QPushButton("检查更新")
         self.btn_check.setMinimumWidth(120)
-        self.btn_check.setMinimumHeight(34)
+        self.btn_check.setMinimumHeight(32)
         self.btn_check.clicked.connect(lambda: self.check_update(manual=True))
         # 没有「保存」按钮：改完在检查更新下面短暂显示绿色「已保存」，平时空着。
         # 右边这一栏本来比左边的说明矮，放这里页底不变高，设置项仍一屏放下
@@ -566,11 +588,14 @@ class MainWindow(QMainWindow):
         scroll.setFrameShape(QFrame.NoFrame)
         # 表单的建议高度不能撑大整页，否则外层滚动区仍会把页底按钮推到屏幕外。
         scroll.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Ignored)
-        tab = QWidget()
+        tab = _page()
         tab_layout = QVBoxLayout(tab)
-        tab_layout.setContentsMargins(0, 0, 0, 0)
+        tab_layout.setContentsMargins(1, 1, 1, 10)
         tab_layout.addWidget(scroll, 1)
-        tab_layout.addWidget(card)
+        foot = QHBoxLayout()
+        foot.setContentsMargins(14, 0, 14, 0)
+        foot.addWidget(card)
+        tab_layout.addLayout(foot)
         return tab
 
     # ---------- 查我的水平 ----------
@@ -581,6 +606,7 @@ class MainWindow(QMainWindow):
         r = (res or {}).get("results") or []
         if hasattr(self, "my_rank_label"):
             self.my_rank_label.setText(f"你：{r[0]['band_name']}（前 {rank.top_pct(r[0]['top'])}）" if r else "")
+            self.my_rank_label.setVisible(bool(r))
 
     def _retire_when_done(self, attr: str, worker) -> None:
         """查询/更新线程跑完就删掉：父对象是主窗口，不删的话每查一次留一个 QThread（助手常驻托盘好几天）。"""
@@ -812,9 +838,11 @@ class MainWindow(QMainWindow):
             self.about_label.setText(about_html())
         if hasattr(self, "btn_comm"):
             self._show_primary()
-        if self._busy() or self._modal_open():  # 公告、版本太旧都是弹窗：打完这局、选完英雄再弹；已有弹窗时也等一等
+        busy = self._busy()
+        if busy or self._modal_open():  # 公告、版本太旧都是弹窗：打完这局、选完英雄再弹；已有弹窗时也等一等
             if self._deferred_cloud is None:
-                logging.getLogger(__name__).info("对局中或选英雄中，云控公告/版本检查推迟")
+                why = ("对局中" if self._in_game() else "选英雄中") if busy else "已有弹窗开着"
+                logging.getLogger(__name__).info("%s，云控公告/版本检查推迟", why)
             self._deferred_cloud = cfg
             return
         self._popup_open = True
@@ -1008,8 +1036,11 @@ class MainWindow(QMainWindow):
 
     def _check_failed(self, msg: str):
         logging.getLogger(__name__).warning("检查更新失败：%s", msg)
-        box = QMessageBox(QMessageBox.Warning, "检查更新", "检查更新失败，请稍后再试。" + self._data_line(), parent=self)
-        b_site = box.addButton("官网下载", QMessageBox.ActionRole)
+        own_build = not official.updatable()  # 自己打的包不自动更新，不是失败
+        box = QMessageBox(QMessageBox.Information if own_build else QMessageBox.Warning, "检查更新",
+                          ("这不是官方安装包，不会自动更新。" if own_build else "检查更新失败，请稍后再试。")
+                          + self._data_line(), parent=self)
+        b_site = box.addButton("官网下载" if official.available() else "下载页", QMessageBox.ActionRole)
         box.addButton("关闭", QMessageBox.RejectRole)
         box.exec()
         if box.clickedButton() is b_site:
@@ -1128,6 +1159,7 @@ class MainWindow(QMainWindow):
             return
         comp, self._names = hero_completer(self.engine.store, self)
         comp.activated.connect(lambda text: (self.engine.set_hero(self._names.get(text, text)), self.search.clear()))
+        comp.popup().setObjectName("heroPopup")
         self.search.setCompleter(comp)
 
     def _search_pick(self):
@@ -1227,7 +1259,8 @@ class MainWindow(QMainWindow):
             for a in top[:8]:
                 out.append(f"　{a['name']} <span style='color:#777'>{RARITY_CN.get(a.get('rarity'), '')}"
                            f" {a.get('tier') or ''}</span> <b style='color:#2e9d5b'>{a['delta']:+.1f}</b>")
-        return "<br>".join(out)
+        # 每行一段、留点间距：图标行直接换行会上下贴在一起
+        return "".join(f"<p style='margin:0 0 5px 0'>{line}</p>" for line in out)
 
     def _render_offer(self, ev, show_win, pending=None):
         if not ev:
@@ -1239,7 +1272,7 @@ class MainWindow(QMainWindow):
         pk = recommend.pentakill_text(ev.get("pentakill")) if not waiting else ""
         advice = "卡片更新中，等待识别确认" if waiting else ev['advice']
         self.offer_advice.setText(f"<b style='font-size:15px'>{advice}</b>"
-                                  + (f"<br><span style='color:#c9a0ff'>{escape(pk)}</span>" if pk else ""))
+                                  + (f"<br><span style='color:#7a4fd0'>{escape(pk)}</span>" if pk else ""))
         for i, fr in enumerate(getattr(self, "offer_frames", ())):
             fr.setVisible(i < max(3, len(ev["slots"])))
         for lab, r in zip(self.offer_cards, ev["slots"]):
@@ -1271,6 +1304,24 @@ class MainWindow(QMainWindow):
             lab.setText("<br>".join(lines))
 
     # ---------- 窗口行为 ----------
+
+    COMPACT_HEIGHT = 560  # 比这矮（小屏、高缩放）就收紧间距，把地方留给标签页里的内容
+
+    def resizeEvent(self, e):
+        super().resizeEvent(e)
+        compact = self.height() < self.COMPACT_HEIGHT
+        if compact == self._compact:
+            return
+        self._compact = compact
+        self._root_layout.setContentsMargins(*((16, 6, 16, 6) if compact else (16, 14, 16, 14)))
+        self._root_layout.setSpacing(5 if compact else 10)
+        for lay in self._card_layouts:
+            lay.setContentsMargins(*((14, 5, 14, 5) if compact else (14, 12, 14, 12)))
+            lay.setSpacing(4 if compact else 8)
+        size = 26 if compact else 40
+        self._logo.setPixmap(app_icon().pixmap(size, size))
+        self.about_data.setVisible(not compact)  # 上面状态里有同样的内容
+        self.about_note.setVisible(not compact)
 
     def show_and_raise(self):
         screen = self.screen()
@@ -1304,6 +1355,7 @@ class Tray(QSystemTrayIcon):
         self.engine, self.window, self.overlay = engine, window, overlay
         self.setToolTip(f"海克斯大乱斗助手 v{__version__}")
         m = QMenu()
+        m.setObjectName("tray")
         m.addAction("打开主界面", window.show_and_raise)
         m.addAction("重新识别", engine.rescan)
         m.addAction("检查更新", lambda: (window.show_and_raise(), window.check_update(manual=True)))

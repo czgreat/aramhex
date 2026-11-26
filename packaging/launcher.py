@@ -9,7 +9,7 @@ import sys
 import time
 import traceback
 
-DOWNLOAD_PAGE = "https://aramhex.com/#download"
+DOWNLOAD_PAGE = "https://github.com/czgreat/aramhex/releases"
 
 
 def _crash_log(text: str) -> str:
@@ -29,8 +29,8 @@ def _crash_log(text: str) -> str:
 def _crash(text: str) -> None:
     path = _crash_log(text)
     msg = ("海克斯大乱斗助手打不开了。\n\n"
-           "请到官网下载安装包，直接覆盖安装就行（设置会保留）。\n\n"
-           "点「是」打开官网下载页。")
+           "请重新下载安装包，直接覆盖安装就行（设置会保留）。\n\n"
+           "点「是」打开下载页。")
     if path:
         msg += f"\n\n错误记录：{path}"
     try:

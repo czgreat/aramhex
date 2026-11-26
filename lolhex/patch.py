@@ -6,7 +6,7 @@
     files/<相对路径>.gz   patchable 里的文件（AramHex.exe、_internal/base_library.zip、_internal/lolhex/**）的 gzip 压缩版。
                           jsDelivr 不给下 .exe（403），压缩后就可以；SHA-256 校验的是解压后的原文件。
     files/<相对路径>      原文件，给 1.0.3（只认原文件）从 GitHub 下载用
-下载顺序：云控配置的备用地址 → 官网 aramhex.com/u/<版本> → GitHub。1.1.7 起不再用 jsDelivr。
+下载顺序：云控配置的备用地址 → 官网 → GitHub。1.1.7 起不再用 jsDelivr。只有官方安装包会自动更新，见 official.py。
 
 程序这边：
 1. 读清单，确认版本号就是要更新到的版本（jsDelivr 有缓存，旧清单就换下一个地址）；
@@ -24,6 +24,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -33,7 +34,7 @@ from urllib.parse import unquote
 
 import requests
 
-from . import GITHUB_REPO, cloud
+from . import GITHUB_REPO, cloud, official
 from .config import program_dir
 
 log = logging.getLogger(__name__)
@@ -49,7 +50,7 @@ def sources_for(version: str) -> list[str]:
     from . import cloud
     tag = tag_for(version)
     extra = [u.replace("{version}", version).rstrip("/") for u in cloud.mirrors("update")]
-    site = [f"{s}/u/{version}" for s in cloud.sites()]  # 云控换了官网地址时新的在前，内置 aramhex.com/u 在最后
+    site = official.urls("update", cloud.sites(), version)  # 云控换了官网地址时新的在前，内置的在最后
     return (extra + site + [f"https://raw.githubusercontent.com/{GITHUB_REPO}/{tag}"]
             # 分支地址兜底（1.0.3 发布时还没有 tag）；清单版本对不上会被跳过
             + [f"https://raw.githubusercontent.com/{GITHUB_REPO}/{BRANCH}"])
@@ -58,8 +59,10 @@ def sources_for(version: str) -> list[str]:
 SOURCES = sources_for("0")  # 只用作默认值的形状；实际按要更新到的版本取 sources_for(version)
 # 会随我们发版变化的文件；其余都是第三方库（Qt、OpenCV、识别模型……），变了就要完整安装包
 PATCHABLE_PREFIXES = ("AramHex.exe", "_internal/base_library.zip", "_internal/lolhex/")
+LOCAL_MARKERS = {"debug.txt", "portable.txt"}  # 程序旁的本机开关，各台电脑不一样，不算程序文件
 STAGING, BACKUP = "_update_new", "_update_old"
 ROLLBACK_INCOMPLETE = "update-rollback-incomplete.txt"  # 有这个文件就说明旧文件没全部还原，_update_old 不能删
+UPDATE_INTERRUPTED = "Incremental update did not finish."
 UNINSTALL_KEY = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\{1107079E-6C48-46FD-938D-04B1C3EA9A72}_is1"
 
 
@@ -81,11 +84,17 @@ VC_RUNTIME = {f"_internal/{n}" for n in ("msvcp140.dll", "msvcp140_1.dll", "msvc
                                          "vcruntime140.dll", "vcruntime140_1.dll")}
 
 
+# 1.3.0 官方包新增，和 cv2/config-3.py 逐字节相同（固定 OpenCV 实际读哪一份配置）。
+# 1.2.0 按清单的 patchable 判断，列进去老版本就能增量拿到
+CV2_PIN = "_internal/cv2/config-3.13.py"
+_CODE = (".dll", ".pyd", ".exe", ".py", ".pyc", ".zip", ".pth")
+
+
 def is_patchable(rel: str) -> bool:
     # 第三方库的 *.dist-info/ 是安装记录（RECORD 等），每次重新 pip install 内容都会变，但不影响运行；
     # 一共只有约 0.3MB，也放进增量更新，免得因为它们就要重下完整安装包
     return (rel == PATCHABLE_PREFIXES[0] or rel == PATCHABLE_PREFIXES[1] or rel.startswith(PATCHABLE_PREFIXES[2])
-            or ".dist-info/" in rel or rel.lower() in VC_RUNTIME)
+            or ".dist-info/" in rel or rel.lower() in VC_RUNTIME or rel == CV2_PIN)
 
 
 def sha256_file(path: Path) -> str:
@@ -101,8 +110,7 @@ def build_manifest(root: Path, version: str) -> dict:
     root = Path(root)
     files = {}
     for p in sorted(root.rglob("*")):
-        if p.is_file():
-            rel = p.relative_to(root).as_posix()
+        if p.is_file() and (rel := p.relative_to(root).as_posix()).lower() not in LOCAL_MARKERS:
             files[rel] = {"sha256": sha256_file(p), "size": p.stat().st_size}
     return {"schema_version": 1, "version": version, "files": files,
             "patchable": [rel for rel in files if is_patchable(rel)]}
@@ -132,10 +140,17 @@ def check_manifest(m: dict, version: str) -> dict:
     files, patchable = m.get("files"), m.get("patchable")
     if not isinstance(files, dict) or not isinstance(patchable, list):
         raise NeedFullInstall("更新清单不完整")
-    for rel in files:
+    for rel, info in files.items():
         _relative_path(rel)
+        if (not isinstance(info, dict) or type(info.get("size")) is not int or info["size"] < 0
+                or not isinstance(info.get("sha256"), str) or not re.fullmatch(r"[0-9a-f]{64}", info["sha256"])):
+            raise NeedFullInstall(f"更新清单里的文件校验信息不完整：{rel}")
     if any(not isinstance(rel, str) for rel in patchable) or not set(patchable) <= set(files):
         raise NeedFullInstall("更新清单不完整")
+    packed = m.get("packed")
+    if packed is not None and (not isinstance(packed, dict) or not set(packed) <= set(patchable)
+                               or any(type(size) is not int or size <= 0 for size in packed.values())):
+        raise NeedFullInstall("更新清单里的压缩文件大小不正确")
     return m
 
 
@@ -144,7 +159,7 @@ def fetch_manifest(version: str, sources=SOURCES, timeout: float = 15) -> tuple[
     errors = []
     for base in sources:
         try:
-            r = requests.get(f"{base}/manifest.json", headers=cloud.headers(base + "/"), timeout=timeout)
+            r = cloud.get_update(f"{base}/manifest.json", timeout=timeout)
             r.raise_for_status()
             return check_manifest(r.json(), version), base
         except (requests.RequestException, ValueError, NeedFullInstall) as e:
@@ -206,8 +221,8 @@ def download(manifest: dict, changed: list[str], root: Path, sources=SOURCES, pr
                         got[0] += n
                         report(got[0])
                     try:
-                        raw = http.fetch(f"{base}/files/{rel}{suffix}", headers=cloud.headers(base + "/"), timeout=timeout,
-                                         on_bytes=on_bytes)
+                        raw = http.fetch(f"{base}/files/{rel}{suffix}", timeout=timeout, on_bytes=on_bytes,
+                                         request=cloud.get_update)
                         data = gzip.decompress(raw) if suffix else raw
                         if len(data) != want["size"] or hashlib.sha256(data).hexdigest() != want["sha256"]:
                             raise ValueError("校验不对")
@@ -251,6 +266,7 @@ def apply_script(root: Path, changed: list[str], stale: list[str], pid: int, ver
         f"$root = {q(Path(root))}",
         f"$new = Join-Path $root {q(STAGING)}",
         f"$old = Join-Path $root {q(BACKUP)}",
+        f"$recovery = Join-Path $root {q(ROLLBACK_INCOMPLETE)}",
         f"$changed = @({', '.join(q(r) for r in changed)})",
         f"$stale = @({', '.join(q(r) for r in stale)})",
         # 等助手退出；30 秒还没退（例如卡在某个网络请求上）就结束它——只结束我们自己的这个进程
@@ -280,11 +296,15 @@ def apply_script(root: Path, changed: list[str], stale: list[str], pid: int, ver
         "$moved = @()",
         "$placed = @()",
         "$current = ''",
+        "$started = $false",
+        "$keepStaging = Test-Path -LiteralPath $recovery",
         "try {",
-        f"  if (Test-Path -LiteralPath (Join-Path $root {q(ROLLBACK_INCOMPLETE)})) {{ throw 'Previous rollback incomplete; reinstall required' }}",
+        "  if ($keepStaging) { throw 'Previous rollback incomplete; reinstall required' }",
         # 上次留下的备份删不掉就不更新：不能和这次的备份混在一起；走下面的失败分支，记下原因并重新打开助手
         f"  $current = {q(BACKUP)}",
         "  Remove-Retry $old",
+        f"  Set-Content -LiteralPath $recovery -Value {q(UPDATE_INTERRUPTED)} -Encoding UTF8",
+        "  $started = $true",
         "  foreach ($rel in $changed + $stale) {",
         "    $current = $rel",
         "    $dst = Join-Path $root $rel",
@@ -302,6 +322,7 @@ def apply_script(root: Path, changed: list[str], stale: list[str], pid: int, ver
         "    Move-Retry (Join-Path $new $rel) $dst",
         "    $placed += $rel",
         "  }",
+        "  Remove-Item -LiteralPath $recovery -Force",
         # 只改本目录的安装信息；便携版与其他目录里的安装版互不影响。
         "  if (-not (Test-Path -LiteralPath (Join-Path $root 'portable.txt'))) {",
         f"    foreach ($hive in 'HKCU:\\', 'HKLM:\\') {{ try {{ $k = $hive + {q(UNINSTALL_KEY)}; "
@@ -311,7 +332,6 @@ def apply_script(root: Path, changed: list[str], stale: list[str], pid: int, ver
         "catch { } }",
         "  }",
         "  Remove-Item -Recurse -Force $old -ErrorAction SilentlyContinue",
-        f"  Remove-Item -LiteralPath (Join-Path $root {q(ROLLBACK_INCOMPLETE)}) -Force -ErrorAction SilentlyContinue",
         "} catch {",
         "  $reason = $current + ': ' + $_.ToString()",  # 写明卡在哪个文件，下次启动记进日志
         # 有旧文件的会被直接覆盖，这里只删新版本新增的文件
@@ -321,10 +341,13 @@ def apply_script(root: Path, changed: list[str], stale: list[str], pid: int, ver
         "  foreach ($rel in $moved) { $dst = Join-Path $root $rel; try {"
         " New-Item -ItemType Directory -Force (Split-Path $dst) | Out-Null;"
         " Restore-File (Join-Path $old $rel) $dst } catch { $restored = $false } }",
-        f"  if (-not $restored) {{ Set-Content -LiteralPath (Join-Path $root {q(ROLLBACK_INCOMPLETE)}) -Value $reason -Encoding UTF8 }}",
+        "  if ($started) {",
+        "    if ($restored) { Remove-Item -LiteralPath $recovery -Force -ErrorAction SilentlyContinue }",
+        "    else { Set-Content -LiteralPath $recovery -Value $reason -Encoding UTF8 }",
+        "  }",
         "  Set-Content -LiteralPath (Join-Path $root 'update-failed.txt') -Value $reason -Encoding UTF8",
         "}",
-        "Remove-Item -Recurse -Force $new -ErrorAction SilentlyContinue",
+        "if (-not $keepStaging) { Remove-Item -Recurse -Force $new -ErrorAction SilentlyContinue }",
     ]
     if relaunch:
         lines.append(f"Start-Process -FilePath {q(relaunch)} -WorkingDirectory $root")
@@ -378,12 +401,20 @@ def take_failure(root: Path | None = None) -> str | None:
     root = root or install_root()
     if root is None:
         return None
-    shutil.rmtree(Path(root) / STAGING, ignore_errors=True)
-    if not rollback_incomplete(root):
-        shutil.rmtree(Path(root) / BACKUP, ignore_errors=True)
-    f = Path(root) / "update-failed.txt"
+    root = Path(root)
+    interrupted = False
+    if rollback_incomplete(root):
+        try:
+            interrupted = (root / ROLLBACK_INCOMPLETE).read_text(encoding="utf-8-sig").strip() == UPDATE_INTERRUPTED
+        except (OSError, UnicodeError):
+            interrupted = True
+    else:
+        shutil.rmtree(root / BACKUP, ignore_errors=True)
+    if not interrupted:
+        shutil.rmtree(root / STAGING, ignore_errors=True)
+    f = root / "update-failed.txt"
     if not f.exists():
-        return None
+        return "上次更新进程未结束，已保留备份和暂存文件" if interrupted else None
     try:
         reason = f.read_text(encoding="utf-8-sig", errors="replace").strip()
     finally:
@@ -415,8 +446,8 @@ def rank_by_speed(sources: list[str], rel: str, sample: int = 256 * 1024, timeou
         start = time.monotonic()
         got = 0
         try:
-            with requests.get(f"{base}/files/{rel}", headers=cloud.headers(base + "/", Range=f"bytes=0-{sample - 1}"),
-                              timeout=timeout, stream=True) as r:
+            with cloud.get_update(f"{base}/files/{rel}", headers={"Range": f"bytes=0-{sample - 1}"},
+                                  timeout=timeout, stream=True) as r:
                 if r.status_code not in (200, 206):
                     return 0.0
                 for chunk in r.iter_content(32 * 1024):
@@ -450,6 +481,8 @@ def prepare(version: str, progress=None, root: Path | None = None, sources=None,
     root = root or install_root()
     if root is None:
         raise NeedFullInstall("源码运行，不做增量更新")
+    if not official.updatable():
+        raise NeedFullInstall("不是官方安装包，不自动更新")
     if rollback_incomplete(root):
         raise IncompleteRollback("上次更新未能完整还原，请重新下载安装包（便携版解压到新目录）；已保留旧文件备份")
     _check_writable(root)  # 下载前就查，不让玩家白等，也不误报成下载失败
@@ -472,10 +505,32 @@ def prepare(version: str, progress=None, root: Path | None = None, sources=None,
     return changed, stale
 
 
+def blockers(previous: dict, current: dict) -> list[str]:
+    """上一版能不能增量更新到这一版；返回挡住的文件，空的就是能。
+    - 不能增量的文件变了、多了：老用户只能下完整安装包。
+    - 上一版有、这一版没有的程序文件：增量更新不删 _internal/lolhex 以外的文件，老用户那里会留着，
+      程序可能照旧加载它；官方包会因此不给官网凭证。打包机缺运行库时会少收 DLL，就是这种情况。"""
+    old = {rel.lower(): f for rel, f in previous["files"].items()}
+    new = {rel.lower(): f for rel, f in current["files"].items()}
+    patchable = {rel.lower() for rel in current["patchable"]}
+    out = [f"{rel}（{'变了' if rel in old else '新增'}，不能增量）" for rel, f in new.items()
+           if rel not in patchable and (rel not in old or old[rel]["sha256"] != f["sha256"])]
+    out += [f"{rel}（上一版有，这一版没有）" for rel in old
+            if rel not in new and rel.endswith(_CODE) and not rel.startswith(PATCHABLE_PREFIXES[2])]
+    return sorted(out)
+
+
 def main(argv=None) -> int:
-    """发版用：python -m lolhex.patch <程序目录> <版本> <输出目录>，生成 updates 分支的内容。"""
+    """发版用：python -m lolhex.patch <程序目录> <版本> <输出目录> [上一版的 manifest.json]，生成 updates 分支的内容。
+    给了上一版的清单就检查老用户能不能增量更新，不能就不生成。"""
     argv = sys.argv[1:] if argv is None else argv
     root, version, out = Path(argv[0]), argv[1], Path(argv[2])
+    if "-test." not in version and (root / "debug.txt").exists():
+        raise SystemExit("正式版的程序目录里有 debug.txt（测试包的调试开关），重新打包再生成增量更新文件")
+    if len(argv) > 3:
+        stopped = blockers(json.loads(Path(argv[3]).read_text(encoding="utf-8")), build_manifest(root, version))
+        if stopped:
+            raise SystemExit("上一版不能增量更新到这一版：\n  " + "\n  ".join(stopped))
     m = {**build_manifest(root, version), "encoding": "gzip"}
     shutil.rmtree(out, ignore_errors=True)
     packed = 0

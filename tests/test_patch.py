@@ -53,6 +53,21 @@ def test_vc_runtime_change_is_patchable(tmp_path):
     assert "_internal/msvcp140.dll" in changed
 
 
+def test_local_markers_are_not_program_files(tmp_path):
+    # 测试包自带 debug.txt：清单里有它，没放这个开关的 1.2.0 就会被要求下完整安装包
+    built = _tree(tmp_path / "new", {**NEW, "debug.txt": b"", "Portable.txt": b"x", "_internal/lolhex/debug.txt": b"y"})
+    m = patch.build_manifest(built, "1.3.0-test.1")
+    assert "debug.txt" not in m["files"] and "Portable.txt" not in m["files"]
+    assert "_internal/lolhex/debug.txt" in m["files"]  # 只认程序旁的
+    old = _tree(tmp_path / "old", OLD)
+    changed, stale = patch.plan(m, old)
+    assert "AramHex.exe" in changed and stale == ["_internal/lolhex/data/gone.json"]
+    assert patch.plan(m, _tree(old, {"debug.txt": b"", "portable.txt": b"x"})) == (changed, stale)  # 玩家自己放的不动
+    assert patch.main([str(built), "1.3.0-test.1", str(tmp_path / "out")]) == 0
+    with pytest.raises(SystemExit, match="debug.txt"):
+        patch.main([str(built), "1.3.0", str(tmp_path / "out2")])
+
+
 @pytest.mark.parametrize("bad", [{"version": "1.0.2"}, {"files": {"../evil": {"sha256": "0", "size": 1}}},
                                  {"patchable": ["missing"]}])
 def test_manifest_checks(tmp_path, bad):
@@ -89,6 +104,21 @@ def test_prepare_uses_next_source_when_cache_is_stale(tmp_path, server):
     assert len(changed) == 3 and stale == ["_internal/lolhex/data/gone.json"]
 
 
+def test_prepare_uses_next_source_when_manifest_lacks_size(tmp_path, server):
+    srv, base = server
+    _publish(srv, "incomplete", NEW, "1.0.3")
+    _publish(srv, "complete", NEW, "1.0.3")
+    path = srv / "incomplete" / "manifest.json"
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    del manifest["files"]["AramHex.exe"]["size"]
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    root = _tree(tmp_path / "app", OLD)
+    changed, _ = patch.prepare("1.0.3", root=root, sources=[f"{base}/incomplete", f"{base}/complete"])
+    assert "AramHex.exe" in changed
+    assert (root / patch.STAGING / "AramHex.exe").read_bytes() == b"exe-new"
+
+
 def test_download_rejects_tampered_file(tmp_path, server):
     srv, base = server
     _publish(srv, "u", NEW, "1.0.3")
@@ -121,7 +151,26 @@ def test_apply_script_replaces_files(tmp_path):
     assert not (root / "_internal/lolhex/data/gone.json").exists()
     assert (root / "_internal/cv2/cv2.pyd").read_bytes() == b"opencv"
     assert not (root / patch.STAGING).exists() and not (root / patch.BACKUP).exists()
+    assert not patch.rollback_incomplete(root)
     assert not (root / "update-failed.txt").exists()
+
+
+@win
+def test_interrupted_script_keeps_old_and_staged_files(tmp_path):
+    root = _tree(tmp_path / "app", {"AramHex.exe": b"old"})
+    _tree(root, {f"{patch.STAGING}/AramHex.exe": b"new"})
+    body = patch.apply_script(root, ["AramHex.exe"], [], _done_pid(), "1.0.3", None)
+    script = tmp_path / "interrupted.ps1"
+    script.write_text(body.replace("$moved += $rel", "$moved += $rel\n exit 91"), encoding="utf-8-sig")
+    process = subprocess.run(
+        ["powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", str(script)],
+        timeout=30,
+    )
+    assert process.returncode == 91
+    assert not (root / "AramHex.exe").exists()
+    assert patch.take_failure(root)
+    assert (root / patch.BACKUP / "AramHex.exe").read_bytes() == b"old"
+    assert (root / patch.STAGING / "AramHex.exe").read_bytes() == b"new"
 
 
 @win

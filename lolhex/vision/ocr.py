@@ -42,7 +42,14 @@ class TextLine:
         return self.box[3] - self.box[1]
 
 
-THREADS = {"EngineConfig.onnxruntime.intra_op_num_threads": 1, "EngineConfig.onnxruntime.inter_op_num_threads": 1}
+# Keep OCR inference single-threaded and process recognition in one crop at a time.
+# The latter lowers peak ONNX allocations on long-running, low-memory clients.
+THREADS = {
+    "EngineConfig.onnxruntime.intra_op_num_threads": 1,
+    "EngineConfig.onnxruntime.inter_op_num_threads": 1,
+    "Rec.rec_batch_num": 1,
+    "Cls.cls_batch_num": 1,
+}
 
 
 @dataclass(frozen=True)

@@ -104,6 +104,60 @@ def store(tmp_path, no_network):
     return PublicStore(root, bundled=bundled, check_updates=False)
 
 
+SITE, BACKUP_SITE = "https://site.example", "https://backup.example"
+
+
+class FakeOfficial:
+    """官方模块的替身：公开源码里没有真的。files 是官网上的资源 {(kind, name): 内容}，没有的 404；
+    down 为真时连不上（真模块这时返回 503）。"""
+    API = 2
+
+    def __init__(self):
+        self.files, self.calls, self.down, self.log_status = {}, [], False, 204
+        self.rank_calls, self.rank_result = [], (200, {})
+
+    def sites(self):
+        return [SITE, BACKUP_SITE]
+
+    def urls(self, kind, sites, version=""):
+        path = {"latest": "/u/latest.json", "update": f"/u/{version}"}[kind]
+        return [s + path for s in sites]
+
+    def resource(self, kind, name, sites, *, method="GET", body=b"", byte_range=None, etag=None, timeout=10):
+        self.calls.append((kind, name, list(sites), method, body, byte_range, timeout))
+        if isinstance(self.down, Exception):
+            raise self.down
+        if self.down:
+            return 503, b"", {}
+        if kind == "logs":
+            return self.log_status, b"", {}
+        data = self.files.get((kind, name))
+        if data is None:
+            return 404, b"", {}
+        if byte_range is None:
+            return 200, data, {}
+        first, last = (int(x) for x in byte_range[len("bytes="):].split("-"))
+        if first >= len(data):
+            return 416, b"", {"Content-Range": f"bytes */{len(data)}"}
+        part = data[first:last + 1]
+        return 206, part, {"Content-Range": f"bytes {first}-{first + len(part) - 1}/{len(data)}"}
+
+    def rank(self, riot_id, sites, timeout):
+        self.rank_calls.append((riot_id, list(sites)))
+        if isinstance(self.rank_result, Exception):
+            raise self.rank_result
+        return self.rank_result
+
+
+@pytest.fixture(autouse=True)
+def fake_official(monkeypatch, request):
+    """默认按官方安装包测；标记 source 的用例按公开源码（没有官方模块）测。"""
+    from lolhex import official
+    fake = None if "source" in request.keywords else FakeOfficial()
+    monkeypatch.setattr(official, "_impl", fake)
+    return fake
+
+
 @pytest.fixture(autouse=True)
 def _no_site(monkeypatch, request):
     """测试不连真的官网镜像；要测镜像的用例自己给地址（标记 site）。"""
@@ -118,6 +172,7 @@ def _no_site(monkeypatch, request):
 
 def pytest_configure(config):
     config.addinivalue_line("markers", "site: 允许连（假的）官网镜像")
+    config.addinivalue_line("markers", "source: 没有官方模块（从源码运行、自己打包）")
 
 
 @pytest.fixture(autouse=True)

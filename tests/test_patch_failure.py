@@ -24,6 +24,18 @@ def test_take_failure_keeps_backup_only_when_rollback_incomplete(tmp_path):
     assert not (tmp_path / patch.BACKUP).exists()
 
 
+def test_take_failure_preserves_interrupted_update(monkeypatch, tmp_path):
+    for folder in (patch.STAGING, patch.BACKUP):
+        (tmp_path / folder).mkdir()
+    (tmp_path / patch.ROLLBACK_INCOMPLETE).write_text(patch.UPDATE_INTERRUPTED, encoding="utf-8-sig")
+    assert patch.rollback_incomplete(tmp_path)
+    assert "已保留" in patch.take_failure(tmp_path)
+    assert all((tmp_path / folder).is_dir() for folder in (patch.STAGING, patch.BACKUP))
+    monkeypatch.setattr(patch, "fetch_manifest", lambda *a, **k: pytest.fail("不该联网"))
+    with pytest.raises(patch.IncompleteRollback):
+        patch.prepare("9.9.9", root=tmp_path)
+
+
 def test_apply_script_kills_stuck_process_and_retries():
     s = patch.apply_script(patch.Path("C:/x"), ["a.exe"], [], 1234, "9.9.9", "C:/x/a.exe")
     assert "Stop-Process -Id $pid0" in s and "Move-Retry" in s

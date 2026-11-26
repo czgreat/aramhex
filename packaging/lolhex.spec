@@ -7,9 +7,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(SPEC).parent))
 from binary_provenance import check_binary_sources
+from version_resource import version_resource
 
 datas = collect_data_files("rapidocr")  # OCR 模型（.onnx）与配置（.yaml）
-datas += [("../lolhex/ui/icon.png", "lolhex/ui")]
+datas += [("../lolhex/ui/*.png", "lolhex/ui")]  # 程序图标、界面样式用的小图标
 datas += [("../lolhex/data/hero_aliases.json", "lolhex/data")]  # 英雄别名（来源 Hexdata）
 datas += [("../lolhex/data/bundled", "lolhex/data/bundled")]  # 内置统计数据（scripts/update_data.py）
 datas += [("../lolhex/data/hero_nicknames.json", "lolhex/data")]  # 英雄外号（网上常见叫法）
@@ -23,6 +24,9 @@ datas += [("../lolhex/data/item_icons.json", "lolhex/data")]  # 装备、召唤�
 datas += [("../lolhex/data/cacert.pem", "lolhex/data")]  # 根证书（去掉 eMudhra，scripts/make_cacert.py）
 binaries = collect_dynamic_libs("onnxruntime")
 
+# 官方模块（不公开）：有就收进 _internal/lolhex/，没有就打普通包
+official = ["lolhex._official"] if list(Path(SPEC).parent.parent.glob("lolhex/_official*.pyd")) else []
+
 a = Analysis(
     ["launcher.py"],
     pathex=[".."],
@@ -30,7 +34,7 @@ a = Analysis(
     datas=datas,
     hiddenimports=["lolhex.ui.overlay", "lolhex.vision.detector", "lolhex.vision.capture", "lolhex.vision.ocr",
                    "lolhex.ui.mainwindow", "lolhex.ui.autostart",
-                   "PySide6.QtNetwork"],
+                   "PySide6.QtNetwork"] + official,
     excludes=["tkinter", "matplotlib", "IPython", "pytest"],
     noarchive=False,
 )
@@ -59,6 +63,6 @@ exe = EXE(
     name="AramHex",
     console=False,
     icon="lolhex.ico",
-    version=None,
+    version=version_resource(Path(SPEC).parent.parent),  # 右键属性里的版本；官方包的构建也会检查有没有
 )
 coll = COLLECT(exe, a.binaries, a.datas, name="AramHex")

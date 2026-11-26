@@ -25,7 +25,7 @@ from pathlib import Path
 
 import requests
 
-from . import GITHUB_REPO, MIRROR, RELEASES_PAGE, WEBSITE, cloud
+from . import GITHUB_REPO, RELEASES_PAGE, cloud, official
 
 log = logging.getLogger(__name__)
 API = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
@@ -36,13 +36,12 @@ _VERSION = re.compile(r'^__version__\s*=\s*"([0-9][0-9A-Za-z.\-]*)"', re.M)
 
 
 PROBE_HOSTS: tuple[str, ...] = ()  # 同上，按 tag 试探的镜像主机
-SITE_LATEST = f"{MIRROR}/latest.json"
-DOWNLOAD_PAGE = f"{WEBSITE}/#download"
+SITE_LATEST = "official"  # 按官方模块给的地址问
 
 
 def download_page() -> str:
-    """官网下载页（云控换了官网地址就用新的）。"""
-    return f"{cloud.site()}/#download"
+    """官网下载页（云控换了官网地址就用新的）；没有官方模块时是 GitHub 发布页。"""
+    return f"{cloud.site()}/#download" if official.available() else RELEASES_PAGE
 SLOW_BPS = 150 * 1024    # 整包下载：前 SLOW_AFTER_S 秒平均低于这个速度就放弃，改让用户去网盘
 SLOW_AFTER_S = 12
 
@@ -58,17 +57,31 @@ def pan_links(timeout: float = 6) -> dict:
     return {k: str(d[k]) for k in ("setup", "portable") if d.get(k)}
 
 
-def check_site(current: str, timeout: float = 6, url: str = SITE_LATEST) -> dict | None:
+class NotOfficial(Exception):
+    """自己打的包不自动更新，免得被换成官方包。"""
+
+
+def check_site(current: str, timeout: float, url: str) -> dict | None:
     """官网镜像上的最新版本（从 GitHub Release 同步：版本、说明、安装包名、SHA-256、GitHub 下载地址）。"""
-    r = requests.get(url, headers=cloud.headers(url), timeout=timeout)
+    r = cloud.get_update(url, timeout=timeout)
     r.raise_for_status()
     j = r.json()
-    version = str(j["version"]).lstrip("vV")
+    if not isinstance(j, dict) or not isinstance(j.get("version"), str):
+        raise ValueError("官网更新信息格式不对")
+    version = j["version"].lstrip("vV")
+    if not _PRE.fullmatch(version):
+        raise ValueError("官网更新版本号格式不对")
     if not is_newer(version, current):
         return None
-    s = j.get("setup") or {}
+    s = j.get("setup")
+    if s is None:
+        s = {}
+    if not isinstance(s, dict):
+        raise ValueError("官网安装包信息格式不对")
+    name, download_url = s.get("name"), s.get("url")
     sha = str(s.get("sha256") or "").lower()
-    ok = bool(FILE_RE.match(str(s.get("name") or "")) and re.fullmatch(r"[0-9a-f]{64}", sha) and s.get("url"))
+    ok = bool(isinstance(name, str) and FILE_RE.fullmatch(name) and re.fullmatch(r"[0-9a-f]{64}", sha)
+              and isinstance(download_url, str) and download_url)
     return {"version": version, "file": s.get("name") if ok else None, "sha256": sha if ok else None,
             "size": s.get("size") if ok else None, "url": s.get("url") if ok else None,
             "notes": str(j.get("notes") or "").strip()[:600], "page": RELEASES_PAGE, "mirror": not ok}
@@ -118,7 +131,7 @@ def check_mirror(current: str, timeout: float = 8, mirrors=VERSION_MIRRORS, prob
     from concurrent.futures import ThreadPoolExecutor
 
     def alias(url):
-        r = requests.get(url, headers=cloud.headers(url), timeout=timeout)
+        r = requests.get(url, headers=cloud.headers(), timeout=timeout)
         r.raise_for_status()
         m = _VERSION.search(r.text)
         if not m:
@@ -180,7 +193,7 @@ def _sha_from_sums(assets: list[dict], name: str, timeout: float) -> str | None:
     sums = next((a for a in assets if a.get("name") == SUMS), None)
     if not sums:
         return None
-    r = requests.get(sums["browser_download_url"], headers=cloud.headers(sums["browser_download_url"]), timeout=timeout)
+    r = requests.get(sums["browser_download_url"], headers=cloud.headers(), timeout=timeout)
     r.raise_for_status()
     for line in r.text.splitlines():
         parts = line.strip().split()
@@ -193,14 +206,19 @@ def check(current: str, timeout: float = 8, strict: bool = False, api: str = API
           mirrors=VERSION_MIRRORS, probe_hosts=PROBE_HOSTS, site: str | None = SITE_LATEST) -> dict | None:
     """有新版本返回它的信息，没有或查不到返回 None。先问官网，不通再问 GitHub（传入镜像时最后问镜像）。
     strict=True（用户手动点"检查更新"）时查不到就抛异常，好告诉用户是没新版本还是没连上。
-    site 用默认值时按云控的官网地址顺序问（换了新官网先问新的，内置 aramhex.com 最后）。"""
-    for url in ([f"{s}/u/latest.json" for s in cloud.sites()] if site == SITE_LATEST else [site] if site else []):
+    site 用默认值时按云控的官网地址顺序问（换了新官网先问新的，内置的最后）。
+    没有官方模块（自己打的包）不查；官方包的模块坏了照常查 GitHub，好让它更新回来。"""
+    if not official.updatable():
+        if strict:
+            raise NotOfficial("这不是官方安装包，不会自动更新")
+        return None
+    for url in (official.urls("latest", cloud.sites()) if site == SITE_LATEST else [site] if site else []):
         try:
             return check_site(current, min(timeout, 6), url)
         except (requests.RequestException, ValueError, KeyError, TypeError) as e:
             log.info("官网查更新失败（%s），换下一个：%s", url, e)
     try:
-        r = requests.get(api, headers=cloud.headers(api, Accept="application/vnd.github+json"), timeout=timeout)
+        r = requests.get(api, headers=cloud.headers(Accept="application/vnd.github+json"), timeout=timeout)
         if r.status_code == 404:
             return None  # 还没有发布过
         r.raise_for_status()
@@ -237,7 +255,7 @@ def check(current: str, timeout: float = 8, strict: bool = False, api: str = API
 
 def download(info: dict, progress=None, folder: Path | None = None, slow_bps: float = SLOW_BPS,
              slow_after_s: float = SLOW_AFTER_S) -> Path:
-    """下载安装包并核对 SHA-256；不一致就删掉并报错。progress(已下载字节, 总字节)。
+    """下载安装包，核对 SHA-256 后再替换目标文件。progress(已下载字节, 总字节)。
     下了 slow_after_s 秒平均速度还低于 slow_bps 就停下，抛 SlowDownload（国内连 GitHub 常见）。"""
     import time
     folder = Path(folder or Path(tempfile.gettempdir()) / "aramhex-update")
@@ -246,24 +264,28 @@ def download(info: dict, progress=None, folder: Path | None = None, slow_bps: fl
     h = hashlib.sha256()
     done = 0
     start = time.monotonic()
-    with requests.get(info["url"], stream=True, timeout=(15, 30), headers=cloud.headers(info["url"])) as r:
-        r.raise_for_status()
-        total = int(r.headers.get("Content-Length") or info.get("size") or 0)
-        with open(dest, "wb") as f:
-            for chunk in r.iter_content(1 << 20):
-                f.write(chunk)
-                h.update(chunk)
-                done += len(chunk)
-                if progress:
-                    progress(done, total)
-                spent = time.monotonic() - start
-                if slow_bps and spent >= slow_after_s and done / spent < slow_bps and done < total:
-                    f.close()
-                    dest.unlink(missing_ok=True)
-                    raise SlowDownload(f"下载太慢（{done / spent / 1024:.0f}KB/s）")
-    if h.hexdigest() != info["sha256"]:
-        dest.unlink(missing_ok=True)
-        raise ValueError("安装包校验失败（下载不完整或文件被改过）")
+    staged = None
+    try:
+        with cloud.get_update(info["url"], stream=True, timeout=(15, 30)) as r:
+            r.raise_for_status()
+            total = int(r.headers.get("Content-Length") or info.get("size") or 0)
+            with tempfile.NamedTemporaryFile(dir=folder, suffix=".part", delete=False) as f:
+                staged = Path(f.name)
+                for chunk in r.iter_content(1 << 20):
+                    f.write(chunk)
+                    h.update(chunk)
+                    done += len(chunk)
+                    if progress:
+                        progress(done, total)
+                    spent = time.monotonic() - start
+                    if slow_bps and spent >= slow_after_s and done / spent < slow_bps and done < total:
+                        raise SlowDownload(f"下载太慢（{done / spent / 1024:.0f}KB/s）")
+        if h.hexdigest() != info["sha256"]:
+            raise ValueError("安装包校验失败（下载不完整或文件被改过）")
+        staged.replace(dest)
+    finally:
+        if staged is not None:
+            staged.unlink(missing_ok=True)
     return dest
 
 

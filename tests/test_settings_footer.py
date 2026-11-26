@@ -18,8 +18,11 @@ def mw(tmp_path, monkeypatch):
     from lolhex.config import Settings
     from lolhex.engine import Engine
     from lolhex.ui.mainwindow import MainWindow
+    from lolhex.ui import theme
     from lolhex.ui.overlay import Overlay
 
+    old = app.style().objectName(), app.palette(), app.styleSheet()
+    theme.apply(app)  # 按真实外观量尺寸
     settings = Settings.load()
     settings.seen_welcome = True
     engine = Engine(settings)
@@ -38,6 +41,10 @@ def mw(tmp_path, monkeypatch):
     overlay.badges.deleteLater()
     overlay.champ.deleteLater()
     engine.stop()
+    app.removeTranslator(app._zh)
+    app.setStyleSheet(old[2])
+    app.setStyle(QtWidgets.QStyleFactory.create(old[0]) or "Fusion")
+    app.setPalette(old[1])
     app.processEvents()
 
 

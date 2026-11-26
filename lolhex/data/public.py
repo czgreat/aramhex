@@ -9,7 +9,7 @@
 两个来源，用样本更新的那份：
 - 安装包内置：lolhex/data/bundled/（发版时由 scripts/update_data.py 放进来）；
 - 下载的：<app_home>/data/public/（启动时查数据仓库的 latest.json，有新数据就下载，逐个文件校验 SHA-256）。
-  客户端只访问云控配置的自有服务器地址。
+  官方安装包先用官网，连不上用 GitHub 数据仓库；公开源码只用 GitHub 数据仓库。
 
 官方资料（英雄、海克斯字典、出装、加点）仍由父类 DataStore 直接从腾讯取。
 """
@@ -28,7 +28,7 @@ from urllib.parse import unquote
 
 import requests
 
-from .. import DATA_REPO, MIRROR, cloud
+from .. import DATA_REPO, cloud, official
 from . import http
 from .store import DataStore, _read
 
@@ -49,9 +49,8 @@ def norm_band(band):
 EQUIPMENT_BANDS = ("high",)
 ALL_LABEL = "全体"
 BUNDLED_DIR = Path(__file__).with_name("bundled")
-# 保留常量名供旧测试/工具导入，但默认线路绝不访问外部代码托管或 CDN。
 RAW_BASE = f"https://raw.githubusercontent.com/{DATA_REPO}/main"
-DATA_SOURCES: list[str] = []
+DATA_SOURCES: list[str] = [RAW_BASE]
 # 旧版的 tag 探测只对显式传入的测试地址启用；正式默认配置没有外部 tag 主机。
 DATA_TAG_HOSTS: tuple[str, ...] = ()
 DATA_TAG_FMT = "https://{host}/gh/" + DATA_REPO + "@data-v{seq}"
@@ -291,6 +290,15 @@ def load_best(folders: list[tuple[Path, str]]) -> Dataset | None:
     return best
 
 
+def _cached_folders(dest: Path) -> list[tuple[Path, str]]:
+    """切换中断后，现用目录可能还没就位，先用已保存的上一个版本。"""
+    if dest.exists():
+        return [(dest, "downloaded")]
+    prefix = dest.name + ".previous-"
+    return [(folder, "downloaded") for folder in sorted(dest.parent.glob(prefix + "*"), reverse=True)
+            if folder.name.removeprefix(prefix).isdecimal()]
+
+
 def newer_manifest(remote: dict, current: Dataset | None) -> bool:
     """样本时间优先；同快照按发布序号防回退，再兼容同序号内容修订。"""
     if current is None:
@@ -344,6 +352,18 @@ def unpack(blob: bytes) -> dict[str, bytes]:
     return out
 
 
+def _fetch_file(url: str, timeout: float, on_bytes, maximum: int | None = None) -> bytes:
+    if official.is_resource(url):
+        kind, name = official.split(url)
+        return official.download(kind, name, cloud.sites(), on_bytes, maximum)
+    return http.fetch(url, timeout=timeout, headers=cloud.headers(), on_bytes=on_bytes)
+
+
+def _line_name(base: str) -> str:
+    """线路名，写在「没连上」的说明里。"""
+    return "官网" if official.is_resource(base) else base.split("/")[2]
+
+
 def download(base_url: str, manifest: dict, dest: Path, timeout: float = 30, progress=None) -> None:
     """按清单下载一份数据到 dest（先写到旁边的临时目录，全部校验通过才换上）。progress(已下载字节, 总字节)。
     先试官网镜像上的压缩包（约小一半），还原后按清单逐个核对 SHA-256；没有或不对就逐个文件下载。"""
@@ -363,8 +383,7 @@ def download(base_url: str, manifest: dict, dest: Path, timeout: float = 30, pro
             progress(done[0], total)
     files = None
     try:
-        files = unpack(http.fetch(f"{base_url}/{path}.pack.xz", timeout=timeout, headers=cloud.headers(base_url + "/"),
-                                  on_bytes=lambda n: progress and progress(0, 0)))
+        files = unpack(_fetch_file(f"{base_url}/{path}.pack.xz", timeout, lambda n: progress and progress(0, 0)))
         log.info("统计数据用压缩包下载：%s", base_url)
     except Exception as e:
         log.debug("没有可用的压缩包（%s），逐个文件下载", e)
@@ -375,8 +394,8 @@ def download(base_url: str, manifest: dict, dest: Path, timeout: float = 30, pro
                 if files:
                     log.info("压缩包里的 %s 对不上，改为逐个文件下载", name)
                     files = None
-                body = http.fetch(f"{base_url}/{path}/{name}", timeout=timeout, headers=cloud.headers(base_url + "/"),
-                                  on_bytes=on_bytes)
+                body = _fetch_file(f"{base_url}/{path}/{name}", timeout, on_bytes,
+                                   f["size"] if type(f.get("size")) is int else None)
             if hashlib.sha256(body).hexdigest() != f["sha256"] or ("size" in f and len(body) != f["size"]):
                 raise DatasetError(f"{name} 校验不对（下载不完整或文件被改过）")
             out = _dataset_file(tmp, name)
@@ -385,10 +404,15 @@ def download(base_url: str, manifest: dict, dest: Path, timeout: float = 30, pro
         (tmp / "latest.json").write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
         Dataset(tmp, "downloaded")  # 整份再核一遍（含可消费结构）
         old = dest.with_name(dest.name + ".old")
-        shutil.rmtree(old, ignore_errors=True)
         if dest.exists():
+            shutil.rmtree(old, ignore_errors=True)
             dest.rename(old)
-        tmp.rename(dest)
+        try:
+            tmp.rename(dest)
+        except OSError:
+            if not dest.exists() and old.exists():
+                old.rename(dest)
+            raise
         shutil.rmtree(old, ignore_errors=True)
     except BaseException:
         shutil.rmtree(tmp, ignore_errors=True)
@@ -412,8 +436,7 @@ class PublicStore(DataStore):
         self.check_updates = check_updates
         if base_url is None:
             from .. import cloud
-            site = [f"{s}/u/data" for s in cloud.sites()]  # 云控换了官网地址时新的在前，内置在后
-            urls = list(dict.fromkeys([u.rstrip("/") for u in cloud.mirrors("data")] + site + DATA_SOURCES))
+            urls = list(dict.fromkeys([u.rstrip("/") for u in cloud.mirrors("data")] + official.sources("data") + DATA_SOURCES))
         else:
             urls = [base_url] if isinstance(base_url, str) else base_url
         self.base_urls = [u.rstrip("/") for u in urls]
@@ -442,10 +465,10 @@ class PublicStore(DataStore):
         """重新挑选数据；换了一份返回 True。有活动且有活动数据时用活动的，否则用常规的。"""
         if self.hold():
             return False
-        ds = load_best([(self.downloaded, "downloaded"), (self.bundled, "bundled")])
+        ds = load_best(_cached_folders(self.downloaded) + [(self.bundled, "bundled")])
         self.event_fallback = False
         if self.event:
-            ev = load_best([(self.event_dir, "downloaded")])
+            ev = load_best(_cached_folders(self.event_dir))
             if ev is not None and ev.mode == self.event["mode"]:
                 ds = ev
             else:
@@ -469,6 +492,8 @@ class PublicStore(DataStore):
             promoted = False
             for dest in (self.downloaded, self.event_dir):
                 pending = dest.with_name(dest.name + "-pending")
+                if not pending.exists():
+                    pending = pending.with_name(pending.name + ".old")
                 if not (pending / "latest.json").is_file():
                     continue
                 try:
@@ -478,7 +503,8 @@ class PublicStore(DataStore):
                     log.warning("下载的统计数据不完整，删掉重下：%s", e)
                     shutil.rmtree(pending, ignore_errors=True)
                     continue
-                folders = [(dest, "downloaded")]
+                folders = _cached_folders(dest)
+                old_folders = [folder for folder, _ in folders if folder != dest]
                 if dest == self.downloaded:
                     folders.append((self.bundled, "bundled"))
                 current = load_best(folders)
@@ -488,14 +514,15 @@ class PublicStore(DataStore):
                 backup = dest.with_name(dest.name + f".previous-{time.time_ns()}") if dest.exists() else None
                 if backup is not None:
                     dest.rename(backup)
+                    old_folders.append(backup)
                 try:
                     pending.rename(dest)
                 except OSError:
                     if backup is not None:
                         backup.rename(dest)
                     raise
-                if backup is not None:
-                    shutil.rmtree(backup, ignore_errors=True)  # 换成功了，旧的一份不用留（每次更新约 3 MB）
+                for folder in old_folders:
+                    shutil.rmtree(folder, ignore_errors=True)  # 换成功了，旧的不用留
                 promoted = True
             if not promoted or not self.reload_dataset():
                 return False
@@ -541,7 +568,7 @@ class PublicStore(DataStore):
                 try:
                     changed = self._sync_from(base)
                 except Exception as e:
-                    errors.append(f"{base.split('/')[2]}：{e}")
+                    errors.append(f"{_line_name(base)}：{e}")
                     log.info("从 %s 检查统计数据更新失败：%s", base, e)
                     continue
                 self.data_source, self.sync_error = base, None
@@ -563,13 +590,20 @@ class PublicStore(DataStore):
         seq = self.dataset.seq if self.dataset else 0
         for host in self.tag_hosts:
             best, k, answered = None, seq + 1, False
+            skipped_missing = False
             for _ in range(steps):
                 base = self.tag_fmt.format(host=host, seq=k)
                 try:
-                    r = requests.get(f"{base}/latest.json", headers=cloud.headers(base + "/"), timeout=15)
+                    r = requests.get(f"{base}/latest.json", headers=cloud.headers(), timeout=15)
                 except requests.RequestException:
                     break
                 answered = True
+                # A side dataset may consume a sequence without a normal data tag.
+                # Allow one explicit missing tag, never a bad/mismatched manifest.
+                if r.status_code in (404, 410) and not skipped_missing:
+                    skipped_missing = True
+                    k += 1
+                    continue
                 try:
                     ok = r.status_code == 200 and int(r.json().get("seq") or 0) == k
                 except ValueError:
@@ -585,7 +619,7 @@ class PublicStore(DataStore):
         # 活动包和常规包的 seq 各自比较，不能拿活动序号判断常规包的新旧。
         current = self.dataset
         if current is not None and current.mode != "normal":
-            current = load_best([(self.downloaded, "downloaded"), (self.bundled, "bundled")])
+            current = load_best(_cached_folders(self.downloaded) + [(self.bundled, "bundled")])
         return newer_manifest(remote, current)
 
     @staticmethod
@@ -604,7 +638,7 @@ class PublicStore(DataStore):
         """关了自动更新时：只读清单，看看有没有更新的数据（不下载）。连不上就算了，下次再看。"""
         for base in self.base_urls:
             try:
-                r = requests.get(f"{base}/latest.json", headers=cloud.headers(base + "/"), timeout=15)
+                r = cloud.fetch(f"{base}/latest.json")
                 r.raise_for_status()
                 remote = check_manifest(r.json())
             except Exception as e:
@@ -618,7 +652,7 @@ class PublicStore(DataStore):
             return
 
     def _sync_from(self, base: str) -> bool:
-        r = requests.get(f"{base}/latest.json", headers=cloud.headers(base + "/"), timeout=15)
+        r = cloud.fetch(f"{base}/latest.json")
         r.raise_for_status()
         remote = check_manifest(r.json())
         if not self._newer(remote):
@@ -634,7 +668,7 @@ class PublicStore(DataStore):
 
     def _sync_event(self, base: str) -> bool:
         """活动期间：从数据仓库的 index.json 找同一规则最新的一份，下载到 public-event/。"""
-        r = requests.get(f"{base}/index.json", headers=cloud.headers(base + "/"), timeout=15)
+        r = cloud.fetch(f"{base}/index.json")
         r.raise_for_status()
         idx = r.json()
         cands = [dict(d, schema_version=d.get("schema_version", idx.get("schema_version")))
@@ -643,7 +677,7 @@ class PublicStore(DataStore):
             return False
         remote = max(cands, key=lambda d: (str(d.get("snapshot_at") or ""), str(d.get("patch") or ""),
                                           int(d.get("seq") or 0)))
-        cur = load_best([(self.event_dir, "downloaded")])
+        cur = load_best(_cached_folders(self.event_dir))
         if cur and cur.mode == self.event["mode"] and not newer_manifest(remote, cur):
             return False
         log.info("下载活动数据：%s %s", self.event["label"], remote.get("patch"))
@@ -832,12 +866,19 @@ class PublicStore(DataStore):
         baseline = cfg.get("baseline")
         bg, bw = (baseline.get("games"), baseline.get("wins")) if isinstance(baseline, dict) else (None, None)
         baseline_valid = type(bg) is int and bg > 0 and type(bw) is int and 0 <= bw <= bg
+        by_style = str(augment_id) == "3081" and cfg.get("recommendation_style") == "destiny_style_v1"
         rows, seen = [], set()
         for x in raw:
             if not isinstance(x, dict):
                 continue
             iid = str(x.get("item") or "")
-            if not iid.isascii() or not iid.isdigit() or len(iid) > 6 or iid in seen:
+            if not iid.isascii() or not iid.isdigit() or len(iid) > 6:
+                continue
+            style = x.get("style") if by_style else None
+            if by_style and style not in ("AD", "AP", "坦克", "辅助", "不拆"):
+                continue
+            identity = style if by_style else iid
+            if identity in seen:
                 continue
             meta = self.items.get(iid) or {}
             name = meta.get("name") or x.get("name")
@@ -848,16 +889,21 @@ class PublicStore(DataStore):
                 continue
             show = cfg.get("show_winrate", True) is True and x.get("show_winrate", True) is True
             delta = None
-            if (show and g and baseline_valid and cfg.get("show_delta", True) is True
+            if (not by_style and show and g and baseline_valid and cfg.get("show_delta", True) is True
                     and g <= bg and w <= bw and g - w <= bg - bw):
                 delta = (w / g - bw / bg) * 100
+            denominator = x.get("style_holders") if by_style else total
+            if type(denominator) is not int or denominator <= 0 or (g and g > denominator):
+                denominator = None if by_style else total
             rows.append({"item": iid, "name": name[:24], "icon": meta.get("icon"),
                          "games": g, "win": w / g if show and g else None,
                          "delta": delta,
-                         "pick": min(g / total, 1.0) if total and g else None,
+                         "pick": min(g / denominator, 1.0) if denominator and g else None,
                          "low_sample": x.get("low_sample") is True})
-            seen.add(iid)
-            if len(rows) == 3:  # 卡片另一侧的空位只放三行；人工推荐的先后顺序不重排
+            if by_style:
+                rows[-1]["style"] = style
+            seen.add(identity)
+            if len(rows) == 3:  # 发布前校验每英雄最多三行；保留数据提供的顺序
                 break
         if rows:
             return {"source": cfg["source"], "items": rows,

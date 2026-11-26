@@ -3,7 +3,7 @@
 import os as _os
 from pathlib import Path as _Path
 
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 # 测试包：packaging/build.ps1 -TestTag test.1 打包时临时生成 _build.py，版本号变成「1.1.3-test.1」。
 # 发出去的测试包比正式版 1.1.3 旧，正式版一发就会提示更新；正式发布（GitHub Actions）不生成这个文件
 try:
@@ -22,11 +22,7 @@ BETA = False
 
 GITHUB_REPO = "czgreat/aramhex"
 DATA_REPO = "czgreat/aramhex-data"
-WEBSITE = "https://aramhex.com"
-# 内置的备用官网（1.1.3）：aramhex.com 连不上、云控又没送到时去试。国内服务器备案前没解析，连不上会马上跳过
-BACKUP_SITES = ("https://aramhex.cn",)
-HELP_PAGE = f"{WEBSITE}/#faq"
-MIRROR = f"{WEBSITE}/u"
+# 官网服务器地址不在公开源码里，见 official.py
 HOMEPAGE = f"https://github.com/{GITHUB_REPO}"
 RELEASES_PAGE = f"{HOMEPAGE}/releases"
 DATA_HOMEPAGE = f"https://github.com/{DATA_REPO}"

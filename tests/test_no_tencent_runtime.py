@@ -19,7 +19,7 @@ def outbound(monkeypatch):
     monkeypatch.setattr(requests.adapters.HTTPAdapter, "send", send)
     # 云控把官方资料源和检查都打开，走一遍真实的「检查更新」路径
     monkeypatch.setattr(cloud, "get", lambda: {**cloud.DEFAULT,
-                                               "mirrors": {"update": [], "data": [], "official": ["https://aramhex.com/u/official"]},
+                                               "mirrors": {"update": [], "data": [], "official": ["https://site.example/x/official"]},
                                                "update": {**cloud.DEFAULT["update"], "official_minutes": 60}})
     return sent
 
@@ -34,5 +34,5 @@ def test_managed_store_never_contacts_tencent(tmp_path, outbound):
     icons.local("item", "3031", "https://game.gtimg.cn/images/lol/act/img/item/3031.png")
     assert outbound, "应该至少检查过一次自有服务器"
     assert not [u for u in outbound if any(d in u for d in ("qq.com", "gtimg.c"))], outbound
-    assert all(cloud.own(u) or "github" in u or "jsdelivr" in u for u in outbound), outbound  # 自己的官网（含备用 aramhex.cn）
+    assert all(cloud.own(u) or "github" in u or "jsdelivr" in u for u in outbound), outbound  # 自己的官网（含备用站）
 

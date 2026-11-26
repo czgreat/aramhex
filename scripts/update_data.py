@@ -1,6 +1,10 @@
 """把统计数据仓库里最新的一份数据放进 lolhex/data/bundled/（随安装版和便携版内置）。
 
-    python scripts/update_data.py                      # 从自有服务器下载最新统计包
+    python scripts/update_data.py                      # 下载最新统计包
+
+通常先更新数据再打包。官方标记由打包脚本临时写入，因此打包前默认从 GitHub 数据仓库下载；
+只有当前环境有官方标记且官方模块可用，才优先从官网取数据。也可以使用本地克隆：
+
     python scripts/update_data.py --from ../aramhex-data   # 用本地克隆
 
 每个文件都按 latest.json 里的 SHA-256 校验；校验不过就不改 bundled/。
@@ -19,7 +23,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from lolhex import cloud  # noqa: E402
-from lolhex.data.public import Dataset, check_manifest, newer_manifest  # noqa: E402
+from lolhex.data.public import DATA_SOURCES, Dataset, check_manifest, newer_manifest  # noqa: E402
 
 BUNDLED = ROOT / "lolhex" / "data" / "bundled"
 
@@ -42,14 +46,13 @@ def _bundled_dataset():
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="更新内置统计数据")
-    ap.add_argument("--from", dest="src", type=Path, help="本地统计数据目录（不填则从自有服务器下载）")
+    ap.add_argument("--from", dest="src", type=Path, help="本地统计数据仓库目录（不填则按当前环境选择下载来源）")
     args = ap.parse_args(argv)
     if args.src:
         manifest = json.loads((args.src / "latest.json").read_text(encoding="utf-8"))
         read = lambda name: (args.src / manifest["path"] / name).read_bytes()  # noqa: E731
     else:
-        sources = list(dict.fromkeys([u.rstrip("/") for u in cloud.mirrors("data")] +
-                                     [f"{s.rstrip('/')}/u/data" for s in cloud.sites()]))
+        sources = list(dict.fromkeys([u.rstrip("/") for u in cloud.mirrors("data")] + DATA_SOURCES))
         errors = []
         for base in sources:
             try:
@@ -58,7 +61,7 @@ def main(argv=None) -> int:
             except Exception as exc:
                 errors.append(f"{base}: {exc}")
         else:
-            raise RuntimeError("自有服务器统计数据不可用：" + "; ".join(errors))
+            raise RuntimeError("统计数据不可用：" + "; ".join(errors))
         read = lambda name: _get(f"{base}/{manifest['path']}/{name}")  # noqa: E731
     check_manifest(manifest)
     current = _bundled_dataset()

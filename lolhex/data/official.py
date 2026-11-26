@@ -22,7 +22,7 @@ from urllib.parse import unquote, urlsplit
 
 import requests
 
-from .. import __version__, cloud
+from .. import __version__, cloud, official
 
 log = logging.getLogger(__name__)
 SCHEMA_VERSION = 1
@@ -279,7 +279,8 @@ class ManagedOfficial:
                  allow_http_local: bool = False):
         self.root = Path(root)
         self.minutes = minutes or cloud.official_minutes
-        self.sources = sources or (lambda: cloud.mirrors("official"))
+        self.sources = sources or (lambda: list(dict.fromkeys(
+            cloud.mirrors("official") + official.sources("official"))))
         self.hold = hold or (lambda: False)
         self.clock = clock
         self.session = session or requests.Session()
@@ -357,6 +358,9 @@ class ManagedOfficial:
         for value in self.sources() or []:
             if not isinstance(value, str):
                 continue
+            if official.sources("official") == [value]:
+                urls.append(value)
+                continue
             try:
                 u = urlsplit(value)
             except ValueError:
@@ -385,8 +389,11 @@ class ManagedOfficial:
         return max(0.0, since + wait * 60 - now)
 
     def _get(self, url: str, maximum: int) -> bytes:
+        if official.is_resource(url):
+            kind, name = official.split(url)
+            return official.download(kind, name, cloud.sites(), maximum=maximum)
         response = self.session.get(url, timeout=(5, 15), stream=True, allow_redirects=False,
-                                    headers=cloud.headers(url))
+                                    headers=cloud.headers())
         try:
             if response.status_code != 200:
                 raise OfficialDataError(f"官方资料 HTTP {response.status_code}")

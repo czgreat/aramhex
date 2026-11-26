@@ -27,6 +27,14 @@ def _vision_check() -> dict:
             "ocr_ok": bool(ok) and "2026" in text and any("2026" in ln.text for ln in lines)}
 
 
+def _theme_check(app) -> bool:
+    """界面样式能用上，小图标都打进包了。"""
+    from PySide6.QtGui import QPixmap
+    from .ui import theme
+    theme.apply(app)
+    return all(not QPixmap(theme.asset(f"{n}{x}.png")).isNull() for n in ("check", "chevron") for x in ("", "@2x", "@3x"))
+
+
 def run(report_path: str) -> int:
     report = {"success": False}
     try:
@@ -34,7 +42,7 @@ def run(report_path: str) -> int:
         from PySide6.QtGui import QPixmap
         from PySide6.QtNetwork import QNetworkAccessManager
         from PySide6.QtWidgets import QApplication, QWidget
-        from . import __version__
+        from . import __version__, official
         app = QApplication([])
         widget = QWidget()
         widget.resize(32, 32)
@@ -43,11 +51,12 @@ def run(report_path: str) -> int:
         widget.render(pixmap)
         network = QNetworkAccessManager()
         app.processEvents()
-        report.update(version=__version__, qt=qVersion(), platform=app.platformName(),
+        report.update(version=__version__, official=official.available(), qt=qVersion(), platform=app.platformName(),
                       network_class=network.metaObject().className(), gui_ok=not pixmap.isNull())
         widget.close()
         report.update(_vision_check())
-        report["success"] = report["gui_ok"] and report["ocr_ok"]
+        report["theme_ok"] = _theme_check(app)
+        report["success"] = report["gui_ok"] and report["ocr_ok"] and report["theme_ok"]
         app.quit()
     except Exception:
         report["error"] = traceback.format_exc()

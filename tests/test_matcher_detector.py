@@ -98,6 +98,8 @@ def test_ocr_uses_one_thread(monkeypatch):
     for p in seen:
         assert p["EngineConfig.onnxruntime.intra_op_num_threads"] == 1
         assert p["EngineConfig.onnxruntime.inter_op_num_threads"] == 1
+        assert p["Rec.rec_batch_num"] == 1
+        assert p["Cls.cls_batch_num"] == 1
 
 
 def test_ocr_sessions_really_single_thread():

@@ -54,7 +54,7 @@ def test_settings_page_hides_hotkey_and_explains_mouse(mw, monkeypatch):
     monkeypatch.setattr(cloud, "get", lambda: cloud._merge(cfg))
     window._show_hotkey_row()
     assert window.hotkey_box.isHidden() and window.hotkey_label.isHidden()
-    assert not window.corner_hint.isHidden() and "鼠标移到" in window.corner_hint.text()
+    assert not window.corner_hint.isHidden() and "鼠标移过去" in window.corner_hint.text()
     cfg["features"]["overlay_hotkey"] = True
     window._apply_cloud(cfg)
     assert not window.hotkey_box.isHidden() and not window.hotkey_label.isHidden()

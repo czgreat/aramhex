@@ -290,7 +290,9 @@ def parse_hero_hex(raw: dict) -> dict:
         for rec in str(fv.get(key, "")).split("#"):
             f = rec.split("$")
             if len(f) >= 3:
-                items = [x for x in f[0].split(",") if x]
+                items = [item.strip() for item in f[0].split(",") if item.strip()]
+                if not items:
+                    continue
                 res.append({("items" if multi else "item"): items if multi else items[0],
                             "pick": _f(f[1]), "win": _f(f[2])})
         return res

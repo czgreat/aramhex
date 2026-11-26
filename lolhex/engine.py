@@ -74,7 +74,8 @@ def augment_matcher(store, settings) -> NameMatcher:
         if aid in names:
             n = names[aid]
             names[aid] = (n if isinstance(n, list) else [n]) + extra
-    return NameMatcher(names, settings.match_threshold, min_margin=6.0)
+    return NameMatcher(names, settings.match_threshold, min_margin=6.0,
+                       trad=None if foreign else i18n.trad_chars(), trad_skip=i18n.trad_skip())
 
 
 def pick_my_hero(found: list[tuple[str, float, int]]) -> tuple[str | None, list[str]]:
